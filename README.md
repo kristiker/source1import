@@ -12,6 +12,8 @@ Usage: Run the script with material files or directories contaioning them as arg
 Generates a .vmdl file that will tell Source 2 to import its accompanying .mdl file.
 You must leave the original .mdl files for the .vmdls to compile.
 
+Run the script with a __directory__ like `py mdl_to_vmdl.py models` and it will fill that directoy with .vmdls. Make sure you leave all the MDLs in tact so Source 2 can convert them.
+
 ## qc_to_vmdl.py
 
 (deprecated)
