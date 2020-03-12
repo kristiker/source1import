@@ -1,0 +1,1 @@
+gameContentRoot = C:\Program Files (x86)\Steam\steamapps\common\SteamVR\tools\steamvr_environments\content\steamtours_addons\
