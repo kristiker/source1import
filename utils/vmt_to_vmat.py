@@ -47,10 +47,14 @@ materialTypes = [
 "unlitgeneric",
 "lightmappedgeneric",
 "patch",
+"teeth",
+"eyes",
+"eyeball",
 #"modulate",
 #"water", #TODO: integrate water/refract shaders into this script
-#"refract"
+"refract",
 #"lightmapped_4wayblend",
+#"unlittwotexture", #TODO: Fix this one too, used by some hl2 mats
 #"lightmappedreflective",
 #"cables"
 ]
@@ -69,8 +73,10 @@ def text_parser(filepath, separator="="):
     return_dict = {}
     with open(filepath, "r") as f:
         for line in f:
-            line = line.split(separator)
-            return_dict[line[0]] = line[1]
+            if not line.startswith("//"):
+                line = line.replace('\t', '').replace('\n', '')
+                line = line.split(separator)
+                return_dict[line[0]] = line[1]
     return return_dict
 
 def parseVMTParameter(line, parameters):
@@ -125,7 +131,6 @@ def extractAlphaTextures(localPath, invertColor):
     print("+ Attempting to extract alpha from " + image_path)
     
     if path.exists(image_path):
-        print("+ Extracting alpha from " + image_path)
         # Open the image and convert it to RGBA, just in case it was indexed
         image = Image.open(image_path).convert('RGBA')
 
@@ -182,6 +187,7 @@ def getVmatParameter(key, val):
         #VMT paramter: VMAT parameter, value, additional lines to add. The last two variables take functions or strings, or None for using the old value.
         'basetexture': ('TextureColor', fixTexturePath, None),
         'bumpmap': ('TextureNormal', fixTexturePath, None),
+        'normalmap': ('TextureNormal', fixTexturePath, None),
         'envmap': ('F_SPECULAR', '1', '\tF_SPECULAR_CUBE_MAP 1\n\tF_SPECULAR_CUBE_MAP_PROJECTION 1\n\tg_flCubeMapBlurAmount "1.000"\n\tg_flCubeMapScalar "1.000"\n'), #Assumes env_cubemap
         #'envmaptint': ('TextureReflectance', fixVector, None),
         'envmapmask': ('TextureReflectance', fixTexturePath, None),
@@ -238,6 +244,7 @@ def parseDir(dirName):
 globalVars = text_parser("global_vars.txt", " = ")
 PATH_TO_GAME_CONTENT_ROOT = globalVars["gameContentRoot"]
 PATH_TO_CONTENT_ROOT = PATH_TO_GAME_CONTENT_ROOT + sys.argv[1] + "/"
+print(PATH_TO_CONTENT_ROOT)
 
 if(PATH_TO_GAME_CONTENT_ROOT == ""):
     print("ERROR: Please open vmt_to_vmat in your favorite text editor, and modify PATH_TO_GAME_CONTENT_ROOT to lead to your games content files (i.e. ...\steamvr_environments\content\steamtours_addons\)")
@@ -289,6 +296,7 @@ for fileName in fileList:
     baseMapAlphaPhongMask = False
     envMap = False
     baseAlphaEnvMapMask = False
+    envMapMask = False
     normalMapAlphaEnvMapMask = False
     selfIllum = False
     translucent = False #also counts for alphatest
@@ -323,9 +331,9 @@ for fileName in fileList:
     
     if validMaterial:
         vmatFileName = fileName.replace('.vmt', '') + '.vmat'
-        if os.path.exists(vmatFileName):
-            print('+ File already exists. Skipping!')
-            continue
+        #if os.path.exists(vmatFileName):
+        #    print('+ File already exists. Skipping!')
+        #    continue
         
         print('+ Converting ' + os.path.basename(fileName))
         with open(vmatFileName, 'w') as vmatFile:
@@ -357,6 +365,9 @@ for fileName in fileList:
                 elif(key.lower() == "$normalmapalphaenvmapmask"):
                     if val.strip('"' + "'") != "0":
                         normalMapAlphaEnvMapMask = True
+                elif(key.lower() == "$envmapmask"):
+                    if val.strip('"' + "'") != "0":
+                        envMapMask = True
                     
             #check if base texture is empty
             if "metal" in vmatFileName:
@@ -366,7 +377,6 @@ for fileName in fileList:
                 vmatFile.write('\tF_TRANSLUCENT 1\n\tTextureTranslucency ' + fixTexturePath(basetexturePath, MAP_SUBSTRING) + '\n')
                 extractAlphaTextures("materials/" + basetexturePath.replace('"', '') + TEXTURE_FILEEXT, False)
                 
-            print(". " + bumpmapPath + " .")
             if phong:
                 if baseMapAlphaPhongMask:
                     vmatFile.write('\tF_METALNESS_TEXTURE 1\n\tTextureMetalness ' + fixTexturePath(basetexturePath, MAP_SUBSTRING) + '\n')
@@ -379,12 +389,21 @@ for fileName in fileList:
                         vmatFile.write('\tF_METALNESS_TEXTURE 1\n\tTextureMetalness ' + fixTexturePath(bumpmapPath, MAP_SUBSTRING) + '\n')
                         extractAlphaTextures("materials/" + bumpmapPath.replace('"', '') + TEXTURE_FILEEXT, True)
             if envMap:
+                vmatFile.write('\t' + globalVars["reflectanceRange"] + '\n')
                 if baseAlphaEnvMapMask:
-                    vmatFile.write('\tg_vReflectanceRange "[0.000 0.050]"\n\tTextureReflectance ' + fixTexturePath(basetexturePath, MAP_SUBSTRING) + '\n')
-                    extractAlphaTextures("materials/" + basetexturePath.replace('"', '') + TEXTURE_FILEEXT, False)
+                    vmatFile.write('\tTextureReflectance ' + fixTexturePath(basetexturePath, MAP_SUBSTRING) + '\n')
+                    #Weird hack, apparently envmaps for LightmappedGeneric are flipped, whereas VertexLitGeneric ones aren't
+                    if matType == "lightmappedgeneric":
+                        extractAlphaTextures("materials/" + basetexturePath.replace('"', '') + TEXTURE_FILEEXT, True)
+                    elif matType == "vertexlitgeneric":
+                        extractAlphaTextures("materials/" + basetexturePath.replace('"', '') + TEXTURE_FILEEXT, True)
                 if normalMapAlphaEnvMapMask:
-                    vmatFile.write('\tg_vReflectanceRange "[0.000 0.050]"\n\tTextureReflectance ' + fixTexturePath(bumpmapPath, MAP_SUBSTRING) + '\n')
-                    extractAlphaTextures("materials/" + bumpmapPath.replace('"', '') + TEXTURE_FILEEXT, False)
+                    vmatFile.write('\tTextureReflectance ' + fixTexturePath(bumpmapPath, MAP_SUBSTRING) + '\n')
+                    #Weird hack, apparently envmaps for LightmappedGeneric are flipped, whereas VertexLitGeneric ones aren't
+                    if matType == "lightmappedgeneric":
+                        extractAlphaTextures("materials/" + bumpmapPath.replace('"', '') + TEXTURE_FILEEXT, True)
+                    elif matType == "vertexlitgeneric":
+                        extractAlphaTextures("materials/" + bumpmapPath.replace('"', '') + TEXTURE_FILEEXT, True)
             
             if (selfIllum):
                 vmatFile.write('\tF_SELF_ILLUM 1\n\tTextureSelfIllumMask ' + fixTexturePath(basetexturePath, MAP_SUBSTRING) + '\n')
@@ -392,8 +411,10 @@ for fileName in fileList:
                 
             vmatFile.write('}\n')
     
-    bumpmapConvertedList = PATH_TO_CONTENT_ROOT + "/convertedBumpmaps.txt"
-    #if os.path.exists(bumpmapConvertedList): continue
+    bumpmapConvertedList = PATH_TO_CONTENT_ROOT + "convertedBumpmaps.txt"
+    if not os.path.exists(bumpmapConvertedList):
+        print('ERROR: Please create an empty text file named "convertedBumpmaps.txt" in the root of your mod files (i.e. content/steamtours_addons/hl2)')
+        quit()
     
     # flip the green channels of any normal maps
     if(bumpmapPath != ""):
