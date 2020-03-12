@@ -10,7 +10,7 @@ The material parameters does not map one to one, so it won't convert the materia
 
 I've taken some liberties with the available Standard VR shader in SteamVR as my guideline, and converting a specular map from Source 1 to PBR in Source 2 is not going to be totally 1 to 1. However, it does look pretty good in most use cases, and I'd reccomend modifying the script to your needs depending on what game/art style you're working with. For instance, I've had to dull the ReflectanceRange across the board for HL2 assets, which I didn't need to do for L4D2 assets.
 
-To use, first modify global_vars.txt to include your game's content path. Then, run the script using `python vmt_to_vmat.py modName`, replacing modName with the name of your mod's folder (i.e. hl2, left4dead2, usermod, etc.)
+To use, first modify global_vars.txt to include your game's content path. Then, run the script using `python vmt_to_vmat.py modName`, replacing modName with the name of your mod's folder (i.e. hl2, left4dead2, usermod, etc.) You may also add a second argument at the end if you wish to specify a specific directory.
 
 ## mdl_to_vmdl.py
 
