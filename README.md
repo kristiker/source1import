@@ -45,6 +45,8 @@ Step 2: Extract the files you desire using GCFScape to the __CONTENT__ root of t
 
 Step 3: Using VTFEdit, extract the textures from the .vtf files into .tga using the "Convert Folder" functionality under tools. Again, make sure these TGAs follow the exact same layout as Source 1.
 
+Step 3.5: Add a new empty .txt file to the root of your mod's content file, called convertedBumpmaps.txt. This file stores the filenames of the .tga files that have been converted to S2's flipped green channel format.
+
 Step 4: __Modify global_vars.txt to include the details of your project's files.__
 
 Step 5: First run mdl_to_vmdl.py, then run vmt_to_vmat.py, using the instructions above.
