@@ -37,7 +37,7 @@ A Source 1 game's content
 # Usage:
 Step 1: Create your mod in the SteamVR Workshop Tools (see [this guide](https://steamcommunity.com/sharedfiles/filedetails/?id=2014947360) on how to make this happen for the S2FM.) I would recommend naming the mod the same name as the name you're pulling files from, especially if you're batch converting a whole game.
 
-Step 2: Extract the files you desire using GCFScape to the __CONTENT___ root of the mod, i.e. SteamVR/tools/steamvr_environments/content/steamtours_addons/hl2, following the same format as Source 1.
+Step 2: Extract the files you desire using GCFScape to the __CONTENT__ root of the mod, i.e. SteamVR/tools/steamvr_environments/content/steamtours_addons/hl2, following the same format as Source 1.
 
 Step 3: Using VTFEdit, extract the textures from the .vtf files into .tga using the "Convert Folder" functionality under tools. Again, make sure these TGAs follow the exact same layout as Source 1.
 
