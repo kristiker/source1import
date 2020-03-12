@@ -331,9 +331,9 @@ for fileName in fileList:
     
     if validMaterial:
         vmatFileName = fileName.replace('.vmt', '') + '.vmat'
-        #if os.path.exists(vmatFileName):
-        #    print('+ File already exists. Skipping!')
-        #    continue
+        if os.path.exists(vmatFileName):
+            print('+ File already exists. Skipping!')
+            continue
         
         print('+ Converting ' + os.path.basename(fileName))
         with open(vmatFileName, 'w') as vmatFile:
