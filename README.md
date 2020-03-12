@@ -1,3 +1,5 @@
+***HEY! These utilities are still broken in a lot of ways and will fail very often. Please use with the understanding that it doesn't perfectly convert files yet and will only go through certain texture sets perfectly. This program has so far been tested on L4D2 content and HL2 content, both pulled from Source 1 Filmmaker's files and DLC.***
+
 # source2utils
 
 This is a 3rd generation fork, first created by Rictus and then Forked by DankParrot/Alphyne. These are a set of scripts to help convert Source 1 assets to Source 2 with ease, partly using the tools Valve already have available, and using a materials script that takes a lot of guesswork. These tools were intended to be used with the Source 2 Filmmaker, but can be applied to any Source 2 project.
