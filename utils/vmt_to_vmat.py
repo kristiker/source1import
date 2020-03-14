@@ -40,6 +40,8 @@ MAP_SUBSTRING = '_alpha'
 # this leads to the root of the game folder, i.e. dota 2 beta/content/dota_addons/, make sure to remember the final slash!!
 PATH_TO_GAME_CONTENT_ROOT = ""
 PATH_TO_CONTENT_ROOT = ""
+# Set this to True if you wish to overwrite your old vmat files
+OVERWRITE_VMAT = True 
 
 # material types need to be lowercase because python is a bit case sensitive
 materialTypes = [
@@ -127,7 +129,7 @@ def fixVector(s):
 
 def extractAlphaTextures(localPath, invertColor):
     image_path = PATH_TO_CONTENT_ROOT + localPath
-    mask_path = PATH_TO_CONTENT_ROOT + localPath[:-4] + "_alpha.tga"
+    mask_path = PATH_TO_CONTENT_ROOT + localPath[:-4] + MAP_SUBSTRING + TEXTURE_FILEEXT
     print("+ Attempting to extract alpha from " + image_path)
     
     if path.exists(image_path):
@@ -156,8 +158,10 @@ def extractAlphaTextures(localPath, invertColor):
             final_transparent_image = Image.merge('RGB', (r2,g2,b2))
             
             final_transparent_image.save(mask_path)
+            final_transparent_image.close()
         else:
             bg.save(mask_path)
+            bg.close()
                                                                         
 def flipNormalMap(localPath):
     image_path = PATH_TO_CONTENT_ROOT + localPath
@@ -316,7 +320,7 @@ for fileName in fileList:
             if any(wd in line.lower() for wd in ignoreList):
                 skipNextLine = True
             
-    if "patch" in matType.lower():
+    if '"patch"' in matType.lower():
         patchFile = vmtParameters["include"].replace('"', '').replace("'", '');
         print("+ Patching materials details from: " + patchFile)
         with open(PATH_TO_CONTENT_ROOT + patchFile, 'r') as vmtFile:
@@ -331,7 +335,7 @@ for fileName in fileList:
     
     if validMaterial:
         vmatFileName = fileName.replace('.vmt', '') + '.vmat'
-        if os.path.exists(vmatFileName):
+        if os.path.exists(vmatFileName) and not OVERWRITE_VMAT:
             print('+ File already exists. Skipping!')
             continue
         
@@ -349,14 +353,15 @@ for fileName in fileList:
                         baseMapAlphaPhongMask = True
                 elif(key.lower() == "$selfillum"):
                     if val.strip('"' + "'") != "0":
+                        print("selfillum")
                         selfIllum = True
                 elif(key.lower() == "$translucent" or key == "$alphatest"):
                     if val.strip('"' + "'") != "0":
                         translucent = True
                 elif(key.lower() == "$basetexture"):
-                    basetexturePath = val.lower().strip()
+                    basetexturePath = val.lower().strip().replace('.vtf', '')
                 elif(key.lower() == "$bumpmap"):
-                    bumpmapPath = val.lower().strip()
+                    bumpmapPath = val.lower().strip().replace('.vtf', '')
                 elif(key.lower() == "$envmap"):
                     envMap = True
                 elif(key.lower() == "$basealphaenvmapmask"):
@@ -378,7 +383,7 @@ for fileName in fileList:
                 extractAlphaTextures("materials/" + basetexturePath.replace('"', '') + TEXTURE_FILEEXT, False)
                 
             if phong:
-                if baseMapAlphaPhongMask:
+                if baseMapAlphaPhongMask and basetexturePath != '':
                     vmatFile.write('\tF_METALNESS_TEXTURE 1\n\tTextureMetalness ' + fixTexturePath(basetexturePath, MAP_SUBSTRING) + '\n')
                     extractAlphaTextures("materials/" + basetexturePath.replace('"', '') + TEXTURE_FILEEXT, True)
                 else:
@@ -390,22 +395,22 @@ for fileName in fileList:
                         extractAlphaTextures("materials/" + bumpmapPath.replace('"', '') + TEXTURE_FILEEXT, True)
             if envMap:
                 vmatFile.write('\t' + globalVars["reflectanceRange"] + '\n')
-                if baseAlphaEnvMapMask:
+                if baseAlphaEnvMapMask and basetexturePath != '':
                     vmatFile.write('\tTextureReflectance ' + fixTexturePath(basetexturePath, MAP_SUBSTRING) + '\n')
                     #Weird hack, apparently envmaps for LightmappedGeneric are flipped, whereas VertexLitGeneric ones aren't
-                    if matType == "lightmappedgeneric":
+                    if "lightmappedgeneric" in matType:
                         extractAlphaTextures("materials/" + basetexturePath.replace('"', '') + TEXTURE_FILEEXT, True)
-                    elif matType == "vertexlitgeneric":
+                    elif "vertexlitgeneric" in matType:
                         extractAlphaTextures("materials/" + basetexturePath.replace('"', '') + TEXTURE_FILEEXT, True)
-                if normalMapAlphaEnvMapMask:
+                if normalMapAlphaEnvMapMask and bumpmapPath != '':
                     vmatFile.write('\tTextureReflectance ' + fixTexturePath(bumpmapPath, MAP_SUBSTRING) + '\n')
                     #Weird hack, apparently envmaps for LightmappedGeneric are flipped, whereas VertexLitGeneric ones aren't
-                    if matType == "lightmappedgeneric":
+                    if "lightmappedgeneric" in matType:
                         extractAlphaTextures("materials/" + bumpmapPath.replace('"', '') + TEXTURE_FILEEXT, True)
-                    elif matType == "vertexlitgeneric":
+                    elif "vertexlitgeneric" in matType:
                         extractAlphaTextures("materials/" + bumpmapPath.replace('"', '') + TEXTURE_FILEEXT, True)
             
-            if (selfIllum):
+            if selfIllum:
                 vmatFile.write('\tF_SELF_ILLUM 1\n\tTextureSelfIllumMask ' + fixTexturePath(basetexturePath, MAP_SUBSTRING) + '\n')
                 extractAlphaTextures("materials/" + basetexturePath.replace('"', '') + TEXTURE_FILEEXT, False)
                 
