@@ -55,6 +55,7 @@ materialTypes = [
 #"modulate",
 #"water", #TODO: integrate water/refract shaders into this script
 "refract",
+"worldvertextransition",
 #"lightmapped_4wayblend",
 #"unlittwotexture", #TODO: Fix this one too, used by some hl2 mats
 #"lightmappedreflective",
@@ -190,6 +191,7 @@ def getVmatParameter(key, val):
     convert = {
         #VMT paramter: VMAT parameter, value, additional lines to add. The last two variables take functions or strings, or None for using the old value.
         'basetexture': ('TextureColor', fixTexturePath, None),
+        'basetexture2': ('TextureLayer1Color', fixTexturePath, None),
         'bumpmap': ('TextureNormal', fixTexturePath, None),
         'normalmap': ('TextureNormal', fixTexturePath, None),
         'envmap': ('F_SPECULAR', '1', '\tF_SPECULAR_CUBE_MAP 1\n\tF_SPECULAR_CUBE_MAP_PROJECTION 1\n\tg_flCubeMapBlurAmount "1.000"\n\tg_flCubeMapScalar "1.000"\n'), #Assumes env_cubemap
@@ -304,6 +306,7 @@ for fileName in fileList:
     normalMapAlphaEnvMapMask = False
     selfIllum = False
     translucent = False #also counts for alphatest
+    alphatest = False
     
     with open(fileName, 'r') as vmtFile:
         for line in vmtFile.readlines():
@@ -355,9 +358,12 @@ for fileName in fileList:
                     if val.strip('"' + "'") != "0":
                         print("selfillum")
                         selfIllum = True
-                elif(key.lower() == "$translucent" or key == "$alphatest"):
+                elif(key.lower() == "$translucent"):
                     if val.strip('"' + "'") != "0":
                         translucent = True
+                elif(key.lower() == "$alphatest"):
+                    if val.strip('"' + "'") != "0":
+                        alphatest = True
                 elif(key.lower() == "$basetexture"):
                     basetexturePath = val.lower().strip().replace('.vtf', '')
                 elif(key.lower() == "$bumpmap"):
@@ -380,6 +386,10 @@ for fileName in fileList:
             
             if translucent:
                 vmatFile.write('\tF_TRANSLUCENT 1\n\tTextureTranslucency ' + fixTexturePath(basetexturePath, MAP_SUBSTRING) + '\n')
+                extractAlphaTextures("materials/" + basetexturePath.replace('"', '') + TEXTURE_FILEEXT, False)
+                
+            if alphatest:
+                vmatFile.write('\tF_ALPHA_TEST 1\n\tTextureTranslucency ' + fixTexturePath(basetexturePath, MAP_SUBSTRING) + '\n')
                 extractAlphaTextures("materials/" + basetexturePath.replace('"', '') + TEXTURE_FILEEXT, False)
                 
             if phong:
