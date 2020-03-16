@@ -53,11 +53,11 @@ materialTypes = [
 "eyes",
 "eyeball",
 #"modulate",
-#"water", #TODO: integrate water/refract shaders into this script
+"water", #TODO: integrate water/refract shaders into this script
 "refract",
 "worldvertextransition",
 #"lightmapped_4wayblend",
-#"unlittwotexture", #TODO: Fix this one too, used by some hl2 mats
+"unlittwotexture", #TODO: make this system functional
 #"lightmappedreflective",
 #"cables"
 ]

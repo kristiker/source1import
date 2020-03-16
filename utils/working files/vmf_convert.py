@@ -1,5 +1,4 @@
-# cmd command: python mdl_to_vmdl.py "C:\Program Files (x86)\Steam\steamapps\common\SteamVR\tools\steamvr_environments\content\steamtours_addons\l4d2_converted\models"
-# MUST run in the models folder
+# cmd command: python vmf_convert.py "C:\path\to\vmf\file.vmf"
 
 import re, sys, os
 
@@ -8,8 +7,8 @@ INPUT_FILE_EXT = '.vmf'
 PATH_TO_GAME_CONTENT_ROOT = ""
 PATH_TO_CONTENT_ROOT = ""
     
-print('Source 2 .vmf Prepper! By caseytube via Github')
-print('Converts .vmf files to be ready for Source 2')
+print('Source 2 .vmf Prepper! EXPERIMENTAL!! By caseytube via Github')
+print('Converts .vmf files to be ready for Source 2 by fixing materials')
 print('--------------------------------------------------------------------------------------------------------')
 
 filename = sys.argv[1]
