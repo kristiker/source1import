@@ -38,7 +38,7 @@ You can use this as a base if you want to import the source files manually.
 ## System Requirements:
 Python 3.7 or later
 
-Python Image Library (PIL)
+Python Image Library (PIL)  5.4.1
 
 The SteamVR Workshop Tools (you do not need VR to run these!)
 
