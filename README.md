@@ -53,7 +53,7 @@ Step 3: Using VTFEdit, extract the textures from the .vtf files into .tga using 
 
 Step 3.5: Add a new empty .txt file to the root of your mod's content file, called convertedBumpmaps.txt. This file stores the filenames of the .tga files that have been converted to S2's flipped green channel format.
 
-Step 4: __Modify global_vars.txt to include the details of your project's files.__
+Step 4: __Modify global_vars.txt to include the details of your project's files, pointing to your content/steamtours_addon/ folder.__
 
 Step 5: First run mdl_to_vmdl.py, then run vmt_to_vmat.py, using the instructions above.
 
