@@ -1,0 +1,5 @@
+// NOTE: Keep your variables here as plain as possible. Adding things like quotation marks may cause your script to flip out.
+// Adjust to your own root content folder
+gameContentRoot = C:\Program Files (x86)\Steam\steamapps\common\SteamVR\tools\steamvr_environments\content\steamtours_addons\
+// Default reflectance range, defines how strong the envMap effect is. Usually needs to be toned down for PBR shaders in S2.
+reflectanceRange = g_vReflectanceRange "[0.000 0.050]"
