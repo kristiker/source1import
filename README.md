@@ -2,7 +2,7 @@
 
 # source2utils
 
-This is a 3rd generation fork, first created by Rectus and then Forked by DankParrot/Alpyne. These are a set of scripts to help convert Source 1 assets to Source 2 with ease, partly using the tools Valve already have available, and using a materials script that takes a lot of guesswork. These tools were intended to be used with the Source 2 Filmmaker, but can be applied to any Source 2 project.
+This is a 3rd generation fork, first created by Rectus and then Forked by DankParrot/Alpyne and Caseytube. These are a set of scripts to help convert Source 1 assets to Source 2 with ease, partly using the tools Valve already have available, and using a materials script that takes a lot of guesswork. These tools were intended to be used with the Source 2 Filmmaker, but can be applied to any Source 2 project.
 
 Below is a list of branches that have been tested with the tool:
 - Source Filmmaker Branch (most content from this build is stable and should work nicely.)
