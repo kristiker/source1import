@@ -392,27 +392,31 @@ for fileName in fileList:
                 vmatFile.write('\tF_ALPHA_TEST 1\n\tTextureTranslucency ' + fixTexturePath(basetexturePath, MAP_SUBSTRING) + '\n')
                 extractAlphaTextures("materials/" + basetexturePath.replace('"', '') + TEXTURE_FILEEXT, False)
                 
+            hasReflectance = False
+
             if phong:
                 if baseMapAlphaPhongMask and basetexturePath != '':
-                    vmatFile.write('\tF_METALNESS_TEXTURE 1\n\tTextureMetalness ' + fixTexturePath(basetexturePath, MAP_SUBSTRING) + '\n')
+                    hasReflectance = True
+                    vmatFile.write('\tTextureReflectance ' + fixTexturePath(basetexturePath, MAP_SUBSTRING) + '\n')
                     extractAlphaTextures("materials/" + basetexturePath.replace('"', '') + TEXTURE_FILEEXT, True)
                 else:
-                    if(bumpmapPath == ''):
-                        vmatFile.write('\tF_METALNESS_TEXTURE 1\n\tTextureMetalness "[1.000000 1.000000 1.000000 0.000000]"\n')
-                        extractAlphaTextures("materials/" + basetexturePath.replace('"', '') + TEXTURE_FILEEXT, True)
+                    if(bumpmapPath == '') and not (baseAlphaEnvMapMask or normalMapAlphaEnvMapMask):
+                        vmatFile.write('\tTextureReflectance "[1.000000 1.000000 1.000000 0.000000]"\n')
+                        #extractAlphaTextures("materials/" + basetexturePath.replace('"', '') + TEXTURE_FILEEXT, True)
                     else:
-                        vmatFile.write('\tF_METALNESS_TEXTURE 1\n\tTextureMetalness ' + fixTexturePath(bumpmapPath, MAP_SUBSTRING) + '\n')
+                        hasReflectance = True
+                        vmatFile.write('\tTextureReflectance ' + fixTexturePath(bumpmapPath, MAP_SUBSTRING) + '\n')
                         extractAlphaTextures("materials/" + bumpmapPath.replace('"', '') + TEXTURE_FILEEXT, True)
             if envMap:
                 vmatFile.write('\t' + globalVars["reflectanceRange"] + '\n')
-                if baseAlphaEnvMapMask and basetexturePath != '':
+                if baseAlphaEnvMapMask and not normalMapAlphaEnvMapMask and basetexturePath != '' and not hasReflectance:
                     vmatFile.write('\tTextureReflectance ' + fixTexturePath(basetexturePath, MAP_SUBSTRING) + '\n')
                     #Weird hack, apparently envmaps for LightmappedGeneric are flipped, whereas VertexLitGeneric ones aren't
                     if "lightmappedgeneric" in matType:
                         extractAlphaTextures("materials/" + basetexturePath.replace('"', '') + TEXTURE_FILEEXT, True)
                     elif "vertexlitgeneric" in matType:
                         extractAlphaTextures("materials/" + basetexturePath.replace('"', '') + TEXTURE_FILEEXT, True)
-                if normalMapAlphaEnvMapMask and bumpmapPath != '':
+                if normalMapAlphaEnvMapMask and bumpmapPath != '' and not hasReflectance:
                     vmatFile.write('\tTextureReflectance ' + fixTexturePath(bumpmapPath, MAP_SUBSTRING) + '\n')
                     #Weird hack, apparently envmaps for LightmappedGeneric are flipped, whereas VertexLitGeneric ones aren't
                     if "lightmappedgeneric" in matType:
