@@ -308,6 +308,8 @@ for fileName in fileList:
     translucent = False #also counts for alphatest
     alphatest = False
     
+    wroteReflectanceRange = False
+    
     with open(fileName, 'r') as vmtFile:
         for line in vmtFile.readlines():
             if any(wd in line.lower() for wd in materialTypes):
@@ -395,6 +397,9 @@ for fileName in fileList:
             hasReflectance = False
 
             if phong:
+                if not wroteReflectanceRange:
+                    vmatFile.write('\t' + globalVars["reflectanceRange"] + '\n')
+                    wroteReflectanceRange = True
                 if baseMapAlphaPhongMask and basetexturePath != '':
                     hasReflectance = True
                     vmatFile.write('\tTextureReflectance ' + fixTexturePath(basetexturePath, MAP_SUBSTRING) + '\n')
@@ -408,7 +413,9 @@ for fileName in fileList:
                         vmatFile.write('\tTextureReflectance ' + fixTexturePath(bumpmapPath, MAP_SUBSTRING) + '\n')
                         extractAlphaTextures("materials/" + bumpmapPath.replace('"', '') + TEXTURE_FILEEXT, True)
             if envMap:
-                vmatFile.write('\t' + globalVars["reflectanceRange"] + '\n')
+                if not wroteReflectanceRange:
+                    vmatFile.write('\t' + globalVars["reflectanceRange"] + '\n')
+                    wroteReflectanceRange = True
                 if baseAlphaEnvMapMask and not normalMapAlphaEnvMapMask and basetexturePath != '' and not hasReflectance:
                     vmatFile.write('\tTextureReflectance ' + fixTexturePath(basetexturePath, MAP_SUBSTRING) + '\n')
                     #Weird hack, apparently envmaps for LightmappedGeneric are flipped, whereas VertexLitGeneric ones aren't
