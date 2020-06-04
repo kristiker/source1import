@@ -33,6 +33,9 @@ import re
 from PIL import Image
 import PIL.ImageOps
 
+# generic, blend instead of vr_complex, vr_2wayblend etc...
+FORCE_USE_RETRO_SHADERS = False
+
 # File format of the textures.
 TEXTURE_FILEEXT = '.tga' 
 # substring added after an alpha map's name, but before the extension
@@ -48,8 +51,6 @@ VMAT_REPLACEMENT = 0
 VMAT_DEFAULT = 1
 VMAT_EXTRALINES = 2
 
-
-
 # shaders
 SH_BLACK = 'black'
 SH_VR_BLACK_UNLIT = 'vr_black_unlit'
@@ -58,6 +59,7 @@ SH_VR_BASC = 'vr_basic'
 SH_VR_SIMPLE = 'vr_simple'
 SH_VR_COMPLEX = 'vr_complex'
 SH_VR_STANDARD = 'vr_standard'
+SH_BLEND = 'blend'
 SH_VR_SIMPLE_2WAY_BLEND = 'vr_simple_2way_blend'
 SH_SKY = 'sky'
 SH_VR_EYEBALL = 'vr_eyeball'
@@ -73,6 +75,8 @@ shaders = {
     SH_GENERIC: 0,
     SH_VR_SIMPLE: 0,
     SH_VR_COMPLEX: 0,
+    SH_VR_STANDARD: 0,
+    SH_BLEND: 0,
     SH_VR_SIMPLE_2WAY_BLEND: 0,
     SH_SKY: 0,
     SH_VR_EYEBALL: 0,
@@ -88,14 +92,16 @@ def chooseShader(matType, vmtKeyValList, fileName):
 
     # not recognized, give emtpy shader SH_VR_BLACK_UNLIT
     if matType not in materialTypes:
-        print(matType)
-        print("DBGGGG: NOT IN ")
         return max(shaders, key = shaders.get) 
 
     #TRY: if containts values starting with _rt_ give some empty shader
 
     shaders[SH_VR_BLACK_UNLIT] = 0
-    shaders[materialTypes[matType]] += 1
+    
+    if FORCE_USE_RETRO_SHADERS:
+        shaders[SH_GENERIC] += 1
+    else:
+        shaders[materialTypes[matType]] += 1
     
     # sky shader matches
     if matType == "sky":
@@ -103,7 +109,6 @@ def chooseShader(matType, vmtKeyValList, fileName):
 
     elif matType == "unlitgeneric":
         shaders[SH_SKY] += 1
-        shaders[SH_GENERIC] += 1
         
         if "nofog" in vmtKeyValList or "ignorez" in vmtKeyValList:
             shaders[SH_SKY] += 2
@@ -158,10 +163,11 @@ materialTypes = {
     "lightmappedtwotexture":SH_VR_COMPLEX, # 2 multiblend $texture2 nocull scrolling, model, additive.
     "unlittwotexture":      SH_VR_COMPLEX, # 2 multiblend $texture2 nocull scrolling, model, additive.
     "character":            SH_VR_COMPLEX
-    #"lightmapped_4wayblend",
+    #"lightmapped_4wayblend":SH_BLEND,
     #, #TODO: make this system functional
     #"modulate",
 }
+
 ignoreList = [
 "vertexlitgeneric_hdr_dx9",
 "vertexlitgeneric_dx9",
@@ -177,10 +183,15 @@ QUOTATION = '"'
 COMMENT = "// "
 skyboxfaces = ['up','dn', 'lf', 'rt', 'bk', 'ft']
 
+surfacePropertiesNew = {
+    'stucco':       'world.drywall',
+    'tile':         'world.tile_floor',
+    'metalpanel':   'world.metal_panel',
+}
 
 def parseDir(dirName):
     files = []
-    for root, dirs, fileNames in os.walk(dirName):
+    for root, _, fileNames in os.walk(dirName):
         for fileName in fileNames:	
             if fileName.lower().endswith('.vmt'):
                 files.append(os.path.join(root,fileName))
@@ -190,43 +201,47 @@ def parseDir(dirName):
 ### Main Execution
 ###
 
+print('\n')
+
 currentDir = os.getcwd()
 
 if not PATH_TO_CONTENT_ROOT:
     if(len(sys.argv) >= 2):
         PATH_TO_CONTENT_ROOT = sys.argv[1]
     else:
-        print("here: " + PATH_TO_CONTENT_ROOT)
         while not PATH_TO_CONTENT_ROOT:
-            c = input('Enter the root directory of the old materials or enter nothing to read from the current directory ('+ currentDir + '): ') or currentDir
+            c = input('Type the root directory of the vmt materials you want to convert (enter to use current directory).: ') or currentDir
             if not path.isdir(c):
-                print('Not a directory')
+                if c in ('q', 'quit', 'exit', 'close'):
+                    quit()
+                print('Could not find directory.')
                 continue
             PATH_TO_CONTENT_ROOT = c.lower().strip().strip('"')
-            print(PATH_TO_CONTENT_ROOT)
+            #print(PATH_TO_CONTENT_ROOT)
 
 if not PATH_TO_NEW_CONTENT_ROOT:
     if(len(sys.argv) >= 3):
         PATH_TO_NEW_CONTENT_ROOT = sys.argv[2]
     else:
         while not PATH_TO_NEW_CONTENT_ROOT:
-            c = input('Type your new materials\' directory or enter to create the files on the same dir ('+ PATH_TO_CONTENT_ROOT + '): ') or currentDir
+            c = input('Type your new materials\' directory (enter to use the same dir): ') or currentDir
             if(c == currentDir):
                 PATH_TO_NEW_CONTENT_ROOT = PATH_TO_CONTENT_ROOT # currentDir
             else:
                 if not path.isdir(c):
-                    print('Not a directory')
+                    if c in ('q', 'quit', 'exit', 'close'):
+                        quit()
+                    print('Could not find directory.')
                     continue
                 PATH_TO_NEW_CONTENT_ROOT = c.lower().strip().strip('"')
 
 PATH_TO_CONTENT_ROOT = os.path.normpath(PATH_TO_CONTENT_ROOT) + '\\'
 PATH_TO_NEW_CONTENT_ROOT =  os.path.normpath(PATH_TO_NEW_CONTENT_ROOT) + '\\'
 
+print('\nSource 2 Material Conveter! By Rectus via Github.')
+print('Initially forked by Alpyne, this version by caseytube.\n')
 print('+ Reading old materials from: ' + PATH_TO_CONTENT_ROOT)
-print('+ Creating new materials in: ' + PATH_TO_NEW_CONTENT_ROOT)
-
-print('Source 2 Material Conveter! By Rectus via Github.')
-print('Initially forked by Alpyne, this version by caseytube.')
+print('+ New materials will be created in: ' + PATH_TO_NEW_CONTENT_ROOT)
 print('--------------------------------------------------------------------------------------------------------')
 
 
@@ -254,6 +269,7 @@ def formatVmatDir(localPath):
 # $basetexture  ->  /path/to/texture_color.tga of the TextureColor
 # -------------------------------
 def getTexture(vmtParam):
+    # if we get a list choose from the one that exists
     if isinstance(vmtParam, tuple):
         for actualParam in vmtParam:
             if vmtKeyValList.get(actualParam):
@@ -278,8 +294,9 @@ def formatNewTexturePath(vmtPath, textureType = TEXTURE_FILEEXT, renameTexture =
 
     
     # if already has s2 supported type in the name (_normal) doge_wainscoting_1_normal.tga
+    # TODO: texture_n.tga -> texture_normal.tga
     if textureAddTag(textureLocal, textureType) == textureLocal:
-        print("DOING THISSSSSSSSSSSSSSSSSS")
+        #print("DOING THISSSSSSSSSSSSSSSSSS")
         renameTexture = False
         return formatVmatDir(textureLocal + textureType[-4:])
 
@@ -289,7 +306,7 @@ def formatNewTexturePath(vmtPath, textureType = TEXTURE_FILEEXT, renameTexture =
 
     if not forReal:
         newVmatFormattedTexture = formatVmatDir(textureLocal + textureType)
-        print("MAYBE HERE:? " + newVmatFormattedTexture)
+        #print("MAYBE HERE:? " + newVmatFormattedTexture)
     
     # materials/newde_cache/nc_corrugated -> materials/newde_cache/nc_corrugated_color.tga
     if renameTexture:
@@ -297,11 +314,11 @@ def formatNewTexturePath(vmtPath, textureType = TEXTURE_FILEEXT, renameTexture =
         newVmatFormattedTexture = formatVmatDir(textureRename(textureLocal, textureLocal + textureType))
         #else:
             #newVmatFormattedTexture = formatVmatDir(textureLocal + textureType)
-            #print("MAYBE HERE:? " + newVmatFormattedTexture)
+            ##print("MAYBE HERE:? " + newVmatFormattedTexture)
     else:
         newVmatFormattedTexture = formatVmatDir(textureLocal + textureType)
 
-    #print(newVmatFormattedTexture)
+    ##print(newVmatFormattedTexture)
     return newVmatFormattedTexture
 
 def textureAddTag(str1, str2):
@@ -321,10 +338,10 @@ def textureRename(localPath, newNamePath, makeCopy = False):
     newNamePath = formatFullDir(newNamePath)
     
     if(os.path.exists(newNamePath)):
-        print("+ Using already renamed texture: " + formatVmatDir(newNamePath))
+        #print("+ Using already renamed texture: " + formatVmatDir(newNamePath))
     #elif not os.path.exists(localPath):
-    #    print("+ Missing texture " + formatVmatDir(localPath) + " queued for rename into: " + formatVmatDir(newNamePath))
-    #    print("+ Please find it and rename it accordingly or the material won't load")
+    #    #print("+ Missing texture " + formatVmatDir(localPath) + " queued for rename into: " + formatVmatDir(newNamePath))
+    #    #print("+ Please find it and rename it accordingly or the material won't load")
         return newNamePath
     
     if not os.path.exists(localPath):
@@ -334,7 +351,7 @@ def textureRename(localPath, newNamePath, makeCopy = False):
                 makeCopy = True
                 localPath = localPath[:-4] + vmt_to_vmat['textures'][key][VMAT_DEFAULT]
                 print("+ Nevermind... found renamed copy! " + formatVmatDir(localPath))
-                print("+ However, we should'nt have had to search for it anyway. Material likely using same texture for more than one map")
+                print("+ However, we shouldn't have had to search for it. Material likely using same texture for more than one map??")
                 break
         
         if not os.path.exists(localPath):
@@ -344,10 +361,10 @@ def textureRename(localPath, newNamePath, makeCopy = False):
     try:
         if not makeCopy:
             os.rename(localPath, newNamePath)
-            print("+ Renamed new texture to " + formatVmatDir(localPath))
+            #print("+ Renamed new texture to " + formatVmatDir(localPath))
         else:
             copyfile(localPath, newNamePath)
-            print("+ Copied new texture to " + formatVmatDir(localPath))
+            #print("+ Copied new texture to " + formatVmatDir(localPath))
         
     
     except FileExistsError:
@@ -363,7 +380,6 @@ def textureRename(localPath, newNamePath, makeCopy = False):
 fileList = []
 if(PATH_TO_CONTENT_ROOT):
     absFilePath = os.path.abspath(os.path.join(PATH_TO_CONTENT_ROOT, 'materials'))
-    #print(PATH_TO_CONTENT_ROOT)
     
     if os.path.isdir(absFilePath):
         fileList.extend(parseDir(absFilePath))
@@ -416,7 +432,7 @@ def parseVMTParameter(line, parameters):
     commentTuple = val.partition('//')
     
     #if(val.strip('"' + "'") == ""):
-    #    print("+ No value found, moving on")
+    #    #print("+ No value found, moving on")
     #    return
     
     if not commentTuple[0] in parameters:
@@ -426,16 +442,15 @@ def parseVMTParameter(line, parameters):
 def createMaskFromChannel(vmtTexture, channel = 'A', copySub = '_mask.tga', invert = True):
     if not os.path.exists(vmtTexture):
         vmtTexture = formatFullDir(vmtTexture)
-    print ("HERE: " + vmtTexture)
+    #print ("HERE: " + vmtTexture)
     if invert:  alphapath = vmtTexture[:-4] + '_' + 'inverted-' + channel + copySub
     else:       alphapath = vmtTexture[:-4] + '_'               + channel + copySub
-    print ("TO: " + alphapath)
+    #print ("TO: " + alphapath)
     
     if os.path.exists(alphapath):
-        print("+ Alpha mask already exists: " + alphapath)
+        #print("+ Alpha mask already exists: " + alphapath)
         return formatVmatDir(alphapath)
-    
-    print("+ Attempting to extract alpha from " + vmtTexture)
+
     if os.path.exists(vmtTexture):
         # Open the image and convert it to RGBA, just in case it was indexed
         image = Image.open(vmtTexture).convert('RGBA')
@@ -467,12 +482,12 @@ def createMaskFromChannel(vmtTexture, channel = 'A', copySub = '_mask.tga', inve
         else:
             bg.save(alphapath)
             bg.close()
-            print("Saved mask to" + formatVmatDir(alphapath))
+            
     else:
-        print("Couldn't find requested image. Please update")
+        print("~ WARNING: Couldn't find requested image (" + formatVmatDir(vmtTexture) + "). Please check.")
         return 'materials/default/default_mask.tga'
 
-    print('+++++ ' + formatVmatDir(alphapath))
+    print("Saved mask to" + formatVmatDir(alphapath))
     return formatVmatDir(alphapath)
 
 
@@ -498,7 +513,8 @@ def flipNormalMap(localPath):
 
 def buildS2CompatibleSkybox(vmatFileName):
     #vmatFileName.replace('up.vmt', '.vmat').replace('dn.vmt', '.vmat').replace('lf.vmt', '.vmat').replace('rt.vmt', '.vmat').replace('bk.vmt', '.vmat').replace('ft.vmt', '.vmat')
-    #TODO
+    #TODO: this
+    print('@ DBG: SKYBOX TEXTURE')
     print("Grab the")
     print('up, dn, lf, rt, bk, ft .vmt files of the' + vmatFileName[:-6])
     print("and edit them into a proper _cube.PFM cubemap")
@@ -519,12 +535,12 @@ def fixIntVector(s, needsAlpha = True, replicateSingle = 0):
     s = s.strip().strip().strip('][}{')
     originalValueList = [str(float(i)) for i in s.split(' ') if i != '']
     
-    # "4" -> [4.000000 4.000000]
+    # [4] -> [4.000000 4.000000]
     if(replicateSingle and likelySingle and len(originalValueList) <= 1):
         for _ in range(replicateSingle):
             originalValueList.append(originalValueList[0])
     
-    # 255 175 255 -> [255 175 255 1.000]
+    # [255 175 255] -> [255 175 255 1.000]
     if(needsAlpha): originalValueList.append(1.0) # alpha
     
     # [255 128 255 1.000] -> [1.000000 0.500000 1.000000 1.000000]
@@ -564,46 +580,56 @@ def listMatrix(s):
     s = s.strip('"')
     valueList = [float(str(i)) for i in s.split(' ') if is_convertible_to_float(i)]
 
-    # -> [  '[0.5 0.5]', '[1.0 1.0]', '0.0', '[0.0 0.0]'    ]
+    # -> ['[0.5 0.5]', '[1.0 1.0]', '0.0', '[0.0 0.0]']
     return ['[' + "{:.3f}".format(valueList[0]) + ' ' + "{:.3f}".format(valueList[1]) + ']',\
             '[' + "{:.3f}".format(valueList[2]) + ' ' + "{:.3f}".format(valueList[3]) + ']',\
                   "{:.3f}".format(valueList[4]),\
             '[' + "{:.3f}".format(valueList[5]) + ' ' + "{:.3f}".format(valueList[6]) + ']'\
             ]
 
-# NEWLAYERBLENDING
+#   $NEWLAYERBLENDING
 #   $BLENDSOFTNESS	0.05  
 # 	$LAYERBORDERSTRENGTH	.25
 # 	$LAYERBORDEROFFSET	0
 # 	$LAYERBORDERSOFTNESS	.1
 #   $LAYERBORDERTINT	"{150 200 1}"
 
-
-
 vmt_to_vmat = {
     'textures': {
-        # SkyTexture
 
-        '$hdrcompressedTexture': ('SkyTexture',          '_cube.pfm',        ''),
-        '$basetexture':          ('TextureColor',        '_color.tga',       ''),
-        '$painttexture':         ('TextureColor',        '_color.tga',       ''),
-        'basetexture2':          ('TextureColorB',       '_color.tga',       ''),
-        '$texture2':             ('TextureColorB',       '_color.tga',       ''),
-        '$bumpmap':              ('TextureNormal',       '_normal.tga',      ''),
-        '$bumpmap2':             ('TextureNormalB',      '_normal.tga',      ''),
-        '$normalmap':            ('TextureNormal',       '_normal.tga',      ''),
-        '$normalmap2':           ('TextureNormal2',      '_normal.tga',      'F_SECONDARY_NORMAL 1'), # used with refract shader
-        '$flowmap':              ('TextureFlow',         '.tga',             'F_FLOW_NORMALS 1\n\tF_FLOW_DEBUG 1'),
-        '$flow_noise_texture':   ('TextureNoise',        '_noise.tga',       'F_FLOW_NORMALS 1\n\tF_FLOW_DEBUG 2'),
-        '$blendmodulatetexture': ('TextureMask',         '_mask.tga',        'F_BLEND 1\n\tF_BLEND_NORMALS 1'), # TextureLayer1RevealMask
-        '$detail':               ('TextureDetail',       '_detail.tga',      'F_DETAIL_TEXTURE 1\n'),
-        #'$detail2':              ('TextureDetail',       '_detail.tga',      'F_DETAIL_TEXTURE 1\n'),
-        '$tintmasktexture':      ('TextureTintMask',     '_mask.tga',        'F_TINT_MASK 1'), # GREEN CHANNEL ONLY, RED IS FOR $envmapmaskintintmasktexture 1
-        '$selfillummask':        ('TextureSelfIllumMask','_selfillummask.tga',''), # $blendtintbybasealpha 1 
-        '$envmap':               ('TextureCubeMap',      '_cube.pfm',        'F_SPECULAR 1\n\tF_SPECULAR_CUBE_MAP 1\n\tF_SPECULAR_CUBE_MAP_PROJECTION 1\n\tg_flCubeMapBlurAmount "1.000"\n\tg_flCubeMapScalar "1.000"\n\tg_vReflectanceRange "[0.000 0.600]"\n'),
-        '$envmapmask':           ('TextureReflectance',  '_refl.tga',        ''),  # '_rough.tga' TextureRoughness selfillum_envmapmask_alpha envmapmaskintintmasktexture 
-        #'$phongexponenttexture': ('TextureGlossiness',   '_gloss.tga',        'F_ANISOTROPIC_GLOSS 1\n'), # = 'basemapalphaphongmask':('TextureReflectance',  '_trans.tga',        ''), # 'refl.tga'
-        '$phongexponenttexture': ('TextureRoughness',   '_rough.tga',        ''), # nah not really.
+        '$hdrcompressedtexture': ('SkyTexture',          '_cube.pfm',        ''),
+        
+        # Layer0 
+        '$basetexture':     ('TextureColor',        '_color.tga',       ''), # SkyTexture
+        '$painttexture':    ('TextureColor',        '_color.tga',       ''),
+        '$bumpmap':         ('TextureNormal',       '_normal.tga',      ''),
+        '$normalmap':       ('TextureNormal',       '_normal.tga',      ''),
+        
+        '$blendmodulatetexture':('TextureMask',             '_mask.tga',    'F_BLEND 1') if not FORCE_USE_RETRO_SHADERS else \
+                                ('TextureLayer1RevealMask', '_blend.tga',   'F_BLEND 1'),
+        
+        # Layer1
+        '$basetexture2':    ('TextureColorB',       '_color.tga',       '') if not FORCE_USE_RETRO_SHADERS else \
+                            ('TextureLayer1Color',  '_color.tga',       ''),
+        '$bumpmap2':        ('TextureNormalB',      '_normal.tga',      '') if not FORCE_USE_RETRO_SHADERS else \
+                            ('TextureLayer1Normal', '_normal.tga',      'F_BLEND_NORMALS 1'),
+
+        # Layer2-3
+        '$basetexture3':    ('TextureLayer2Color',  '_color.tga',       ''),
+        '$basetexture4':    ('TextureLayer3Color',  '_color.tga',       ''),
+
+        #'$texture2':            ('',  '_color.tga',       ''), # UnlitTwoTexture
+        '$normalmap2':          ('TextureNormal2',      '_normal.tga',      'F_SECONDARY_NORMAL 1'), # used with refract shader
+        '$flowmap':             ('TextureFlow',         TEXTURE_FILEEXT,    'F_FLOW_NORMALS 1\n\tF_FLOW_DEBUG 1'),
+        '$flow_noise_texture':  ('TextureNoise',        '_noise.tga',       'F_FLOW_NORMALS 1\n\tF_FLOW_DEBUG 2'),
+        '$detail':              ('TextureDetail',       '_detail.tga',      'F_DETAIL_TEXTURE 1\n'),
+        #'$detail2':            ('TextureDetail',       '_detail.tga',      'F_DETAIL_TEXTURE 1\n'),
+        '$tintmasktexture':     ('TextureTintMask',     '_mask.tga',        'F_TINT_MASK 1'), # GREEN CHANNEL ONLY, RED IS FOR $envmapmaskintintmasktexture 1
+        '$selfillummask':       ('TextureSelfIllumMask','_selfillummask.tga',''), # $blendtintbybasealpha 1 
+        '$envmap':              ('TextureCubeMap',      '_cube.pfm',        'F_SPECULAR 1\n\tF_SPECULAR_CUBE_MAP 1\n\tF_SPECULAR_CUBE_MAP_PROJECTION 1\n\tg_flCubeMapBlurAmount "1.000"\n\tg_flCubeMapScalar "1.000"\n\tg_vReflectanceRange "[0.000 0.600]"\n'),
+        '$envmapmask':          ('TextureReflectance',  '_refl.tga',        ''),  #  selfillum_envmapmask_alpha envmapmaskintintmasktexture 
+        '$phongexponenttexture':('TextureRoughness',   '_rough.tga',        '') if not FORCE_USE_RETRO_SHADERS else \
+                                ('TextureGlossiness',   '_gloss.tga',        'F_ANISOTROPIC_GLOSS 1\n'),
         #('TextureTintTexture',)
         
         # These have no separate masks
@@ -633,21 +659,28 @@ vmt_to_vmat = {
     },
     
     'settings': {
-        '$detailscale':          ('g_vDetailTexCoordScale', '[1.000 1.000]', ''),
-        '$detailblendfactor':    ('g_flDetailBlendFactor', '1.000',            ''),
-        '$selfillumtint':        ('g_vSelfIllumTint', '[1.000 1.000 1.000 0.000]', ''),
-        '$selfillumscale':       ('g_flSelfIllumScale', '1.000', ''),
+        '$detailscale':         ('g_vDetailTexCoordScale',  '[1.000 1.000]',    ''),
+        '$detailblendfactor':   ('g_flDetailBlendFactor',   '1.000',            ''),
+        #'$detailblendfactor2':  ('g_flDetailBlendFactor',   '1.000',            ''),
+        #'$detailblendfactor3':  ('g_flDetailBlendFactor',   '1.000',            ''),
+        #'$detailblendfactor4':  ('g_flDetailBlendFactor',   '1.000',            ''),
+        '$selfillumscale':      ('g_flSelfIllumScale',      '1.000',            ''),
+        '$selfillumtint':       ('g_vSelfIllumTint','[1.000 1.000 1.000 0.000]',''),
         
         #Assumes env_cubemap
-        '$envmaptint':           ('TextureReflectance',      '[1.000 1.000 1.000 0.000]', ''),
+        # TODO: if envmapmask, apply tint to the map manually, else just use this below.
+        #'$envmaptint':          ('TextureReflectance',      '[1.000 1.000 1.000 0.000]', ''),
+        
+        '$phongexponent':       ('TextureRoughness',    '[1.000 1.000 0.000 0.000]', ''),
+        '$phongexponent2':      ('TextureRoughnessB',   '[1.000 1.000 0.000 0.000]', ''),
 
-        '$color':                ('g_vColorTint',            '[1.000 1.000 1.000 0.000]', ''),
-        '$color2':               ('g_vColorTint',            '[1.000 1.000 1.000 0.000]', ''),
+        '$color':                ('g_vColorTint',           '[1.000 1.000 1.000 0.000]', ''),
+        #'$color2':               ('g_vColorTint',           '[1.000 1.000 1.000 0.000]', ''),
         
         # questionable
         '$blendtintcoloroverbase':('g_flModelTintAmount', '1.000', ''),
 
-        '$surfaceprop':          ('SystemAttributes\n\t{\n\t\tPhysicsSurfaceProperties\t', 'world.concrete', ''),
+        '$surfaceprop':          ('SystemAttributes\n\t{\n\t\tPhysicsSurfaceProperties\t', 'default', ''),
         
         '$alpha':                ('g_flOpacityScale', '1.000', ''),
         '$alphatestreference':   ('g_flAlphaTestReference', '0.500', ''),
@@ -659,12 +692,13 @@ vmt_to_vmat = {
         '$flow_worlduvscale':    ('g_flWorldUvScale', '1.000', ''),
         '$flow_noise_scale':     ('g_flNoiseUvScale', '0.010', ''),
 
-        # These only exist on vr_standard.vfx shader of SteamVR, but they match the $NEWLAYERBLENDING settings used on dust2 
-        '$blendsoftness':        ('g_flLayer1BlendSoftness', '1.000', ''),
-        '$layerborderstrenth':   ('g_flLayer1BorderStrength', '1.000', ''),
-        '$layerborderoffset':    ('g_flLayer1BorderOffset', '1.000', ''),
-        '$layerbordersoftness':  ('g_flLayer1BorderSoftness', '1.000', ''),
-        '$layerbordertint':      ('g_vLayer1BorderColor', '[1.000000 1.000000 1.000000 0.000000]', ''),
+        # SH_BLEND and SH_VR_STANDARD(SteamVR) -- $NEWLAYERBLENDING settings used on dust2 etc
+        '$blendsoftness':        ('g_flLayer1BlendSoftness',    '0.500',    ''),
+        '$layerborderstrenth':   ('g_flLayer1BorderStrength',   '0.500',    ''),
+        '$layerborderoffset':    ('g_flLayer1BorderOffset',     '0.000',    ''),
+        '$layerbordersoftness':  ('g_flLayer1BorderSoftness',   '0.500',    ''),
+
+        '$layerbordertint':      ('g_vLayer1BorderColor',       '[1.000000 1.000000 1.000000 0.000000]', ''),
         
         #'LAYERBORDERSOFTNESS':  ('g_flLayer1BorderSoftness', '1.0', ''),
         #rimlight
@@ -681,12 +715,14 @@ vmt_to_vmat = {
     },
 
     'alphamaps': {
-        '$basealphaenvmapmask':         ('TextureReflectance',  '_refl.tga',            '$basetexture', 'A'),
-        '$normalmapalphaenvmapmask':    ('TextureReflectance',  '_refl.tga',            ('$normal', '$bumpmap', '$bumpmap2'),      'A'), 
-        '$envmapmaskintintmasktexture': ('TextureReflectance',  '_refl.tga',            '$tintmask',    'R'),
-        '$basemapalphaphongmask':       ('TextureRoughness',    '_rough.tga',           '$basetexture', 'A'),
-        '$blendtintbybasealpha':        ('TextureTintMask',     '_mask.tga',            '$basetexture', 'A'),
-        '$selfillum_envmapmask_alpha':  ('TextureSelfIllumMask','_selfillummask.tga',   '$envmap',      'A')
+        
+      # '$vmtKey':  (key for which we provide a map,  key from which we extract a map,    channel to extract)
+        '$normalmapalphaenvmapmask':    ('$envmapmask', ('$normal', '$bumpmap', '$bumpmap2'),   'A'), 
+        '$basealphaenvmapmask':         ('$envmapmask',     '$basetexture',     'A'),
+        '$envmapmaskintintmasktexture': ('$envmapmask',     '$tintmasktexture', 'R'),
+        '$basemapalphaphongmask':       ('$phongmask',      '$basetexture',     'A'),
+        '$blendtintbybasealpha':        ('$tintmasktexture','$basetexture',     'A'),
+        '$selfillum_envmapmask_alpha':  ('$selfillummask',  '$envmap',          'A')
     },
 
     
@@ -697,8 +733,6 @@ vmt_to_vmat = {
 
         # $selfillumfresnelminmaxexp "[1.1 1.7 1.9]"
         #'$selfillum_envmapmask_alpha':     ('',    '',     ''),
-
-        #'$envmapmaskintintmasktexture':     ('',    '',     ''),
         
         '$phong':                ('',    '',     '\n\tg_vReflectanceRange "[0.000 0.600]"\n')   
     }
@@ -759,6 +793,7 @@ def convertVmtToVmat(vmtKeyValList):
                 vmatDefaultValue = vmatItems[VMAT_DEFAULT]
                 vmatExtraLines = vmatItems[VMAT_EXTRALINES]
                 if ( vmatReplacement and vmatDefaultValue ):
+                    
                     outKey = vmatReplacement
                     
                     if (keyType == 'textures'):
@@ -772,40 +807,49 @@ def convertVmtToVmat(vmtKeyValList):
                 # add comment or ignore completely
                 elif keyType ==  'transform':
                     pass
+
                 elif (vmatExtraLines):
                     vmatContent += vmatExtraLines
                     break
 
                 else:
-                    print('No replacement for %s. Skipping', vmtKey)
+                    #print('No replacement for %s. Skipping', vmtKey)
                     vmatContent += COMMENT + vmtKey
                     break
 
 
                 if(keyType == 'textures'):
+                    
                     if vmtKey == '$basetexture':
 
-                        if '$newlayerblending' in vmtKeyValList or '$basetexture2' in vmtKeyValList or '$bumpmap2' in vmtKeyValList or '$texture2' in vmtKeyValList:
+                        if '$newlayerblending' in vmtKeyValList or '$basetexture2' in vmtKeyValList:
                             #if vmatShader in (SH_VR_SIMPLE_2WAY_BLEND, 'xx'): 
                             outKey = vmatReplacement + 'A' # TextureColor -> TextureColorA
-                            print (outKey + "<--- is noblend ok?")
+                            print("@ DBG: " + outKey + "<--- is noblend ok?")
                         
                         if vmatShader == SH_SKY:
                             outKey = 'SkyTexture'
 
                         outVal = formatNewTexturePath(oldVal, vmatDefaultValue, True)
 
+
+                    elif vmtKey in ('$basetexture3', '$basetexture4'):
+                        if not FORCE_USE_RETRO_SHADERS:
+                            print('~ WARNING: Found 3/4-WayBlend but it is not supported.')
+                            break
+
+
                     elif vmtKey in  ('$bumpmap', '$bumpmap2', '$normalmap', '$normalmap2'):
                         # all(k not in d for k in ('name', 'amount')) vmtKeyValList.keys() & ('newlayerblending', 'basetexture2', 'bumpmap2'): # >=
-                        #if vmtKey not in ('$bumpmap2', '$normalmap2') and vmatShader in (SH_VR_SIMPLE_2WAY_BLEND, 'xx'):
-                        #    outKey = vmatReplacement + 'A' # TextureNormal -> TextureNormalA
+                        if (vmtKey != '$bumpmap2') and (vmatShader == SH_VR_SIMPLE_2WAY_BLEND or '$basetexture2' in vmtKeyValList):
+                            outKey = vmatReplacement + 'A' # TextureNormal -> TextureNormalA
                         
                         # this is same as default_normal
                         #if oldVal == 'dev/flat_normal':
                         #    pass
 
                         if str(vmtKeyValList.get('$ssbump')).strip('"') == '1':
-                            print('Found SSBUMP' + outVal)
+                            print('@ DBG: Found SSBUMP' + outVal)
                             outKey = COMMENT + '$SSBUMP' + '\n\t' + outKey
                             pass
                         #    
@@ -845,24 +889,27 @@ def convertVmtToVmat(vmtKeyValList):
                         #outVal = createMaskFromChannel(oldVal, 'A', vmatDefaultValue, True)
                     
                     elif vmtKey == '$translucent' or vmtKey == '$alphatest':
-                        if oldVal.isdigit():
+                        if is_convertible_to_float(oldVal):
                             vmatContent += '\t' + outAdditionalLines
 
                             if vmtKey == '$alphatest':
-                                sourceTexture = getTexture('$basetexture')
-                                if sourceTexture:
-                                    outVal = createMaskFromChannel(sourceTexture, 'A', vmatDefaultValue, True)
-                            break
+                                sourceTexturePath = getTexture('$basetexture')
+                                if sourceTexturePath:
+                                    outVal = createMaskFromChannel(sourceTexturePath, 'A', vmatDefaultValue, True)
+                            elif vmtKey == '$translucent':
+                                outVal = fixIntVector(oldVal, True, 2)
+
                         # create a non inverted one just in case
                         #createMaskFromChannel(oldVal, 'A', vmatDefaultValue, False)
                         # create inverted and set it
-                        sourceTexture = formatNewTexturePath(oldVal, forReal=False)
-                        outVal = createMaskFromChannel(sourceTexture, 'A', vmatDefaultValue, True) 
+                        else:
+                            sourceTexturePath = formatNewTexturePath(oldVal, forReal=False)
+                            outVal = createMaskFromChannel(sourceTexturePath, 'A', vmatDefaultValue, True) 
 
                     elif vmtKey == '$tintmasktexture':
-                        sourceTexture = getTexture('$basetexture')
-                        if sourceTexture:
-                            outVal = createMaskFromChannel(sourceTexture, 'G', vmatDefaultValue, True)
+                        sourceTexturePath = getTexture('$basetexture')
+                        if sourceTexturePath:
+                            outVal = createMaskFromChannel(sourceTexturePath, 'G', vmatDefaultValue, True)
 
                     
                     
@@ -907,11 +954,27 @@ def convertVmtToVmat(vmtKeyValList):
                             # 10 -> [10.000000 10.000000]
                             outVal = fixIntVector(oldVal, False, 1)               
                 
+                   # TODO: test if its possible to drop oldVal as it is -raw-
+                   # maybe it gets converted?
                     elif (vmtKey == '$surfaceprop'):
                         
-                        if oldVal:  vmatContent += '\n\t' + vmatReplacement + QUOTATION +'world.' + oldVal + QUOTATION + '\n\t}\n\n'
-                        else:       vmatContent += '\n\t' + vmatReplacement + QUOTATION + vmatDefaultValue + QUOTATION + '\n\t}\n\n'
-                        
+                        if not oldVal:  surfacePropValue = vmatDefaultValue
+                        else:
+                            if oldVal in ('default', 'default_silent', 'no_decal', 'player', 'roller', 'weapon'):
+                                surfacePropValue = oldVal
+
+                            elif oldVal in surfacePropertiesNew:
+                                surfacePropValue = surfacePropertiesNew[oldVal]  
+                            
+                            # lol
+                            elif ("\\props\\" in vmatFileName):
+                                surfacePropValue = 'prop.' + oldVal
+
+                            # TODO: if 'world.'+oldVal exists
+                            else:
+                                surfacePropValue = 'world.' + oldVal       
+
+                        vmatContent += '\n\t' + vmatReplacement + QUOTATION + surfacePropValue + QUOTATION + '\n\t}\n\n'
                         break
 
                     elif vmtKey == '$nofog':
@@ -940,12 +1003,7 @@ def convertVmtToVmat(vmtKeyValList):
                             + createMaskFromChannel(sourceTexture, 'A', vmt_to_vmat['textures']['$selfillummask'][VMAT_DEFAULT], True ) \
                             + QUOTATION
                     
-                    elif vmtKey in ("$color", '$color2', "$selfillumtint", '$envmaptint', '$layerbordertint'):
-                        
-                        if((vmtKey == '$envmaptint') and (vmtKeyValList.get('$envmapmask') or vmtKeyValList.get('$basealphaenvmapmask') or vmtKeyValList.get('$normalmapalphaenvmapmask'))):
-                            print("~ WARNING: Conflicting $envmapmask/$basealphaenvmapmask/$normalmapalphaenvmapmask with $envmaptint")
-                            break
-
+                    elif vmtKey in ("$color", '$color2', "$selfillumtint", '$layerbordertint'):
                         if oldVal:
                             outVal = fixIntVector(oldVal, True)
                     
@@ -956,77 +1014,32 @@ def convertVmtToVmat(vmtKeyValList):
 
                 elif(keyType == 'alphamaps'):
                     
-                    #sourceKey = vmt_to_vmat['alphamaps'][vmtKey][VMAT_EXTRALINES]
-                    #sourceTexture = formatNewTexturePath(vmtKeyValList[sourceKey], vmt_to_vmat['textures'][sourceKey][VMAT_DEFAULT], True, False) # sth liek thi
-                    #alphaTextureTag = vmt_to_vmat['alphamaps'][vmtKey][VMAT_DEFAULT]
+                    outVmtTexture = vmt_to_vmat['alphamaps'][vmtKey][0]
+                    sourceTexture = vmt_to_vmat['alphamaps'][vmtKey][1]
+                    sourceChannel = vmt_to_vmat['alphamaps'][vmtKey][2]
+
+                    outKey             = vmt_to_vmat['textures'][outVmtTexture][VMAT_REPLACEMENT]
+                    outAdditionalLines = vmt_to_vmat['textures'][outVmtTexture][VMAT_EXTRALINES]
                     
-                    print('- ALPHAMAPS ' + vmtKey)
-                    print(vmatExtraLines)
-                    sourceTexture = getTexture(vmatExtraLines)
-                    if sourceTexture:
-                        outVal =  createMaskFromChannel(sourceTexture, vmatItems[3], vmt_to_vmat['alphamaps'][vmtKey][VMAT_DEFAULT], False)
-                        print('THIS OWRKS???????? ' + outVal )
-                    else:
-                        print("~ WARNING: Couldn't find a texture from " + vmatExtraLines)
-                    outAdditionalLines = ''
-                    if vmtKey ==  '$envmapmaskintintmasktexture':
-                        outAdditionalLines = 'F_TINT_MASK 1'
-                    
-                    '''if vmtKey == '$basealphaenvmapmask':
-                        
-                        sourceTexture = formatFullDir(formatNewTexturePath(vmtKeyValList['$basetexture'], vmt_to_vmat['textures']['$basetexture'][VMAT_DEFAULT], True, False))
-                        
-                        outVal = createMaskFromChannel(sourceTexture, 'A', vmt_to_vmat['alphamaps']['$basealphaenvmapmask'][VMAT_DEFAULT], False )
+                    sourceSubString    = vmt_to_vmat['textures'][outVmtTexture][VMAT_DEFAULT]
+                    sourceTexturePath  = getTexture(sourceTexture)
+
+                    if sourceTexturePath:
+                        if vmtKeyValList.get(outVmtTexture):
+                            print("~ WARNING: Conflicting " + vmtKey + " with " + outVmtTexture + ". Aborting mask creation (using original).")
+                            break
+
+                        outVal =  createMaskFromChannel(sourceTexturePath, sourceChannel, sourceSubString, False)
                         
                         # invert for brushes; if it's a model, keep the intact one ^
                         # both versions are provided just in case for 'non models'
-                        if not str(vmtKeyValList.get('$model')).strip('"') != '0':
-                            outVal = createMaskFromChannel(sourceTexture, 'A', vmt_to_vmat['alphamaps']['$basealphaenvmapmask'][VMAT_DEFAULT], True )
-                            
+                        #if not str(vmtKeyValList.get('$model')).strip('"') != '0':
+                        #    outVal = createMaskFromChannel(sourceTexture, 'A', vmt_to_vmat['alphamaps']['$basealphaenvmapmask'][VMAT_DEFAULT], True )
+                    else:
+                        print("~ WARNING: Couldn't lookup texture from " + sourceTexture)
+                        break
 
-                    elif vmtKey == '$normalmapalphaenvmapmask':
-                        print(vmtKeyValList)
-                        normalMap = ''
-                        if vmtKeyValList.get('$normalmap'):
-                            normalMap = str(vmtKeyValList.get('$normalmap'))
-                        elif vmtKeyValList.get('$bumpmap'):
-                            normalMap = str(vmtKeyValList.get('$bumpmap'))
-                        
-                        if not normalMap:
-                            outVal = 'materials/default/default' + vmt_to_vmat['textures']['$normalmap'][VMAT_DEFAULT]
-                        else:
-                            if str(vmtKeyValList.get('$ssbump')).strip('"') == '1':
-                                sourceTexture = formatFullDir(formatNewTexturePath(normalMap, TEXTURE_FILEEXT, True, False))
-                            else:
-                                sourceTexture = formatFullDir(formatNewTexturePath(normalMap, vmt_to_vmat['textures']['$normalmap'][VMAT_DEFAULT], True, False))
-                            
-                            print('+++++++' + sourceTexture)
-                        #if str(vmtKeyValList.get('$ssbump')).strip('"') == '1':
-                        #    normalMapTypeSubString =  vmt_to_vmat['others2']['ssbump'][VMAT_DEFAULT]
-                        
-                            outVal = createMaskFromChannel(sourceTexture, 'A', vmt_to_vmat['alphamaps']['$normalmapalphaenvmapmask'][VMAT_DEFAULT], True )
-                    
-                    elif vmtKey ==  '$envmapmaskintintmasktexture':
-                        sourceTexture = formatFullDir(formatNewTexturePath(vmtKeyValList['$tintmasktexture'], vmt_to_vmat['textures']['$normalmap'][VMAT_DEFAULT], True, False))
-                        outVal = createMaskFromChannel(sourceTexture, 'R', vmt_to_vmat['alphamaps']['envmapmaskintintmasktexture'][VMAT_DEFAULT], True)
-                        outAdditionalLines = 'F_TINT_MASK 1'
 
-                    elif vmtKey ==  '$basemapalphaphongmask':
-                        sourceTexture = formatFullDir(formatNewTexturePath(vmtKeyValList['$basetexture'], vmt_to_vmat['textures']['$normalmap'][VMAT_DEFAULT], True, False))
-                        outVal = createMaskFromChannel(sourceTexture, 'A', vmt_to_vmat['alphamaps']['basemapalphaphongmask'][VMAT_DEFAULT], True)
-
-                    elif vmtKey ==  '$blendtintbybasealpha':
-                        sourceTexture = formatFullDir(formatNewTexturePath(vmtKeyValList['$basetexture'], vmt_to_vmat['textures']['$normalmap'][VMAT_DEFAULT], True, False))
-                        outVal = createMaskFromChannel(sourceTexture, 'A', vmt_to_vmat['alphamaps']['$blendtintbybasealpha'][VMAT_DEFAULT], True)
-                    
-                    elif vmtKey == '$selfillum_envmapmask_alpha':
-                        if vmtKeyValList.get('$selfillum'):
-                            print('Warning: Found conflicting $selfillum with $selfillum_envmapmask_alpha. Please correct manually')
-
-                        sourceTexture = formatFullDir(formatNewTexturePath(vmtKeyValList['$envmapmask'], vmt_to_vmat['textures']['$envmapmask'][VMAT_DEFAULT], True, False))
-                        outVal = createMaskFromChannel(sourceTexture, 'A', vmt_to_vmat['alphamaps']['$selfillum_envmapmask_alpha'][VMAT_DEFAULT], True)
-                '''
-                
                 # F_RENDER_BACKFACES 1
                 elif keyType == 'f_settings':
                     
@@ -1067,8 +1080,8 @@ def convertVmtToVmat(vmtKeyValList):
                 else: 
                     vmatContent += '\t' + outKey + '\t\t' + QUOTATION + outVal + QUOTATION + '\n'
 
-                #print("DBG: " + oldKey + ' ' + oldVal + ' (' + vmatReplacement.replace('\t', '').replace('\n', '') + ' ' + vmatDefaultValue.replace('\t', '').replace('\n', '') + ') -------> ' + outKey + ' ' + outVal.replace('\t', '').replace('\n', '') + ' ' + outAdditionalLines.replace('\t', '').replace('\n', ''))
-                print("DBGGGGGGGGG: " + oldKey + ' "' + oldVal + '" -------> ' + outKey + ' ' + outVal.replace('\t', '').replace('\n', '') + ' ' + outAdditionalLines.replace('\t', '').replace('\n', ''))
+                ##print("DBG: " + oldKey + ' ' + oldVal + ' (' + vmatReplacement.replace('\t', '').replace('\n', '') + ' ' + vmatDefaultValue.replace('\t', '').replace('\n', '') + ') -------> ' + outKey + ' ' + outVal.replace('\t', '').replace('\n', '') + ' ' + outAdditionalLines.replace('\t', '').replace('\n', ''))
+                print("@ DBG: " + oldKey + ' "' + oldVal + '" ---> ' + outKey + ' ' + outVal.replace('\t', '').replace('\n', '') + ' ' + outAdditionalLines.replace('\t', '').replace('\n', ''))
 
     return vmatContent
     
@@ -1079,9 +1092,9 @@ failures = []
 x = 0
 for fileName in fileList:
     x = x+1
-    if x > 1000: quit()
+    #if x > 1000: quit()
     print('--------------------------------------------------------------------------------------------------------')
-    print('+ Loading File:\n' + fileName)
+    print('+ Converting:  ' + fileName)
     vmtKeyValList = {}
     validMaterial = False
     validPatch = False
@@ -1113,7 +1126,7 @@ for fileName in fileList:
                     parseVMTParameter(line, vmtKeyValList)
         except FileNotFoundError:
             failures.append(patchFile)
-            print("Couldn't find patch file. Skipping!")
+            print("~ WARMING: Couldn't find patch file. Skipping!")
             continue
                 
         if not validPatch:
@@ -1123,8 +1136,8 @@ for fileName in fileList:
     skyBoxVmtFile = os.path.basename(fileName.strip(".vmt"))[-2:]
     if(skyBoxVmtFile[-2:] in skyboxfaces):
         newVmatSkybox = buildS2CompatibleSkybox(fileName)
-        if(os.path.exists(newVmatSkybox)) and not OVERWRITE_VMAT:
-            print('+ File already exists. Skipping!')
+        #if(os.path.exists(newVmatSkybox)) and not OVERWRITE_VMAT:
+        #    print('+ File already exists. Skipping!')
 
     if validMaterial:
         vmatFileName = fileName.replace('.vmt', '') + '.vmat'
@@ -1132,26 +1145,23 @@ for fileName in fileList:
             print('+ File already exists. Skipping!')
             continue
         
-        print('+ Converting ' + os.path.basename(fileName))
-        #print(vmtKeyValList)
+        #print('+ Converting:  ' + os.path.basename(fileName))
+        ##print(vmtKeyValList)
         vmatShader = chooseShader(matType, vmtKeyValList, fileName)
         if '$blendmodulatetexture' in vmtKeyValList or '$newlayerblending' in vmtKeyValList:
-            vmatShader == SH_VR_SIMPLE_2WAY_BLEND
-
+            #vmatShader == SH_VR_SIMPLE_2WAY_BLEND
+            vmatShader == SH_BLEND
             
         #    isBlend = true materialTypes[matType.strip('""\n"')]
         with open(vmatFileName, 'w') as vmatFile:
             vmatFile.write('// Converted with vmt_to_vmat.py\n')
-            vmatFile.write('// Original file: ' + fileName + '\n\n')
+            vmatFile.write('// From: ' + fileName + '\n\n')
             vmatFile.write('Layer0\n{\n\tshader "' + vmatShader + '.vfx"\n\n')
         
-            print("mattype: " + matType)
+            print("@ DBG: Mattype: " + matType)
 
             
             vmatFile.write(convertVmtToVmat(vmtKeyValList)) ###############################        
-            
-            
-            
             
             #check if base texture is empty
             #if "metal" in vmatFileName:
@@ -1164,8 +1174,9 @@ for fileName in fileList:
         #    with open(vmatFileName, "w") as f1:
         #        for line in f:
         #            f1.write(COMMENT + line)
-
-        print ('+ Saved new file at:' + vmatFileName)
+        print ('+ Converted: ' + fileName)
+        print ('+ Saved at:  ' + vmatFileName)
+        print ('--------------------------------------------------------------------------------------------------------')
 
     bumpmapConvertedList = formatFullDir("convertedfiles.txt")
     if not os.path.exists(bumpmapConvertedList):
