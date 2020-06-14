@@ -102,23 +102,21 @@ def chooseShader(matType, vmtKeyValList, fileName):
 
     shaders[SH_VR_BLACK_UNLIT] = 0
     
-    if USE_RETRO_SHADERS:
-        shaders[SH_GENERIC] += 1
-    else:
-        shaders[materialTypes[matType]] += 1
+    if USE_RETRO_SHADERS:   shaders[SH_GENERIC] += 1
+    else:                   shaders[materialTypes[matType]] += 1
     
     
     if matType == "unlitgeneric":
         shaders[SH_SKY] += 1
-        
-        if "$nofog" in vmtKeyValList or "$ignorez" in vmtKeyValList:
-            shaders[SH_SKY] += 2
-        if "$receiveflashlight" in vmtKeyValList:
-            shaders[SH_SKY] -= 3
+
+        if "skybox" in fileName: shaders[SH_SKY] += 2
+        if "$nofog" in vmtKeyValList: shaders[SH_SKY] += 1
+        if "$ignorez" in vmtKeyValList: shaders[SH_SKY] += 2
+
+        if "$receiveflashlight" in vmtKeyValList: shaders[SH_SKY] -= 6
     
     elif matType == "worldvertextransition":
-        if vmtKeyValList.get('$basetexture2'):
-            shaders[SH_VR_SIMPLE_2WAY_BLEND] += 99
+        if vmtKeyValList.get('$basetexture2'): shaders[SH_VR_SIMPLE_2WAY_BLEND] += 69
 
     elif matType == "":
         pass
@@ -169,7 +167,6 @@ surfacePropertiesNew = {
 
 QUOTATION = '"'
 COMMENT = "// "
-skyboxfaces = ['up','dn', 'lf', 'rt', 'bk', 'ft']
 
 def parseDir(dirName):
     files = []
@@ -190,6 +187,7 @@ if not PATH_TO_CONTENT_ROOT:
     if(len(sys.argv) >= 2):
         PATH_TO_CONTENT_ROOT = sys.argv[1]
     else:
+        #print("here: " + PATH_TO_CONTENT_ROOT)
         while not PATH_TO_CONTENT_ROOT:
             c = input('Type the root directory of the vmt materials you want to convert (enter to use current directory, q to quit).: ') or currentDir
             if not path.isdir(c):
@@ -287,7 +285,7 @@ def formatNewTexturePath(vmtPath, textureType = TEXTURE_FILEEXT, renameTexture =
     #    renameTexture = False
     #    return formatVmatDir(textureLocal + textureType[-4:])
 
-    # TODO: this is not correct
+    # TODO: this is not correct - wtf
     if not forReal:
         newVmatFormattedTexture = formatVmatDir(textureLocal + textureType)
     
@@ -300,7 +298,6 @@ def formatNewTexturePath(vmtPath, textureType = TEXTURE_FILEEXT, renameTexture =
     else:
         newVmatFormattedTexture = formatVmatDir(textureLocal + textureType)
 
-    ##print(newVmatFormattedTexture)
     return newVmatFormattedTexture
 
 def textureAddTag(str1, str2):
@@ -377,7 +374,8 @@ def parseVMTParameter(line, parameters):
     words = []
     
     if line.startswith('\t') or line.startswith(' '):
-        #-words = re.split(r'\s+', line, 2)
+        #cached_line_prev = line
+        re.sub('"', ' ', line) # fix for some weird cases like: "$key""value""
         words = re.split(r'\s+', line, 2)
     else:
         words = re.split(r'\s+', line, 1)
@@ -386,7 +384,6 @@ def parseVMTParameter(line, parameters):
     if len(words) < 2:
         #print("Cannot read -> " + str(words))
         return 
-    
     key = words[0].strip('"').lower()
     
     if key.startswith('/'):
@@ -486,12 +483,21 @@ def flipNormalMap(localPath):
         
         final_transparent_image.save(image_path)"""
 
-def buildS2CompatibleSkybox(vmatFileName):
+skybox = {
+    'up':{},
+    'dn':{},
+    'lf':{},
+    'rt':{},
+    'bk':{},
+    'ft':{}
+}
+
+def buildS2SkyCubemap(fileName):
 
     # https://developer.valvesoftware.com/wiki/File:Hdr_skyface_sides.jpg
     
-    # Usually the bk face. Using it to determine the final resolution.
-    baseFace = vmatFileName[:-4] + TEXTURE_FILEEXT
+    # Usually the up face. Using it to determine the final resolution.
+    baseFace = fileName[:-4] + TEXTURE_FILEEXT
     
     if os.path.exists(baseFace):
         face_w, _ = Image.open(baseFace).size
@@ -500,34 +506,55 @@ def buildS2CompatibleSkybox(vmatFileName):
         print("~ WARNING: Couldn't find skybox face " + formatVmatDir(baseFace) + ". SkyCube creation failed.")
         return 'materials/default/default_cube.pfm'
     
-    SkyCubeImage_Path = vmatFileName[:-4] + '_cube' + TEXTURE_FILEEXT
+    SkyCubeImage_Path = fileName[:-6].rstrip('_') + '_cube' + TEXTURE_FILEEXT
+
+    #if os.path.exists(SkyCubeImage_Path):
+    #    print('+ SkyCube already exists. Skipping!')
+    #    return SkyCubeImage_Path
     
     cube_w = 4 * face_w
     cube_h = 3 * face_h
 
-    if 'hdr' in vmatFileName:
-        print('@ DBG: HDR SKYBOX TEXTURE')
-    else:
-        print('@ DBG: LDR SKYBOX TEXTURE')
-
-        SkyCubeImage = Image.new('RGB', (cube_w, cube_h), color = (0, 0, 0))
-
-        for face in skyboxfaces:
-            skyboxFacePath = vmatFileName[:-6] + face + TEXTURE_FILEEXT
-            
-            if face == 'up':   paste_position = (cube_w - 1 * face_w, cube_h - 3 * face_h)
-            elif face == 'ft': paste_position = (cube_w - 4 * face_w, cube_h - 2 * face_h)
-            elif face == 'lf': paste_position = (cube_w - 3 * face_w, cube_h - 2 * face_h)
-            elif face == 'bk': paste_position = (cube_w - 2 * face_w, cube_h - 2 * face_h)
-            elif face == 'rt': paste_position = (cube_w - 1 * face_w, cube_h - 2 * face_h)
-            elif face == 'dn': paste_position = (cube_w - 1 * face_w, cube_h - 1 * face_h)
-            
-            if(os.path.exists(skyboxFacePath)):
-                # TODO: "$baseTexture" "skybox/CS_baggage_skybox_UP" "$basetexturetransform" "center 0.5 0.5 scale 1 1 rotate 90 translate 0 0"
-                # TODO: this part: rotate 90
-                SkyCubeImage.paste(Image.open(skyboxFacePath), paste_position)
+    # TODO: check for hdr some other way
+    # also what is l4d2 skybox/sky_l4d_rural02_ldrbk.pwl 
+    # TODO: !!!!! HOW DO I DO HDR TEXTURES !!!!!
+    if(fileName[-9:-6] == 'hdr'): 
+        #SkyCubeImage_Path = fileName[:-6].rstrip('_') + '_cube.exr'
+        return
+    elif(fileName[-9:-6] == 'ldr'):
+        #SkyCubeImage_Path = fileName[:-6].rstrip('_') + '_cube.exr'
+        return
+    else: SkyCubeImage_Path = fileName[:-6].rstrip('_') + '_cube' + TEXTURE_FILEEXT
+    print('@ DBG: SKYBOX TEXTURE')
+    SkyCubeImage = Image.new('RGB', (cube_w, cube_h), color = (0, 0, 0))
+    for face in skybox:
+        
+        skybox[face]['path'] = fileName[:-6] + face + TEXTURE_FILEEXT
+        
+        if(not os.path.exists(skybox[face]['path'])):
+            skybox[face]['path'] = None
+            continue
+        
+        # TODO: i think top and bottom need to be rotated by 90 + side faces offset by x
+        # check if front is below top and above bottom
+        if face == 'up':   skybox[face]['position'] = (cube_w - 3 * face_w, cube_h - 3 * face_h)
+        elif face == 'ft': skybox[face]['position'] = (cube_w - 2 * face_w, cube_h - 2 * face_h)
+        elif face == 'lf': skybox[face]['position'] = (cube_w - 1 * face_w, cube_h - 2 * face_h)
+        elif face == 'bk': skybox[face]['position'] = (cube_w - 4 * face_w, cube_h - 2 * face_h)
+        elif face == 'rt': skybox[face]['position'] = (cube_w - 3 * face_w, cube_h - 2 * face_h)
+        elif face == 'dn': skybox[face]['position'] = (cube_w - 3 * face_w, cube_h - 1 * face_h)
+        
+        faceHandle = Image.open(skybox[face]['path'])
+        
+        if(skybox[face].get('rotate')):
+            print("@ DBG: ROTATING `" + face + "` BY THIS: " + str(skybox[face]['rotate']))
+            faceHandle = faceHandle.rotate(int(skybox[face]['rotate']))
+            skybox[face]['rotate'] = 0 # clear the value for the next sky cubemap
+        
+        SkyCubeImage.paste(faceHandle, skybox[face]['position'])
 
         SkyCubeImage.save(SkyCubeImage_Path)
+
 
     if os.path.exists(SkyCubeImage_Path):
         print('@ DBG: Successfuly created LDR skycube at: ' + formatVmatDir(SkyCubeImage_Path))
@@ -571,12 +598,6 @@ def fixIntVector(s, needsAlpha = True, replicateSingle = 0):
     #print (originalValueList)
     return '[' + ' '.join(originalValueList) + ']'
 
-
-MATRIX_ROTATIONCENTER = 0
-MATRIX_SCALE = 1
-MATRIX_ROTATE = 2
-MATRIX_TRANSLATE = 3
-
 def is_convertible_to_float(value):
   try:
     float(value)
@@ -584,13 +605,18 @@ def is_convertible_to_float(value):
   except:
     return False
 
+MATRIX_ROTATIONCENTER = 0
+MATRIX_SCALE = 1
+MATRIX_ROTATE = 2
+MATRIX_TRANSLATE = 3
+
 def listMatrix(s):
     # [0, 1] center defines the point of rotation. Only useful if rotate is being used.
     # [2, 3] scale fits the texture into the material the given number of times. '2 1' is a 50% scale in the X axis.
     # [4]    rotate rotates the texture counter-clockwise in degrees. Accepts any number, including negatives.
     # [5, 6] translate shifts the texture by the given numbers. '.5' will shift it half-way.
 
-    # Assuming you can't use these individually as "rotate 4" /// welp you can
+    # Assuming you can't use these individually as "rotate 4" /// TODO: welp you can
     # $detailtexturetransform "center .5 .5 scale 1 1 rotate 0 translate 0 0"
     # -> [0.5, 0.5, 1.0, 1.0, 0.0, 0.0, 0.0]
     s = s.strip('"')
@@ -950,6 +976,8 @@ def convertVmtToVmat(vmtKeyValList):
                     else:
                         if oldVal == 'env_cubemap':
                             pass
+                        if vmatShader == SH_SKY:
+                            pass
 
                         outVal = formatNewTexturePath(oldVal, vmatDefaultValue, True)
                         
@@ -1196,13 +1224,21 @@ for fileName in fileList:
         else:
             print("~ WARNING: No include was provided on material with type 'Patch'. Is it a weapon skin?")
         
-    skyBoxVmtFile = os.path.basename(fileName.strip(".vmt"))#[-2:]
-    if((skyBoxVmtFile[-2:] in skyboxfaces) and ('\\skybox\\' in fileName)):
+    
+    skyboxName = os.path.basename(fileName).replace(".vmt", '')#[-2:]
+    
+    if('\\skybox\\' in fileName or '/skybox/' in fileName):
+        faceTransform = vmtKeyValList.get('$basetexturetransform')
+        if(faceTransform):
+            transformMatrix = listMatrix(faceTransform)
+            if(transformMatrix[MATRIX_ROTATE]):
+                skybox[skyboxName[-2:]]['rotate'] = int(float(transformMatrix[MATRIX_ROTATE]))
         
-        if(not os.path.exists(skyBoxVmtFile[:-2] + '_cube.pfm') or not os.path.exists(skyBoxVmtFile[:-2] + '_cube.tga')):
-            buildS2CompatibleSkybox(fileName)
-        else:
-            print('+ SkyCube already exists. Skipping!')
+        # Since we go through files alphabetically, we expect the last face to get processed to be 'up'
+        # This is necessary since we need the rotation information for all the 6 faces. (why the fuck do you have to rotate a fucking sky face, baggage?)
+        # Now begin building the sky cubemap 
+        if(skyboxName[-2:] == 'up'):
+            buildS2SkyCubemap(fileName)
 
     if validMaterial:
         vmatFileName = fileName.replace('.vmt', '') + '.vmat'
