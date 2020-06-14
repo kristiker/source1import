@@ -21,7 +21,8 @@
 # THE SOFTWARE.
 
 # Usage Instructions:
-# python vmt_to_vmat.py MODNAME OPTIONAL_PATH_TO_FOLDER
+# run the script directly
+# or `python vmt_to_vmat.py input_path output_path`
 
 import sys
 import os
