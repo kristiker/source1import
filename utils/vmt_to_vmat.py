@@ -42,13 +42,15 @@ from difflib import get_close_matches
 import re
 from PIL import Image
 import PIL.ImageOps
+from time import sleep
+import json
 
 # generic, blend instead of vr_complex, vr_2wayblend etc...
 # blend doesn't seem to work though. why...
-USE_RETRO_SHADERS = False
-newshader = not USE_RETRO_SHADERS
+USE_OLD_SHADERS = False
+newshader = not USE_OLD_SHADERS
 
-# File format of the textures. 
+# File format of the textures. Needs to be lowercase
 TEXTURE_FILEEXT = '.tga'
 
 # make sure to remember the final slash!!
@@ -58,6 +60,7 @@ PATH_TO_CONTENT_ROOT = ""
 # Set this to True if you wish to overwrite your old vmat files
 OVERWRITE_VMAT = True
 
+REMOVE_VTF_FILES = True
 # Set this to True if you wish to do basic renaming of your textures
 # texture.tga, texture_color.tga -> texture_color.tga
 RENAME_TEXTURES = True
@@ -109,19 +112,22 @@ def chooseShader(matType, vmtKeyValList, fileName):
 
     #TODO: if containts values starting with _rt_ give some empty shader
     
-    if USE_RETRO_SHADERS:   shaders[SH_GENERIC] += 1
+    if USE_OLD_SHADERS:   shaders[SH_GENERIC] += 1
     else:                   shaders[materialTypes[matType]] += 1
 
     # BUG: sprites/crosshairs sun/overlay are becoiming sky when they shhouldn't
     if matType == "unlitgeneric":
 
-        if '\\skybox\\' in fileName or '/skybox/' in fileName: shaders[SH_SKY] += 4 # 99% correct
+        if '\\skybox\\' in fileName or '/skybox/' in fileName: shaders[SH_SKY] += 4 # 95% correct
         if "$nofog" in vmtKeyValList: shaders[SH_SKY] += 1
         if "$ignorez" in vmtKeyValList: shaders[SH_SKY] += 2
         
         # ofc there will be some sky vmt that has one of these for no damn reason
         if "$receiveflashlight" in vmtKeyValList: shaders[SH_SKY] -= 6
         if "$alphatest" in vmtKeyValList: shaders[SH_SKY] -= 6
+        if "$additive" in vmtKeyValList: shaders[SH_SKY] -= 3
+        if "$vertexcolor" in vmtKeyValList: shaders[SH_SKY] -= 3
+        # translucent
     
     elif matType == "worldvertextransition":
         if vmtKeyValList.get('$basetexture2'): shaders[SH_VR_SIMPLE_2WAY_BLEND] += 69
@@ -166,6 +172,8 @@ ignoreList = [
 "lightmappedgeneric_dx9",
 "lightmappedgeneric_dx8",
 "lightmappedgeneric_dx7",
+"unlitgeneric_dx7",
+"unlitgeneric_dx6",
 ]
 
 surfprop_repl = {
@@ -184,16 +192,13 @@ debugList = []
 # and "asphalt_" in fileName
 def parseDir(dirName):
     files = []
+    skipdirs = ['dev', 'debug', 'tools', 'vgui', 'console', 'correction']
     for root, _, fileNames in os.walk(dirName):
-        if "/dev/" in root or "\\dev\\" in root: continue
-        if "/debug/" in root or "\\debug\\" in root: continue
-        if "/tools/" in root or "\tools\\" in root: continue
-        if "/vgui/" in root or "\\vgui\\" in root: continue
-        if "/console/" in root or "\\console\\" in root: continue
-        if "/correction/" in root or "\\correction\\" in root: continue
-
+        for skipdir in skipdirs:
+            if ('materials\\' + skipdir) in root: continue
+        #if not root.endswith(r'materials\skybox'): continue
         for fileName in fileNames:
-            if fileName.lower().endswith('.vmt'): # and '\\v_models\\' in root:
+            if fileName.lower().endswith('.vmt'): # : #
                 files.append(os.path.join(root,fileName))
 
     return files
@@ -202,7 +207,11 @@ def parseDir(dirName):
 ### Main Execution
 ###
 
-currentDir = os.getcwd()
+#currentDir = os.getcwd()
+
+#currentDir = r"D:\Users\kristi\Desktop\WORK\MOD\content\hlvr"
+#currentDir = r"D:\Users\kristi\Desktop\WORK\test\here"
+currentDir =r"D:\Program Files (x86)\Steam\steamapps\common\Half-Life Alyx\content\hlvr_addons\csgo"
 
 if not PATH_TO_CONTENT_ROOT:
     if(len(sys.argv) >= 2):
@@ -278,7 +287,7 @@ def textureAddSubStr(str1, str2):
 # -------------------------------
 # Returns correct path, checks if alreay exists, renames with proper extensions, etc...
 # -------------------------------
-def formatNewTexturePath(vmtPath, textureType = TEXTURE_FILEEXT, forReal = True):
+def formatNewTexturePath(vmtPath, textureType = TEXTURE_FILEEXT, noRename = False, forReal = True):
 
     global debugContent
     global debugList
@@ -287,24 +296,29 @@ def formatNewTexturePath(vmtPath, textureType = TEXTURE_FILEEXT, forReal = True)
     subStr = textureType[:-4]#textureType.replace(TEXTURE_FILEEXT, '')
     #breakpoint()
     # BUG: D:\Program Files (x86)\Steam\steamapps\common\Half-Life Alyx\content\hlvr_addons\csgo\materials\models\props\de_dust\hr_dust\dust_electric_panel
-    # some secndary materials are renamed to _refl.tga when they should be _color.tga
-    # dust_electric_panel_cover_color_refl.tga
+    # some secndary materials are renamed to _refl.tga when they should be _color.tga -- not necessarily secondary materials
+    # dust_electric_panel_cover_color_refl.tga materials\models\props\de_dust\hr_dust\dust_garbage_container\dust_garbage_dumpster_color
+    # _color is being used as reflectivity as well as albedo resulting in it being renamed. This should be the root of these all. please FIXME
+    # FIXME proposal: if material ends with a DEFAULT_VALUE tag other than the current tag do makeCopy = True
+    # this fixes _color_refl.tga -- but theres also those that arent originally color and have had to be renamed.
+
     # and Error loading resource file "materials/models/props/de_dust/hr_dust/dust_lights/street_lantern_03/street_lantern_03_color.vmat_c" (Error: ERROR_FILEOPEN)
     # same as the _normal problem?
     if vmtPath == '': return 'materials/default/default' + textureType
 
     vtfTexture = formatFullDir(formatVmtTextureDir(vmtPath + '.vtf', '') + '.vtf')
-    if os.path.exists(vtfTexture):
+    if REMOVE_VTF_FILES and os.path.exists(vtfTexture):
         os.remove(vtfTexture)
         print("~ Removed vtf file: " + formatVmatDir(vtfTexture))
 
 
     # "newde_cache/nc_corrugated" -> materials/newde_cache/nc_corrugated
     textureLocal = formatVmtTextureDir(vmtPath, '')
-    textureLocal = textureLocal.lower()
+    #textureLocal = textureLocal.lower()
 
     # no rename
-    if not RENAME_TEXTURES or fileName.endswith('_normal.vmt'): return textureLocal + TEXTURE_FILEEXT # 
+    if not RENAME_TEXTURES  or noRename or not subStr or fileName.endswith('_normal.vmt'):
+        return textureLocal + TEXTURE_FILEEXT
     # simple rename
     elif not FINE_RENAME: newName = textureLocal + textureType
     # processed rename
@@ -315,7 +329,7 @@ def formatNewTexturePath(vmtPath, textureType = TEXTURE_FILEEXT, forReal = True)
         if newName == oldName: return textureLocal + TEXTURE_FILEEXT #return (os.path.normpath(os.path.dirname(textureLocal) + '/' + newName + TEXTURE_FILEEXT)).replace('\\', '/')
         if textureType == "_color.tga" and textureLocal.endswith('_normal'):
             print("@ DBG:", "FIXED NORMAL")
-            return textureRename(textureLocal.rstrip(TEXTURE_FILEEXT) + "_color", textureLocal + '.tga')
+            return textureRename(textureLocal.rstrip(TEXTURE_FILEEXT) + "_color", textureLocal + '.tga', textureType)
         replList = {'refl':'mask', 'normal':'bump'}
         if subStr[1:] in replList and replList[subStr[1:]] in oldName:
             newName = ''.join(oldName.rsplit(replList[subStr[1:]], 1)).rstrip('_') + subStr
@@ -346,21 +360,22 @@ def formatNewTexturePath(vmtPath, textureType = TEXTURE_FILEEXT, forReal = True)
 
     if not forReal: return newName
     
-    outVmatTexture =  textureRename(textureLocal, newName) or ('materials/default/default' + textureType)
+    outVmatTexture =  textureRename(textureLocal, newName, textureType) or ('materials/default/default' + textureType)
 
     if 'materials/default/default' in outVmatTexture:
         print("~ ERROR: Could not find texture: " + formatFullDir(textureLocal))
 
     return outVmatTexture
 
-def textureRename(localPath, newNamePath, makeCopy = False):
+#renamedTexturesCache = dict()
+def textureRename(localPath, newNamePath, textureType, makeCopy = False):
 
     if 'skybox' in localPath:
         return localPath
 
     localPath = formatFullDir(localPath)
 
-    if localPath[:-4] != TEXTURE_FILEEXT:
+    if not localPath.endswith(TEXTURE_FILEEXT):
         localPath += TEXTURE_FILEEXT
 
     # TODO: this is a temporary fix
@@ -371,24 +386,42 @@ def textureRename(localPath, newNamePath, makeCopy = False):
     newNamePath = formatFullDir(newNamePath)
     
     if(os.path.exists(newNamePath)):
+        # don't need this, temporary fix only
         #if os.path.exists(localPath) and not makeCopy:
         #    os.remove(localPath)
         return formatVmatDir(newNamePath)
 
+    # TODO: check if image is used for another map so we don't interfere. if it is we should make a copy/should not rename at all.
+    # FUCKKKKK THISSSSS
+    
     if not os.path.exists(localPath):
-        print("+ Could not find texture " + localPath + " queued for rename into: " + newNamePath.split('/')[-1])
+        print("+ Could not find texture " + localPath + " set to be renamed into: " + newNamePath.split('/')[-1])
+ 
         for key in list(vmt_to_vmat['textures']):
-            if os.path.exists(localPath[:-4] + vmt_to_vmat['textures'][key][VMAT_DEFAULT]):
+            #if os.path.exists(localPath[:-4] + vmt_to_vmat['textures'][key][VMAT_DEFAULT]):
+            tryPath = formatFullDir(formatNewTexturePath(formatVmatDir(localPath[:-4]), vmt_to_vmat['textures'][key][VMAT_DEFAULT], forReal = False))
+            print("@ DBG: checking for", tryPath)
+            if os.path.exists(tryPath):
                 makeCopy = True
                 localPath = localPath[:-4] + vmt_to_vmat['textures'][key][VMAT_DEFAULT]
-                print("+ Nevermind... found renamed copy! " + formatVmatDir(localPath))
-                print("+ However, we shouldn't have had to search for it. Check if material's using same texture for more than one map.")
+                print("+ Nevermind... found a renamed copy! " + formatVmatDir(localPath))
+                print("+ However, we shouldn't have had to search for it. Check if material's using same image for more than one map.")
                 break
         
         if not os.path.exists(localPath):
             print("+ Please check!")
             return None
-
+    else:
+        if textureType != 'color.tga':
+            for key in list(vmt_to_vmat['textures']):
+                postFix = vmt_to_vmat['textures'][key][VMAT_DEFAULT]
+                if postFix != textureType[:-4] and localPath.endswith(postFix):
+                    #localPath = ''.join(localPath.rsplit(postFix, 1)) -- NO, localpath exists and I should not touch it.
+                    # output should be texture_color_{postfix} while texture_color remains untouched.
+                    print("@ DBG:", "Problematic two map one image detected. Copying", localPath, "->", newNamePath)
+                    #sleep(5.0)
+                    makeCopy = True
+                    break
     try:
         if not makeCopy:
             os.rename(localPath, newNamePath)
@@ -405,8 +438,8 @@ def textureRename(localPath, newNamePath, makeCopy = False):
         if(not os.path.exists(newNamePath)):
             print("~ ERROR: couldnt find")
 
-    #if os.path.exists(localPath) and not makeCopy:
-    #    os.remove(localPath)
+    if os.path.exists(localPath) and not makeCopy:
+        os.remove(localPath)
 
     return formatVmatDir(newNamePath)
 
@@ -458,17 +491,20 @@ def parseVMTParameter(line, parameters):
 
     if not words: return
     elif len(words) == 1:
+        Quott = words[0].count('"')
         # fix for: "$key""value""
-        if words[0].count('"') >= 4:
+        if Quott >= 4:
             m = re.match(r'^((?:[^"]*"){1}[^"]*)"(.*)', line)
             if m:
                 line = m.group(1)  + '" ' + m.group(2)
                 parseVMTParameter(line, vmtKeyValList)
         # fix for: $key"value"
-        elif words[0].count('"') == 2:
-            line = line.replace('"', ' ')
+        elif Quott == 2:
+            # TODO: sth better that keeps text inside quotes intact.
+            #line = line.replace('"', ' " ').rstrip(' " ') + '"'
+            line = line.replace('"', '')
             parseVMTParameter(line, vmtKeyValList)
-        return # no inf loops please
+        return # no recursive loops please
     elif len(words) > 2:
         # fix for: "$key""value""$key""value" - we come here after len == 1 has happened
         nextLine = ' '.join(words[2:]) # words[2:3]
@@ -507,13 +543,13 @@ def parseVMTParameter(line, parameters):
 
     if nextLine: parseVMTParameter(nextLine, vmtKeyValList)
 
-# TODO: delete original images at the end of the script
+# TODO: delete original images that are unused at the end of the script
 def createMaskFromChannel(vmtTexture, channel = 'A', copySub = '_mask.tga', invert = True):
     if not os.path.exists(vmtTexture):
         vmtTexture = formatFullDir(vmtTexture)
 
-    if invert:  newMaskPath = vmtTexture[:-4] + '_' + 'inverted-' + channel + copySub
-    else:       newMaskPath = vmtTexture[:-4] + '_'               + channel + copySub
+    if invert:  newMaskPath = vmtTexture[:-4] + '_' + channel + '-1' + copySub
+    else:       newMaskPath = vmtTexture[:-4] + '_' + channel        + copySub
     
     if os.path.exists(newMaskPath):
         return formatVmatDir(newMaskPath)
@@ -573,95 +609,8 @@ def flipNormalMap(localPath, tradeFileSizeForProcessing = True):
 
     return localPath
 
-
-skybox = {
-    'up':{},
-    'dn':{},
-    'lf':{},
-    'rt':{},
-    'bk':{},
-    'ft':{}
-}
-
-def buildS2SkyCubemap(fileName):
-
-    # https://developer.valvesoftware.com/wiki/File:Hdr_skyface_sides.jpg
-    
-    # Usually the up face. Using it to determine the final resolution.
-    baseFace = fileName[:-4] + TEXTURE_FILEEXT
-    
-    if os.path.exists(baseFace):
-        face_w, _ = Image.open(baseFace).size
-        face_h = face_w # It's a square anyway, this deals with "scale 1 2"
-    else:
-        print("~ WARNING: Couldn't find skybox face " + formatVmatDir(baseFace) + ". SkyCube creation failed.")
-        return 'materials/default/default_cube.pfm'
-    
-    SkyCubeImage_Path = fileName[:-6].rstrip('_') + '_cube' + TEXTURE_FILEEXT
-
-    #if os.path.exists(SkyCubeImage_Path):
-    #    print('+ Sky cubemap already exists. Skipping!')
-    #    return SkyCubeImage_Path
-    
-    cube_w = 4 * face_w
-    cube_h = 3 * face_h
-
-    # TODO: check for hdr some other way
-    # also what is l4d2 skybox/sky_l4d_rural02_ldrbk.pwl 
-    # TODO: !!!!! HOW DO I DO HDR TEXTURES !!!!!
-    # idea: convert to tiff
-    #if(fileName[-9:-6] == 'hdr'): 
-        #SkyCubeImage_Path = fileName[:-6].rstrip('_') + '_cube.exr'
-    #    return
-    #elif(fileName[-9:-6] == 'ldr'):
-        #SkyCubeImage_Path = fileName[:-6].rstrip('_') + '_cube.exr'
-    #    return
-    #else:
-    SkyCubeImage_Path = fileName[:-6].rstrip('_') + '_cube' + TEXTURE_FILEEXT
-
-    SkyCubeImage = Image.new('RGBA', (cube_w, cube_h), color = (0, 0, 0, 255))
-    
-    for face in skybox:
-        
-        # TODO: get path directly from vmt files. dustblank uses differently named faces
-        skybox[face]['path'] = fileName[:-6] + face + TEXTURE_FILEEXT
-
-        if(not os.path.exists(skybox[face]['path'])):
-            print("~ WARNING: Missing skybox face " + str(skybox[face]['path']))
-            skybox[face]['path'] = None
-            continue
-
-        # TODO: i think top and bottom need to be rotated by 90 + side faces offset by x
-        # check if front is below top and above bottom
-        if face == 'up':   skybox[face]['position'] = (cube_w - 3 * face_w, cube_h - 3 * face_h)
-        elif face == 'ft': skybox[face]['position'] = (cube_w - 2 * face_w, cube_h - 2 * face_h)
-        elif face == 'lf': skybox[face]['position'] = (cube_w - 1 * face_w, cube_h - 2 * face_h)
-        elif face == 'bk': skybox[face]['position'] = (cube_w - 4 * face_w, cube_h - 2 * face_h)
-        elif face == 'rt': skybox[face]['position'] = (cube_w - 3 * face_w, cube_h - 2 * face_h)
-        elif face == 'dn': skybox[face]['position'] = (cube_w - 3 * face_w, cube_h - 1 * face_h)
-        
-        faceHandle = Image.open(skybox[face]['path'])
-
-        if faceHandle.width != face_w:
-            faceHandle = faceHandle.resize((face_w, round(faceHandle.height * face_w/faceHandle.width)), Image.BICUBIC)
-
-        if(skybox[face].get('rotate')):
-            print("@ DBG: ROTATING `" + face + "` BY THIS: " + str(skybox[face]['rotate']))
-            faceHandle = faceHandle.rotate(int(skybox[face]['rotate']))
-            skybox[face]['rotate'] = 0 # clear the value for the next sky cubemap
-        
-        SkyCubeImage.paste(faceHandle, skybox[face]['position'])
-
-    SkyCubeImage.save(SkyCubeImage_Path)
-
-
-    if os.path.exists(SkyCubeImage_Path):
-        print('+ Successfuly created sky cubemap at: ' + SkyCubeImage_Path)
-        return formatVmatDir(SkyCubeImage_Path)
-    else:
-        return 'materials/default/default_cube.pfm'
-
-    return 'materials/default/default_cube.pfm'
+skyboxPath = {}
+skyboxFaces = ['up', 'dn', 'lf', 'rt', 'bk', 'ft']
 
 def fixIntVector(s, needsAlpha = True, replicateSingle = 0):
     # {255 175 255}
@@ -735,6 +684,7 @@ VMAT_REPLACEMENT = 0
 VMAT_DEFAULT = 1
 VMAT_EXTRALINES = 2
 
+# TODO: Eliminate hardcoded file extensions throughout the entire code.
 vmt_to_vmat = {
     'textures': {
 
@@ -742,20 +692,20 @@ vmt_to_vmat = {
         '$hdrbasetexture':      ('SkyTexture',          '.pfm',             ''),
         
         ## Layer0 
-        '$basetexture':         ('TextureColor',        '_color.tga',       ''), # SkyTexture
-        '$painttexture':        ('TextureColor',        '_color.tga',       ''),
-        '$bumpmap':             ('TextureNormal',       '_normal.tga',      ''),
-        '$normalmap':           ('TextureNormal',       '_normal.tga',      ''),
-        '$phongexponenttexture':('TextureRoughness',    '_rough.tga',       '') if newshader else ('TextureGlossiness', '_gloss.tga', 'F_ANISOTROPIC_GLOSS 1\n'),
-        
+        '$basetexture':         ('TextureColor',        '_color'+TEXTURE_FILEEXT,       ''), # SkyTexture
+        '$painttexture':        ('TextureColor',        '_color'+TEXTURE_FILEEXT,       ''),
+        '$bumpmap':             ('TextureNormal',       '_normal'+TEXTURE_FILEEXT,      ''),
+        '$normalmap':           ('TextureNormal',       '_normal'+TEXTURE_FILEEXT,      ''),
+        # 210 is default roughness in s1 [210/255 210/255 210/255 1.000]
+        #'$phongexponenttexture':('TextureRoughness',    '_rough'+TEXTURE_FILEEXT,       '') if newshader else ('TextureGlossiness', '_gloss.tga', 'F_ANISOTROPIC_GLOSS 1\n'),
         ## Layer1
-        '$basetexture2':        ('TextureColorB',       '_color.tga',       '') if newshader else ('TextureLayer1Color', '_color.tga', ''),
-        '$bumpmap2':            ('TextureNormalB',      '_normal.tga',      '') if newshader else ('TextureLayer1Normal', '_normal.tga', 'F_BLEND_NORMALS 1'),
-        '$phongexponent2':      ('TextureRoughnessB',   '_rough.tga',       ''), # $phongmaskcontrastbrightness2, $phongbasetint2, $phongamount2
+        '$basetexture2':        ('TextureColorB',       '_color'+TEXTURE_FILEEXT,       '') if newshader else ('TextureLayer1Color', '_color.tga', ''),
+        '$bumpmap2':            ('TextureNormalB',      '_normal'+TEXTURE_FILEEXT,      '') if newshader else ('TextureLayer1Normal', '_normal.tga', 'F_BLEND_NORMALS 1'),
+        #'$phongexponent2':      ('TextureRoughnessB',   '_rough'+TEXTURE_FILEEXT,       ''), # $phongmaskcontrastbrightness2, $phongbasetint2, $phongamount2
 
         ## Layer2-3
-        '$basetexture3':        ('TextureLayer2Color',  '_color.tga',       ''),
-        '$basetexture4':        ('TextureLayer3Color',  '_color.tga',       ''),
+        '$basetexture3':        ('TextureLayer2Color',  '_color'+TEXTURE_FILEEXT,       ''),
+        '$basetexture4':        ('TextureLayer3Color',  '_color'+TEXTURE_FILEEXT,       ''),
 
         '$blendmodulatetexture':('TextureMask', '_mask.tga', 'F_BLEND 1') if newshader else ('TextureLayer1RevealMask', '_blend.tga',   'F_BLEND 1'),
         
@@ -764,6 +714,8 @@ vmt_to_vmat = {
         '$flowmap':             ('TextureFlow',         TEXTURE_FILEEXT,    'F_FLOW_NORMALS 1\n\tF_FLOW_DEBUG 1'),
         '$flow_noise_texture':  ('TextureNoise',        '_noise.tga',       'F_FLOW_NORMALS 1\n\tF_FLOW_DEBUG 2'),
         '$detail':              ('TextureDetail',       '_detail.tga',      'F_DETAIL_TEXTURE 1\n'),
+        # BUG: decaltextures seem to be maps from which only parts are applied (seemingly on hammer editor) 
+        # see dust2 bombsite A crates
         '$decaltexture':        ('TextureDetail',       '_detail.tga',      'F_DETAIL_TEXTURE 1\n'),
         #'$detail2':            ('TextureDetail',       '_detail.tga',      'F_DETAIL_TEXTURE 1\n'),
         '$tintmasktexture':     ('TextureTintMask',     '_mask.tga',        'F_TINT_MASK 1'), # GREEN CHANNEL ONLY, RED IS FOR $envmapmaskintintmasktexture 1
@@ -771,9 +723,9 @@ vmt_to_vmat = {
 
         '$envmap':              ('TextureCubeMap',      '_cube.pfm',        'F_SPECULAR 1\n\tF_SPECULAR_CUBE_MAP 1\n\tF_SPECULAR_CUBE_MAP_PROJECTION 1\n\tg_flCubeMapBlurAmount "1.000"\n\tg_flCubeMapScalar "1.000"\n\tg_vReflectanceRange "[0.000 0.600]"\n'),
 
-        '$envmapmask':          ('TextureReflectance',  '_refl.tga',        ''),  #  selfillum_envmapmask_alpha envmapmaskintintmasktexture 
+        #'$envmapmask':          ('TextureReflectance',  '_refl.tga',        ''),  #  selfillum_envmapmask_alpha envmapmaskintintmasktexture 
 
-        '$phong':               ('TextureReflectance',  '_refl.tga',        '\n\tg_vReflectanceRange "[0.000 0.600]"\n'),
+        #'$phong':               ('TextureReflectance',  '_refl.tga',        '\n\tg_vReflectanceRange "[0.000 0.600]"\n'),
          
 
         #('TextureTintTexture',)
@@ -816,12 +768,19 @@ vmt_to_vmat = {
         '$selfillumscale':      ('g_flSelfIllumScale',      '1.000',            ''),
         '$selfillumtint':       ('g_vSelfIllumTint','[1.000 1.000 1.000 0.000]',''),
 
-        #Assumes env_cubemap
+        #Probably used artist authored cubemap
         # TODO: if envmapmask, apply tint to the map manually, else just use this below.
+        # TODO: I think tints at both phong and envmap need to be applied to the roughness map. But it should be some inverse shit.
+        # 1.000 means no change 0.5 means brighten by 0.5??
+        # actually not. envmaptint is used to tint the envmap which is usually white so that the reflection matches the albedo of the material
+        # example on a red-ish metal you do [.5 .3 0] so that the specular refl does more of a red-ish reflection
+        # 
         #'$envmaptint':          ('TextureTODO:',      '[1.000 1.000 1.000 0.000]', ''),
         
-        '$phongexponent':       ('TextureRoughness',    '[1.000 1.000 0.000 0.000]', ''),
-        '$phongexponent2':      ('TextureRoughnessB',   '[1.000 1.000 0.000 0.000]', ''),
+        # 210 is default roughness in s1. Also known as default_rough_s1import.tga
+        
+        '$phongexponent':       ('TextureRoughness',    '[0.823 0.823 0.823 1.000]', ''),
+        '$phongexponent2':      ('TextureRoughnessB',   '[0.823 0.823 0.823 1.000]', ''),
 
         '$color':               ('g_vColorTint',           '[1.000 1.000 1.000 0.000]', ''),
         #'$layertint1':
@@ -836,6 +795,7 @@ vmt_to_vmat = {
         
         # inverse
         '$nofog':               ('g_bFogEnabled', '0', ''),
+        "$notint":              ('g_flModelTintAmount', '1.000', ''),
 
         '$refractamount':       ('g_flRefractScale',        '0.200', ''),
         '$flow_worlduvscale':   ('g_flWorldUvScale',        '1.000', ''),
@@ -867,7 +827,8 @@ vmt_to_vmat = {
 
     'alphamaps': {
         
-      # '$vmtKey':  (key for which we provide a map,  key from which we extract a map,    channel to extract)
+      # '$vmtKey':  (key for which we provide a map,  key from which we extract a map,  channel to extract)
+        # TODO: envmap, phong need processing. They should be added as a key.
         '$normalmapalphaenvmapmask':    ('$envmapmask',     normalmaps,         'A'), 
         '$basealphaenvmapmask':         ('$envmapmask',     '$basetexture',     'A'),
         '$envmapmaskintintmasktexture': ('$envmapmask',     '$tintmasktexture', 'R'),
@@ -963,6 +924,7 @@ def convertVmtToVmat(vmtKeyValList):
                 if(keyType == 'textures'):
                     
                     if vmtKey in ['$basetexture', '$hdrbasetexture', '$hdrcompressedtexture']:
+                        # semi-BUG: how is hr_dust_tile_01,02,03 blending when its shader is LightmappedGeneric??????????
                         if '$newlayerblending' in vmtKeyValList or '$basetexture2' in vmtKeyValList:
                             #if vmatShader in (SH_VR_SIMPLE_2WAY_BLEND, 'xx'): 
                             outKey = vmatReplacement + 'A' # TextureColor -> TextureColorA
@@ -970,13 +932,13 @@ def convertVmtToVmat(vmtKeyValList):
                         
                         if vmatShader == SH_SKY:
                             outKey = 'SkyTexture'
-                            outVal = formatVmtTextureDir(oldVal.rstrip('up') + '_cube' + vmatDefaultValue.lstrip('_color'), fileExt = '')
+                            outVal = formatVmtTextureDir(oldVal[:-2].rstrip('_') + '_cube' + vmatDefaultValue.lstrip('_color'), fileExt = '')
 
                         else:
                             outVal = formatNewTexturePath(oldVal, vmatDefaultValue)
 
                     elif vmtKey in ['$basetexture3', '$basetexture4']:
-                        if not USE_RETRO_SHADERS:
+                        if not USE_OLD_SHADERS:
                             print('~ WARNING: Found 3/4-WayBlend but it is not supported with the current shader ' + vmatShader + '.')
 
                     elif vmtKey in  ('$bumpmap', '$bumpmap2', '$normalmap', '$normalmap2'):
@@ -1012,15 +974,15 @@ def convertVmtToVmat(vmtKeyValList):
                                 outVal = fixIntVector(vmtKeyValList['$envmaptint'], True) or '[1.000 1.000 1.000 0.000]' #vmt_to_vmat['settings']['$envmaptint'][VMAT_DEFAULT]
                             else:
                                 vmatContent += '\t' + outAdditionalLines
-                                break ### Skip default write
+                                break ### Skip default content write
 
                         else:
                             # TODO: maybe make it real cubemap?
                             outAdditionalLines = 'F_SPECULAR 1\n\t'
 
                     elif vmtKey == '$phong':
-                        if oldVal == '0':
-                            break
+                        #if oldVal == '0':
+                        break
 
                         #fixPhongRoughness(paramList = vmtKeyValList)
 
@@ -1057,6 +1019,7 @@ def convertVmtToVmat(vmtKeyValList):
                             if is_convertible_to_float(oldVal):
                                 #outVal = fixIntVector(oldVal, True, 2)
                                 sourceTexturePath = getTexture('$basetexture')
+                                print("@ DBG: IS NUMBER", sourceTexturePath)
                                 if sourceTexturePath:
                                     outVal = createMaskFromChannel(sourceTexturePath, 'A', vmatDefaultValue, False)
 
@@ -1094,7 +1057,7 @@ def convertVmtToVmat(vmtKeyValList):
                     if(matrixList[MATRIX_TRANSLATE] and matrixList[MATRIX_TRANSLATE] != '[0.000 0.000]'):    
                         vmatContent += '\t' + vmatReplacement + 'CoordOffset' + '\t\t' + QUOTATION + matrixList[MATRIX_TRANSLATE] + QUOTATION + '\n'
 
-                    break ### Skip default write
+                    break ### Skip default content write
 
                 elif(keyType == 'settings'):
                     
@@ -1117,16 +1080,16 @@ def convertVmtToVmat(vmtKeyValList):
 
                         else:
                             if("props" in vmatFileName): match = get_close_matches('prop.' + oldVal, surfprop_HLA, 1, 0.4)
-                            else: match = get_close_matches('world.' + oldVal, surfprop_HLA, 1, 0.6)
+                            else: match = get_close_matches('world.' + oldVal, surfprop_HLA, 1, 0.6) or get_close_matches(oldVal, surfprop_HLA, 1, 0.6)
 
                             outVal = match[0] if match else oldVal
 
                         print(outVal)
                         vmatContent += '\n\t' + outKey + QUOTATION + outVal + QUOTATION + '\n\t}\n\n'
-                        break ### Skip default write
+                        break ### Skip default content write
 
-                    elif vmtKey == '$nofog':
-                        outVal = str(int(not int(oldVal)))
+                    elif vmtKey == '$nofog': outVal = str(int(not int(oldVal)))
+                    elif vmtKey == '$notint': outVal = str(float(not int(oldVal)))
 
                     elif vmtKey == '$selfillum':
                         
@@ -1149,7 +1112,11 @@ def convertVmtToVmat(vmtKeyValList):
                             outVal = fixIntVector(oldVal, True)
                     
                     elif vmtKey in ('$phongexponent', '$phongexponent2'): # TODO:
-                        break
+                        if (vmatShader == SH_VR_SIMPLE_2WAY_BLEND) and vmtKey == '$phongexponent':
+                            outKey = outKey + 'A'
+                        #break
+                        #continue
+                        pass
 
                     # The other part are simple floats. Deal with them
                     else:
@@ -1214,18 +1181,18 @@ def convertVmtToVmat(vmtKeyValList):
                         vmatContent = re.sub(r'%s.+' % outKey, outKey + ' ' + outVal, vmatContent)
                     else:
                         vmatContent += '\t' + outKey + ' ' + outVal + '\n'  
-                    break ### Skip default write
+                    break ### Skip default content write
 
                 elif keyType == 'others2':
-                    if oldKey == '$ssbump': continue
+                    if oldKey == '$ssbump': break
                     vmatContent += '\t' + COMMENT + outKey + '\t\t' + QUOTATION + outVal + QUOTATION + '\n\t' + outAdditionalLines + '\n'
-                    break ### Skip default write
+                    break ### Skip default content write
                 
-                ### Default write ###
+                ### Default content write ###
                 if(outAdditionalLines): vmatContent += '\n\t' + outAdditionalLines + '\n\t' + outKey + '\t\t' + QUOTATION + outVal + QUOTATION + '\n'
                 else: vmatContent += '\t' + outKey + '\t\t' + QUOTATION + outVal + QUOTATION + '\n'
 
-                if(outVal.endswith('.tga')): outVal = formatFullDir(outVal) # DBG
+                if(outVal.endswith(TEXTURE_FILEEXT)): outVal = formatFullDir(outVal) # DBG
                 ##print("DBG: " + oldKey + ' ' + oldVal + ' (' + vmatReplacement.replace('\t', '').replace('\n', '') + ' ' + vmatDefaultValue.replace('\t', '').replace('\n', '') + ') -------> ' + outKey + ' ' + outVal.replace('\t', '').replace('\n', '') + ' ' + outAdditionalLines.replace('\t', '').replace('\n', ''))
                 print("@ DBG: " + oldKey + ' "' + oldVal + '" ---> ' + outKey + ' ' + outVal.replace('\t', '').replace('\n', '') + ' ' + outAdditionalLines.replace('\t', '').replace('\n', ''))
                 break ### stop loop now, we replaced the key we needed
@@ -1251,6 +1218,13 @@ def convertSpecials(vmtKeyValList):
                     print("+ Succesfully moved AO texture for weapon material:", weaponPathName)
                 vmtKeyValList["$aotexture"] = formatVmatDir(aoNewPath).replace('materials\\', '')
                 print("+ Using ao:", weaponPathName + "_ao" + TEXTURE_FILEEXT)
+    
+    # Do this so that we use the default value of rougness map -- for now
+    #if vmatShader == SH_VR_COMPLEX:
+    if not vmtKeyValList.get('$phongexponent'):
+        vmtKeyValList['$phongexponent'] = "100"
+    if vmatShader == SH_VR_SIMPLE_2WAY_BLEND and not vmtKeyValList.get('$phongexponent2'):
+        vmtKeyValList['$phongexponent2'] = "100"
 
 failures = []
 listsssss = []
@@ -1262,6 +1236,7 @@ listsssss = []
 for fileName in fileList:
     print('--------------------------------------------------------------------------------------------------------')
     print('+ Reading file:  ' + fileName)
+    #breakpoint()
     vmtKeyValList = {}
     matType = ''
     vmatShader = ''
@@ -1334,30 +1309,33 @@ for fileName in fileList:
     vmatShader = chooseShader(matType, vmtKeyValList, fileName)
 
     skyboxName = os.path.basename(fileName).replace(".vmt", '')#[-2:]
-    if('\\skybox\\' in fileName or '/skybox/' in fileName):
-        faceTransform = vmtKeyValList.get('$basetexturetransform')
-        if(faceTransform):
-            transformMatrix = listMatrix(faceTransform)
-            if(transformMatrix[MATRIX_ROTATE]):
-                skybox[skyboxName[-2:]]['rotate'] = int(float(transformMatrix[MATRIX_ROTATE]))
+    skyboxName, skyboxFace = [skyboxName[:-2], skyboxName[-2:]]
+    #skyboxName, skyboxFace = skyboxName.rsplit(skyboxName[-2:-1], 1)
+    #skyboxFace = skyboxName[-2:-1] + skyboxFace
+    if((('\\skybox\\' in fileName) or ('/skybox/' in fileName)) and (skyboxFace in skyboxFaces)): # and shader
+        if skyboxName not in skyboxPath:
+            skyboxPath.setdefault(skyboxName, {'up':{}, 'dn':{}, 'lf':{}, 'rt':{}, 'bk':{}, 'ft':{}})
+        for face in skyboxFaces:
+            if(skyboxFace != face): continue
+            
+            facePath = vmtKeyValList.get('$hdrbasetexture') or vmtKeyValList.get('$hdrcompressedtexture') or vmtKeyValList.get('$basetexture')
+            if(facePath and os.path.exists(formatFullDir(formatNewTexturePath(facePath, noRename= True)))):
+                skyboxPath[skyboxName][face]['path'] = formatNewTexturePath(facePath, noRename= True)
+                print("@ DBG:", "Collecting", face, "sky face", skyboxPath[skyboxName][face]['path'])
+            transform = vmtKeyValList.get('$basetexturetransform')
+            
+            if(transform):
+                faceTransform = listMatrix(transform) if(transform) else list()
+                skyboxPath[skyboxName][face]['rotate'] = int(float(faceTransform[MATRIX_ROTATE]))
+                print("@ DBG:", "Collecting", face, "transformation", skyboxPath[skyboxName][face]['rotate'], 'degrees')
 
-        # Since we go through files alphabetically, we expect the last face to get processed to be 'up'
-        # This is necessary since we need the rotation information for all the 6 faces. (why the fuck do you have to rotate a fucking sky face, baggage?)
-        for face in skybox:
-            if(skyboxName[-2:] != face):
-                continue
-            if(face == 'up'):
-                # Now begin building the sky cubemap, using all the (6) avaliable faces 
-                print("+ Building sky cubemap from existing skybox faces.")
-                buildS2SkyCubemap(fileName)
-                validMaterial = True
-                vmatShader = SH_SKY
-                vmatFileName = vmatFileName.replace(face + '.vmat', '') + '.vmat'
-            else:
-                # Only need one material for source2, as opposed to source1 which needs 6
-                # skip dn, lf, rt, bk, ft
-                validMaterial = False
-    
+            # skip vmat for dn, lf, rt, bk, ft
+            # TODO: ok we might need the vmats for all of them because they might be used somewhere else
+            vmatShader = SH_SKY
+            vmatFileName = vmatFileName.replace(face + '.vmat', '').rstrip('_') + '.vmat'
+            if face != 'bk': validMaterial = False
+
+
     if validMaterial:
         if os.path.exists(vmatFileName) and not OVERWRITE_VMAT:
             print('+ File already exists. Skipping!')
@@ -1366,21 +1344,19 @@ for fileName in fileList:
         with open(vmatFileName, 'w') as vmatFile:
             vmatFile.write('// Converted with vmt_to_vmat.py\n')
             vmatFile.write('// From: ' + fileName + '\n\n')
-            vmatFile.write('Layer0\n{\n\tshader "' + vmatShader + '.vfx"\n\n')
-        
             print("@ DBG: " + matType + " => " + vmatShader)
+            vmatFile.write('Layer0\n{\n\tshader "' + vmatShader + '.vfx"\n\n')
 
             convertSpecials(vmtKeyValList)
 
             vmatFile.write(convertVmtToVmat(vmtKeyValList)) ###############################
-            
+
             #check if base texture is empty
             #if "metal" in vmatFileName:
             #    vmatFile.write("\tg_flMetalness 1.000\n")
-            
-                    
+
             vmatFile.write('}\n')
-        
+
         vmatContentRecord(vmatFile)
         #with open(fileName) as f:
         #    with open(vmatFileName, "w") as f1:
@@ -1392,31 +1368,84 @@ for fileName in fileList:
     
     else: print("+ Invalid material. Skipping!")
 
-    #cube.py --size 1024 --type tga --onefile input --dir
-# TODO: reparse the vmt, see i.e. if alphatest, then TextureTranslucency "path/to/tex/name_alpha.tga",
-# basemap alpha can either be a transparency mask, selfillum mask, or specular mask
-# normalmap alpha can be a phong mask by default
 
-# if $translucent/$alphatest
-	# TextureTranslucency "path/to/tex/basetexture_alpha.tga"
-# if $rimlight/$phong in vmt
-	# if $basemapalphaphongmask in vmt
-		#TextureRimMask/TextureSpecularMask "path/to/tex/basetexture_alpha.tga"
-	# else
-		#TextureRimMask/TextureSpecularMask "path/to/tex/bumpmap_alpha.tga"
-# if $selfillum in vmt
-	# Add Mask 1
-	# TextureSelfIllumMask "path/to/tex/basetexture_alpha.tga"
+    if not matType:
+        debugContent += "Warning" + fileName + '\n'
 
-# input("\nDone, press ENTER to continue...")
-with open(formatFullDir('convertedfiles.txt'), 'w') as filee:
-    print('debug')
-    filee.write(debugContent)
 
-if len(failures) > 0:
-    #print()
-    #print()
-    #print("ERROR: Couldn't convert everything as certain referenced materials are missing.")
-    #print("Please check base game (HL2, Counter-Strike: Source, etc) materials folders for the following files and copy them to 'convertme' folder (retaining their path)")
-    for failure in failures:
-        print(failure)
+########################################################################
+# Build skybox cubemap from sky faces
+# (blue_sky_up.tga, blue_sky_ft.tga, ...) -> blue_sky_cube.tga
+# https://developer.valvesoftware.com/wiki/File:Hdr_skyface_sides.jpg
+for skyName in skyboxPath:
+
+    if True: break
+    # what is l4d2 skybox/sky_l4d_rural02_ldrbk.pwl
+    # TODO: decouple this in a separate script. skyface_to_skymap.py
+    # write the sky face contents in a text file. allow manual sky map creation
+
+    # TODO: !!!!! HOW DO I DO HDR FILES !!!!! '_cube.exr'
+    # idea: convert to tiff
+
+    faceCount = 0
+    facePath = ''
+    SkyCubeImage_Path = ''
+    for face in skyboxFaces:
+        facePath = skyboxPath[skyName][face].get('path')
+        if not facePath: continue
+        faceHandle = Image.open(formatFullDir(facePath))
+
+        if not faceHandle: continue
+        if((not skyboxPath[skyName][face].get('scale') or len(skyboxFaces) == skyboxFaces.index(face)+1) and (not skyboxPath[skyName][face].get('resolution'))):
+            skyboxPath[skyName]['resolution'] = faceHandle.size# TODO: find trend
+        skyboxPath[skyName][face]['handle'] = faceHandle
+        faceCount += 1
+
+    if not faceCount or not skyboxPath[skyName]['resolution']: continue
+
+    face_w = face_h = skyboxPath[skyName]['resolution'][0]
+    cube_w = 4 * face_w
+    cube_h = 3 * face_h
+    SkyCubeImage = Image.new('RGBA', (cube_w, cube_h), color = (0, 0, 0)) # alpha?
+
+    for face in skyboxFaces:
+        faceHandle = skyboxPath[skyName][face].get('handle')
+        if not faceHandle: continue
+        facePath = formatFullDir(skyboxPath[skyName][face]['path'])
+
+        faceScale = skyboxPath[skyName][face].get('scale')
+        faceRotate = skyboxPath[skyName][face].get('rotate')
+
+        #print("@ DBG:", "Using image", formatVmatDir(facePath), "for the", face, "face")
+        vtfTexture = facePath.replace(TEXTURE_FILEEXT, '') + '.vtf'
+        if REMOVE_VTF_FILES and os.path.exists(vtfTexture):
+            os.remove(vtfTexture)
+            print("~ Removed vtf file: " + formatVmatDir(vtfTexture))
+
+        # TODO: i think top and bottom need to be rotated by 90 + side faces offset by x
+        # check if front is below top and above bottom
+        # move this inside the dict
+        if face == 'up':   facePosition = (cube_w - 3 * face_w, cube_h - 3 * face_h)
+        elif face == 'ft': facePosition = (cube_w - 2 * face_w, cube_h - 2 * face_h)
+        elif face == 'lf': facePosition = (cube_w - 1 * face_w, cube_h - 2 * face_h)
+        elif face == 'bk': facePosition = (cube_w - 4 * face_w, cube_h - 2 * face_h)
+        elif face == 'rt': facePosition = (cube_w - 3 * face_w, cube_h - 2 * face_h)
+        elif face == 'dn': facePosition = (cube_w - 3 * face_w, cube_h - 1 * face_h)
+
+        if faceHandle.width != face_w:
+            faceHandle = faceHandle.resize((face_w, round(faceHandle.height * face_w/faceHandle.width)), Image.BICUBIC)
+
+        if(skyboxPath[skyName][face].get('rotate')):
+            print("@ DBG: ROTATING `" + face + "` BY THIS: " + str(skyboxPath[skyName][face]['rotate']))
+            faceHandle = faceHandle.rotate(int(skyboxPath[skyName][face]['rotate']))
+
+        
+        SkyCubeImage.paste(faceHandle, facePosition)
+        faceHandle.close()
+
+    if facePath:
+        SkyCubeImage_Path = facePath.replace(TEXTURE_FILEEXT, '')[:-2].rstrip('_') + '_cube' + TEXTURE_FILEEXT
+        SkyCubeImage.save(SkyCubeImage_Path)
+
+    if os.path.exists(SkyCubeImage_Path):
+        print('+ Successfuly created sky cubemap at: ' + SkyCubeImage_Path)
