@@ -36,15 +36,12 @@ import sys
 import os
 import os.path
 from os import path
-import shutil
 from shutil import copyfile
 from difflib import get_close_matches
 import re
 from PIL import Image
 import PIL.ImageOps
-from time import time
-from time import sleep
-import json
+from time import time, sleep
 
 # generic, blend instead of vr_complex, vr_2wayblend etc...
 # blend doesn't seem to work though. why...
@@ -61,20 +58,25 @@ PATH_TO_CONTENT_ROOT = ""
 # Set this to True if you wish to overwrite your old vmat files
 OVERWRITE_VMAT = True
 
-REMOVE_VTF_FILES = True
+REMOVE_VTF_FILES = False
 # Set this to True if you wish to do basic renaming of your textures
 # texture.tga, texture_color.tga -> texture_color.tga
 RENAME_TEXTURES = True
+RENAME_BY_COPYING = True
 FINE_RENAME = 2
 
 # True for messier file system while making the script a bit faster.
-FILE_COUNT_OR_PROCESS = 1
+FILE_COUNT_OR_PROCESS = True
 
 # True if you want simple, fast and inaccurate PBR
 BASIC_PBR = False
 
-DEBUG = 0
-QUEUE = {}
+DEBUG = False
+def dbg_msg(*args, **kwargs):
+    if not DEBUG: pass
+    else: print("@ DBG:", *args, **kwargs)
+
+Late_Calls = []
 
 # shaders
 SH_BLACK = 'black'
@@ -141,6 +143,9 @@ def chooseShader(matType, vmtKeyValList, fileName):
         if vmtKeyValList.get('$basetexture2'): shaders[SH_VR_SIMPLE_2WAY_BLEND] += 69
         else: print("~ ERROR: WTF")
 
+    elif matType == "lightmappedgeneric":
+        if vmtKeyValList.get('$newlayerblending') == '1': shaders[SH_VR_SIMPLE_2WAY_BLEND] += 420
+
     elif matType == "":
         pass
     
@@ -172,7 +177,7 @@ materialTypes = {
     #"modulate",
 }
 
-ignoreList = [ "dx9", "dx8", "dx7"]
+ignoreList = [ "dx9", "dx8", "dx7", "dx6"]
 
 surfprop_repl = {
     'stucco':       'world.drywall',
@@ -205,10 +210,13 @@ def parseDir(dirName):
 ### Main Execution
 ###
 
-#currentDir = os.getcwd()
-#currentDir = r"D:\Users\kristi\Desktop\WORK\MOD\content\hlvr"
-#currentDir = r"D:\Users\kristi\Desktop\WORK\test\here"
-if DEBUG: currentDir =r"D:\Program Files (x86)\Steam\steamapps\common\Half-Life Alyx\content\hlvr_addons\csgo"
+if DEBUG:
+    #currentDir = r"D:\Users\kristi\Desktop\WORK\MOD\content\hlvr"
+    #currentDir =r"D:\Program Files (x86)\Steam\steamapps\common\Half-Life Alyx\content\hlvr_addons\csgo"
+    currentDir = r"D:\Users\kristi\Desktop\WORK\test\there"
+else:
+    currentDir = os.getcwd()
+
 
 if not PATH_TO_CONTENT_ROOT:
     if(len(sys.argv) >= 2):
@@ -221,6 +229,8 @@ if not PATH_TO_CONTENT_ROOT:
                 print('Could not find directory.')
                 continue
             PATH_TO_CONTENT_ROOT = c.lower().strip().strip('"')
+
+# Useful for modname_imported
 """
 if not PATH_TO_NEW_CONTENT_ROOT:
     if(len(sys.argv) >= 3):
@@ -242,7 +252,7 @@ PATH_TO_CONTENT_ROOT = os.path.normpath(PATH_TO_CONTENT_ROOT) + '\\'
 
 print('\nSource 2 Material Conveter! By Rectus via Github.')
 print('Initially forked by Alpyne, this version by caseytube.\n')
-print('+ Reading old materials from: ' + PATH_TO_CONTENT_ROOT)
+print('+ Scanning directory: ' + PATH_TO_CONTENT_ROOT)
 print('--------------------------------------------------------------------------------------------------------')
 
 
@@ -310,7 +320,7 @@ def formatNewTexturePath(vmtPath, textureType = TEXTURE_FILEEXT, noRename = Fals
         # BUG: mybumpmap.tga -> mymap_normal.tga
         if newName == oldName: return textureLocal + TEXTURE_FILEEXT #return (os.path.normpath(os.path.dirname(textureLocal) + '/' + newName + TEXTURE_FILEEXT)).replace('\\', '/')
         if textureType == "_color.tga" and textureLocal.endswith('_normal'):
-            print("@ DBG:", "FIXED NORMAL")
+            dbg_msg("FIXED NORMAL")
             return textureRename(textureLocal.rstrip(TEXTURE_FILEEXT) + "_color", textureLocal + '.tga', textureType)
         replList = {'refl':'mask', 'normal':'bump'}
         if subStr[1:] in replList and replList[subStr[1:]] in oldName:
@@ -373,14 +383,16 @@ def textureRename(localPath, newNamePath, textureType, makeCopy = False):
         return formatVmatDir(newNamePath)
 
     # TODO: COPY. Make renaming optional.
-    
+
+    makeCopy = RENAME_BY_COPYING
+
     if not os.path.exists(localPath):
         print("+ Could not find texture " + localPath + " set to be renamed into: " + newNamePath.split('/')[-1])
  
         for key in list(vmt_to_vmat['textures']):
             #if os.path.exists(localPath[:-4] + vmt_to_vmat['textures'][key][VMAT_DEFAULT]):
             tryPath = formatFullDir(formatNewTexturePath(formatVmatDir(localPath[:-4]), vmt_to_vmat['textures'][key][VMAT_DEFAULT], forReal = False))
-            print("@ DBG: checking for", tryPath)
+            dbg_msg("checking for", tryPath)
             if os.path.exists(tryPath):
                 makeCopy = True
                 localPath = localPath[:-4] + vmt_to_vmat['textures'][key][VMAT_DEFAULT]
@@ -398,7 +410,7 @@ def textureRename(localPath, newNamePath, textureType, makeCopy = False):
                 if suffix != textureType[:-4] and localPath.endswith(suffix):
                     #localPath = ''.join(localPath.rsplit(suffix, 1)) -- NO, localpath exists and I should not touch it.
                     # output should be texture_color_{suffix} while texture_color remains untouched.
-                    print("@ DBG:", "Problematic two map one image detected. Copying", localPath, "->", newNamePath)
+                    dbg_msg("Problematic two map one image detected. Copying", localPath, "->", newNamePath)
                     #sleep(5.0)
                     makeCopy = True
                     break
@@ -424,22 +436,32 @@ def textureRename(localPath, newNamePath, textureType, makeCopy = False):
 # Returns texture path of given vmtParam, texture which has likely been renamed to be S2 naming compatible
 # $basetexture  ->  materials/path/to/texture_color.tga of the TextureColor
 # -------------------------------
-def getTexture(vmtParam):
-    # if we get a list choose from the one that exists
+def getTexture(vmtParams):
+
     texturePath = ''
-    if isinstance(vmtParam, tuple):
-        for actualParam in vmtParam:
-            if vmtKeyValList.get(actualParam):
-                texturePath = formatNewTexturePath(vmtKeyValList[actualParam], vmt_to_vmat['textures'][actualParam][VMAT_DEFAULT], forReal=False)
-                if not os.path.exists(formatFullDir(texturePath)):
-                    texturePath = formatVmtTextureDir(vmtKeyValList[actualParam])
+    bFound = False
 
-    elif vmtKeyValList.get(vmtParam):
-        texturePath = formatNewTexturePath(vmtKeyValList[vmtParam], vmt_to_vmat['textures'][vmtParam][VMAT_DEFAULT], forReal=False)
-        if not os.path.exists(formatFullDir(texturePath)):
-            texturePath = formatVmtTextureDir(vmtKeyValList[vmtParam])
+    if not isinstance(vmtParams, list):
+        vmtParams = [ vmtParams ]
 
-    if not os.path.exists(formatFullDir(texturePath)): texturePath = None # ''
+    for vmtParam in vmtParams:
+
+        if not vmtKeyValList.get(vmtParam):
+            continue
+
+        texturePath = formatVmtTextureDir(vmtKeyValList[vmtParam])
+
+        if os.path.exists(formatFullDir(texturePath)):
+            bFound = True
+
+        if not RENAME_BY_COPYING or not bFound:
+            texturePath = formatNewTexturePath(vmtKeyValList[vmtParam], vmt_to_vmat['textures'][vmtParam][VMAT_DEFAULT], forReal=False)
+
+        if os.path.exists(formatFullDir(texturePath)):
+            bFound = True
+            break
+
+    if not bFound: texturePath = None # ''
 
     return texturePath
 
@@ -500,7 +522,7 @@ def parseVMTParameter(line, parameters):
         #key = key.split('?')[1].lower()
         key.split('?')
         if key[0] == 'GPU>=2':
-            print("@ DBG: Trying using the high-shader parameter.")
+            dbg_msg("Trying using the high-shader parameter.")
             key = key[2].lower()
         else:
             print("~ WARNING: Might not process well materials that have GPU-setting based parameters. Please manually check.")
@@ -518,14 +540,14 @@ def parseVMTParameter(line, parameters):
 
     if nextLine: parseVMTParameter(nextLine, vmtKeyValList)
 
-def createMaskFromChannel(vmtTexture, channel = 'a', copySub = '_mask.tga', invert = True, queue = True):
+def createMaskFromChannel(vmtTexture, channel = 'A', copySub = '_mask.tga', invert = True, queue = True):
     if not os.path.exists(vmtTexture):
         vmtTexture = formatFullDir(vmtTexture)
 
-    if invert:  newMaskPath = vmtTexture[:-4] + '_' + channel[:3] + '-1' + copySub
-    else:       newMaskPath = vmtTexture[:-4] + '_' + channel[:3]        + copySub
+    if invert:  newMaskPath = vmtTexture[:-4] + '_' + channel[:3].lower() + '-1' + copySub
+    else:       newMaskPath = vmtTexture[:-4] + '_' + channel[:3].lower()        + copySub
     
-    if os.path.exists(newMaskPath):
+    if os.path.exists(newMaskPath) and not DEBUG:
         return formatVmatDir(newMaskPath)
 
     if os.path.exists(vmtTexture):
@@ -533,7 +555,7 @@ def createMaskFromChannel(vmtTexture, channel = 'a', copySub = '_mask.tga', inve
         imagePixels = image.load()
 
         if queue:
-            QUEUE.setdefault(createMaskFromChannel, (vmtTexture, channel, copySub, invert, False))
+            Late_Calls.append((vmtTexture, channel, copySub, invert, False))
         elif channel == 'luminance':
             maskImage = Image.new('L', image.size)
             maskPixels = maskImage.load()
@@ -550,7 +572,7 @@ def createMaskFromChannel(vmtTexture, channel = 'a', copySub = '_mask.tga', inve
                     #maskImage.putpixel((x,y), round(LuminanceB))
                     maskPixels[x,y] = round(LuminanceB)
                     
-            print ("@ DBG: It took:", time()-last_time, "seconds to calculate luminance")
+            dbg_msg("It took:", time()-last_time, "seconds to calculate luminance")
             maskImage.save(newMaskPath, optimize=True, quality=85)
             maskImage.close()
 
@@ -581,7 +603,9 @@ def createMaskFromChannel(vmtTexture, channel = 'a', copySub = '_mask.tga', inve
         #vmatContent += '\t' + COMMENT + 'Missing ' + formatVmatDir(vmtTexture) + '\n'
         return 'materials/default/default' + copySub
 
-    print("+ Saved mask to" + formatVmatDir(newMaskPath))
+    if not queue:
+        print("+ Saved mask to " + formatVmatDir(newMaskPath))
+
     return formatVmatDir(newMaskPath)
 
 def flipNormalMap(localPath):
@@ -667,7 +691,7 @@ def listMatrix(s):
             '[' + "{:.3f}".format(valueList[5]) + ' ' + "{:.3f}".format(valueList[6]) + ']'\
             ]
 
-normalmaps = ('$normal', '$bumpmap', '$bumpmap2')
+normalmaps = ['$normal', '$bumpmap', '$bumpmap2']
 
 VMAT_REPLACEMENT = 0
 VMAT_DEFAULT = 1
@@ -722,8 +746,8 @@ vmt_to_vmat = {
         #'$ambientoccltexture': '$ambientocclusiontexture':
 
         # Next script should take care of these, unless BASIC_PBR
-        '$envmapmask': ('$envmapmask', '_e_mask.tga', '') if not BASIC_PBR else ('TextureRoughness', '_rough.tga', ''),
-        '$phongmask': ('$phongmask', '_p_mask.tga', ''),
+        '$envmapmask': ('$envmapmask', '_env_mask.tga', '') if not BASIC_PBR else ('TextureRoughness', '_rough.tga', ''),
+        '$phongmask': ('$phongmask', '_phong_mask.tga', ''),
     },
 
     # [0, 1] center defines the point of rotation. Only useful if rotate is being used.
@@ -804,20 +828,20 @@ vmt_to_vmat = {
     'mask_inside_mask': {
       # '$vmtKey':                      (extract_from,      extract_as,         channel to extract)
         # TODO: envmap, phong need processing. They should be added as a key.
-        '$normalmapalphaenvmapmask':    (normalmaps,        '$envmapmask',      'a'), 
-        '$basealphaenvmapmask':         ('$basetexture',    '$envmapmask',      'a'),
-        '$envmapmaskintintmasktexture': ('$tintmasktexture','$envmapmask',      'r'),
+        '$normalmapalphaenvmapmask':    (normalmaps,        '$envmapmask',      'A'), 
+        '$basealphaenvmapmask':         ('$basetexture',    '$envmapmask',      'A'),
+        '$envmapmaskintintmasktexture': ('$tintmasktexture','$envmapmask',      'R'),
 
-        '$basemapalphaphongmask':       ('$basetexture',    '$phongmask',       'a'),
-        '$basealphaphongmask':          ('$basetexture',    '$phongmask',       'a'),
-        '$normalmapalphaphongmask':     (normalmaps,        '$phongmask',       'a'),
-        '$bumpmapalphaphongmask':       (normalmaps,        '$phongmask',       'a'),
+        '$basemapalphaphongmask':       ('$basetexture',    '$phongmask',       'A'),
+        '$basealphaphongmask':          ('$basetexture',    '$phongmask',       'A'),
+        '$normalmapalphaphongmask':     (normalmaps,        '$phongmask',       'A'),
+        '$bumpmapalphaphongmask':       (normalmaps,        '$phongmask',       'A'),
         '$basemapluminancephongmask':   ('$basetexture',    '$phongmask',       'luminance'),
 
-        '$blendtintbybasealpha':        ('$basetexture',    '$tintmasktexture', 'a'),
-        '$selfillum_envmapmask_alpha':  ('$envmapmask',     '$selfillummask',   'a')
+        '$blendtintbybasealpha':        ('$basetexture',    '$tintmasktexture', 'A'),
+        '$selfillum_envmapmask_alpha':  ('$envmapmask',     '$selfillummask',   'A')
 
-        #'$masks1': ('self', ('$rimmask', '$phongalbedomask', '$metalnessmask', '$warpindex'), 'rgba')
+        #'$masks1': ('self', ('$rimmask', '$phongalbedomask', '$metalnessmask', '$warpindex'), 'RGBA')
     },
 
     # no direct replacement, etc
@@ -867,7 +891,7 @@ def convertVmtToVmat(vmtKeyValList):
                 
                 if ( oldKey != vmtKey ):
                     continue
-                print("################", vmtKey)
+                #dbg_msg("################", vmtKey)
                 vmatReplacement = vmatItems[VMAT_REPLACEMENT]
                 vmatDefaultValue = vmatItems[VMAT_DEFAULT]
                 vmatExtraLines = vmatItems[VMAT_EXTRALINES]
@@ -901,7 +925,7 @@ def convertVmtToVmat(vmtKeyValList):
                         # semi-BUG: how is hr_dust_tile_01,02,03 blending when its shader is LightmappedGeneric??????????
                         if '$newlayerblending' in vmtKeyValList or '$basetexture2' in vmtKeyValList:
                             outKey = vmatReplacement + 'A' # TextureColor -> TextureColorA
-                            print("@ DBG: " + outKey + "<--- is noblend ok?")
+                            dbg_msg("" + outKey + "<--- is noblend ok?")
                         
                         if vmatShader == SH_SKY:
                             outKey = 'SkyTexture'
@@ -923,7 +947,7 @@ def convertVmtToVmat(vmtKeyValList):
                         #    pass
 
                         if str(vmtKeyValList.get('$ssbump')).strip('"') == '1':
-                            print('@ DBG: Found SSBUMP' + outVal)
+                            dbg_msg('Found SSBUMP' + outVal)
                             outKey = COMMENT + '$SSBUMP' + '\n\t' + outKey
                             pass
 
@@ -1059,6 +1083,8 @@ def convertVmtToVmat(vmtKeyValList):
                 elif(keyType == 'mask_inside_mask'):
                     outVmtTexture = vmt_to_vmat['mask_inside_mask'][vmtKey][1]
 
+                    #if DEBUG and oldKey == "$normalmapalphaenvmapmask": breakpoint()
+
                     if not vmt_to_vmat['textures'].get(outVmtTexture): break
 
                     sourceTexture       = vmt_to_vmat['mask_inside_mask'][vmtKey][0]
@@ -1098,7 +1124,7 @@ def convertVmtToVmat(vmtKeyValList):
                         else: outVal = '1'
 
                     if outKey in vmatContent: ## Replace values that are already in
-                        print('@ DBG: ' + outKey + ' is already in.')
+                        dbg_msg('' + outKey + ' is already in.')
                         vmatContent = re.sub(r'%s.+' % outKey, outKey + ' ' + outVal, vmatContent)
                     else:
                         vmatContent += '\t' + outKey + ' ' + outVal + '\n'  
@@ -1120,8 +1146,8 @@ def convertVmtToVmat(vmtKeyValList):
 
                 if DEBUG:
                     if(outVal.endswith(TEXTURE_FILEEXT)): outVal = formatFullDir(outVal)
-                    ##print("DBG: " + oldKey + ' ' + oldVal + ' (' + vmatReplacement.replace('\t', '').replace('\n', '') + ' ' + vmatDefaultValue.replace('\t', '').replace('\n', '') + ') -------> ' + outKey + ' ' + outVal.replace('\t', '').replace('\n', '') + ' ' + outAdditionalLines.replace('\t', '').replace('\n', ''))
-                    print("@ DBG: " + oldKey + ' "' + oldVal + '" ---> ' + outKey + ' ' + outVal.replace('\t', '').replace('\n', '') + ' ' + outAdditionalLines.replace('\t', '').replace('\n', ''))
+                    ##dbg_msg( oldKey + ' ' + oldVal + ' (' + vmatReplacement.replace('\t', '').replace('\n', '') + ' ' + vmatDefaultValue.replace('\t', '').replace('\n', '') + ') -------> ' + outKey + ' ' + outVal.replace('\t', '').replace('\n', '') + ' ' + outAdditionalLines.replace('\t', '').replace('\n', ''))
+                    dbg_msg( oldKey + ' "' + oldVal + '" ---> ' + outKey + ' ' + outVal.replace('\t', '').replace('\n', '') + ' ' + outAdditionalLines.replace('\t', '').replace('\n', ''))
 
                 break ### stop looping, we replaced the key we needed
 
@@ -1138,7 +1164,6 @@ def convertSpecials(vmtKeyValList):
                     bHasPhongMask = True
                     break
         if not bHasPhongMask: # normal map alpha acts as a phong mask by default
-            if DEBUG: print("@ DBG: SET NORMAL MAP ALPHA AS PHONG MASK")
             vmtKeyValList.setdefault('$normalmapalphaphongmask', '1')
 
     # viewmodels
@@ -1147,13 +1172,13 @@ def convertSpecials(vmtKeyValList):
         weaponDir = os.path.dirname(fileName)
         weaponPathSplit = fileName.split("\\weapons\\v_models\\")
         weaponPathName = os.path.dirname(weaponPathSplit[1])
-        print("@ DBG:", weaponPathName + ".vmt")
+        dbg_msg(weaponPathName + ".vmt")
         if fileName.endswith(weaponPathName + ".vmt") or fileName.endswith(weaponPathName.split('_')[-1] + ".vmt"):
             aoTexturePath = os.path.normpath(weaponPathSplit[0] + "\\weapons\\customization\\" + weaponPathName + '\\' + weaponPathName + "_ao" + TEXTURE_FILEEXT)
             aoNewPath = os.path.normpath(weaponDir + "\\" + weaponPathName + TEXTURE_FILEEXT)
-            print("@ DBG:", aoTexturePath)
+            dbg_msg(aoTexturePath)
             if os.path.exists(aoTexturePath):
-                print("@ DBG:", aoNewPath)
+                dbg_msg(aoNewPath)
                 if not os.path.exists(aoNewPath):
                     #os.rename(aoTexturePath, aoNewPath)
                     copyfile(aoTexturePath, aoNewPath)
@@ -1166,12 +1191,11 @@ def convertSpecials(vmtKeyValList):
 failures = []
 listsssss = []
 
-#####################################################################################################################
+#######################################################################################
 # Main function, loop through every .vmt
-#
-#
+##
 for fileName in fileList:
-    print('--------------------------------------------------------------------------------------------------------')
+    print('---------------------------------------------------------------------------')
     print('+ Reading file:  ' + fileName)
     #breakpoint()
     vmtKeyValList = {}
@@ -1257,13 +1281,13 @@ for fileName in fileList:
             facePath = vmtKeyValList.get('$hdrbasetexture') or vmtKeyValList.get('$hdrcompressedtexture') or vmtKeyValList.get('$basetexture')
             if(facePath and os.path.exists(formatFullDir(formatNewTexturePath(facePath, noRename= True)))):
                 skyboxPath[skyboxName][face]['path'] = formatNewTexturePath(facePath, noRename= True)
-                print("@ DBG:", "Collecting", face, "sky face", skyboxPath[skyboxName][face]['path'])
+                dbg_msg("Collecting", face, "sky face", skyboxPath[skyboxName][face]['path'])
             transform = vmtKeyValList.get('$basetexturetransform')
             
             if(transform):
                 faceTransform = listMatrix(transform) if(transform) else list()
                 skyboxPath[skyboxName][face]['rotate'] = int(float(faceTransform[MATRIX_ROTATE]))
-                print("@ DBG:", "Collecting", face, "transformation", skyboxPath[skyboxName][face]['rotate'], 'degrees')
+                dbg_msg("Collecting", face, "transformation", skyboxPath[skyboxName][face]['rotate'], 'degrees')
 
             # skip vmat for dn, lf, rt, bk, ft
             # TODO: ok we might need the vmats for all of them because they might be used somewhere else
@@ -1280,7 +1304,7 @@ for fileName in fileList:
         with open(vmatFileName, 'w') as vmatFile:
             vmatFile.write('// Converted with vmt_to_vmat.py\n')
             vmatFile.write('// From: ' + fileName + '\n\n')
-            print("@ DBG: " + matType + " => " + vmatShader)
+            dbg_msg("" + matType + " => " + vmatShader)
             vmatFile.write('Layer0\n{\n\tshader "' + vmatShader + '.vfx"\n\n')
 
             convertSpecials(vmtKeyValList)
@@ -1300,7 +1324,7 @@ for fileName in fileList:
         #            f1.write(COMMENT + line)
         print ('+ Converted: ' + fileName)
         print ('+ Saved at:  ' + vmatFileName)
-        print ('--------------------------------------------------------------------------------------------------------')
+        print ('---------------------------------------------------------------------------')
     
     else: print("+ Invalid material. Skipping!")
 
@@ -1308,9 +1332,10 @@ for fileName in fileList:
     if not matType:
         if DEBUG: debugContent += "Warning" + fileName + '\n'
 
+print("Done with the materials...\nNow onto the images that need processing...")
 
-for eachthing in QUEUE:
-    eachthing(QUEUE[eachthing][0], QUEUE[eachthing][1], QUEUE[eachthing][2], QUEUE[eachthing][3], QUEUE[eachthing][4])
+for args in Late_Calls:
+    createMaskFromChannel( *args )
 
 ########################################################################
 # Build skybox cubemap from sky faces
@@ -1320,7 +1345,7 @@ for skyName in skyboxPath:
 
     #if True: break
     # what is l4d2 skybox/sky_l4d_rural02_ldrbk.pwl
-    # TODO: decouple this in a separate script. skyface_to_skymap.py
+    # TODO: decouple this in a separate script. face_to_cubemap_sky.py
     # write the sky face contents in a text file. allow manual sky map creation
 
     # TODO: !!!!! HOW DO I DO HDR FILES !!!!! '_cube.exr'
@@ -1355,7 +1380,7 @@ for skyName in skyboxPath:
         faceScale = skyboxPath[skyName][face].get('scale')
         faceRotate = skyboxPath[skyName][face].get('rotate')
 
-        #print("@ DBG:", "Using image", formatVmatDir(facePath), "for the", face, "face")
+        #dbg_msg("Using image", formatVmatDir(facePath), "for the", face, "face")
         vtfTexture = facePath.replace(TEXTURE_FILEEXT, '') + '.vtf'
         if REMOVE_VTF_FILES and os.path.exists(vtfTexture):
             os.remove(vtfTexture)
@@ -1375,7 +1400,7 @@ for skyName in skyboxPath:
             faceHandle = faceHandle.resize((face_w, round(faceHandle.height * face_w/faceHandle.width)), Image.BICUBIC)
 
         if(skyboxPath[skyName][face].get('rotate')):
-            print("@ DBG: ROTATING `" + face + "` BY THIS: " + str(skyboxPath[skyName][face]['rotate']))
+            dbg_msg("ROTATING `" + face + "` BY THIS: " + str(skyboxPath[skyName][face]['rotate']))
             faceHandle = faceHandle.rotate(int(skyboxPath[skyName][face]['rotate']))
 
         
@@ -1388,3 +1413,6 @@ for skyName in skyboxPath:
 
     if os.path.exists(SkyCubeImage_Path):
         print('+ Successfuly created sky cubemap at: ' + SkyCubeImage_Path)
+
+print("\nFinished! Your materials are now ready.")
+dbg_msg("\n\n\n\n\n")
