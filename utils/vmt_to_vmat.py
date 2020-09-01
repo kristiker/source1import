@@ -799,8 +799,8 @@ vmt_to_vmat = {
         '$flow_bumpstrength':   ('g_flNormalMapStrength',   '1.000', ''),
 
         # inverse
-        '$nofog':   ('g_bFogEnabled',       '0',        '-1'),
-        "$notint":  ('g_flModelTintAmount', '1.000',    '-1'),
+        '$nofog':   ('g_bFogEnabled',       '0',        '_bool_invert'),
+        "$notint":  ('g_flModelTintAmount', '1.000',    '_bool_invert'),
 
         # SH_BLEND and SH_VR_STANDARD(SteamVR) -- $NEWLAYERBLENDING settings used on dust2 etc. might as well comment them for steamvr
         #'$blendsoftness':       ('g_flLayer1BlendSoftness', '0.500',    ''),
@@ -848,19 +848,19 @@ vmt_to_vmat = {
     'others2': {
         # ssbump shader is currently broken in HL:A.
         #'$ssbump':               ('TextureBentNormal',    '_bentnormal.tga', '\n\tF_ENABLE_NORMAL_SELF_SHADOW 1\n\tF_USE_BENT_NORMALS 1\n'),
-        '$newlayerblending':     ('',    '',     ''),
+        #'$newlayerblending':     ('',    '',     ''),
 
-        '$iris': ('',    '',     ''), # paste iris into basetexture
+        #'$iris': ('',    '',     ''), # paste iris into basetexture
 
         # fRimMask = vMasks1Params.r;
 		# fPhongAlbedoMask = vMasks1Params.g;
 		# fMetalnessMask = vMasks1Params.b;
 		# fWarpIndex = vMasks1Params.a;
         # https://developer.valvesoftware.com/wiki/Character_(shader)
-        '$maskstexture':    ('',    '',     ''),
-        '$masks':   ('',    '',     ''),
-        '$masks1':  ('',    '',     ''),
-        '$masks2':  ('',    '',     ''),
+        #'$maskstexture':    ('',    '',     ''),
+        #'$masks':   ('',    '',     ''),
+        #'$masks1':  ('',    '',     ''),
+        #'$masks2':  ('',    '',     ''),
         #'$phong':   ('',    '',     ''),
 
         # $selfillumfresnelminmaxexp "[1.1 1.7 1.9]"
@@ -904,7 +904,11 @@ def convertVmtToVmat(vmtKeyValList):
                     else:
                         outVal = vmatDefaultValue
                     
-                    outAdditionalLines = vmatExtraLines
+                    if vmatExtraLines == '_bool_invert':
+                        oldVal = str(int(not int(oldVal)))
+                        outAdditionalLines = ''
+                    else:
+                        outAdditionalLines = vmatExtraLines
 
                 # no equivalent key-value for this key, only exists
                 # add comment or ignore completely
@@ -1020,9 +1024,6 @@ def convertVmtToVmat(vmtKeyValList):
                     break ### Skip default content write
 
                 elif(keyType == 'settings'):
-                    if vmatExtraLines == '-1':
-                        oldVal = str(int(not int(oldVal)))
-                        vmatExtraLines = ''
 
                     if(vmtKey == '$detailscale'):
                         outVal = fixIntVector(oldVal, addAlpha=False)               
@@ -1137,7 +1138,7 @@ def convertVmtToVmat(vmtKeyValList):
 
                         #if not vmtKeyValList.get('$basemapalphaphongmask'):
                             #outVal = createMaskFromChannel(getTexture(('$bumpmap', '$normalmap')), 'A', vmatDefaultValue, False)
-                    vmatContent += '\t' + COMMENT + outKey + '\t\t' + QUOTATION + outVal + QUOTATION + '\n\t' + outAdditionalLines + '\n'
+                    #vmatContent += '\t' + COMMENT + outKey + '\t\t' + QUOTATION + outVal + QUOTATION + '\n\t' + outAdditionalLines + '\n'
                     break ### Skip default content write
                 
                 ### Default content write ###
