@@ -24,24 +24,15 @@
 # run the script directly
 # or `python vmt_to_vmat.py input_path`
 
-# This version of vmt_to_vmat has been modified with some configurability in mind
-# and is currently suited for CS:GO materials.
-#
-# This version insists on renaming all of the textures so please be warned.
-# That means any texture.tga will be renamed into texture_color.tga and so on.
-#
 #  Translation table is found at vmt_to_vmat below
 
-import sys
-import os
-import os.path
-from os import path
+import re, sys, os
 from shutil import copyfile
-from difflib import get_close_matches
-import re
-from PIL import Image
-import PIL.ImageOps
+from PIL import Image, ImageOps
 from time import time, sleep
+from difflib import get_close_matches
+from random import randint
+#from s2_functions import *
 
 # generic, blend instead of vr_complex, vr_2wayblend etc...
 # blend doesn't seem to work though. why...
@@ -52,8 +43,8 @@ newshader = not USE_OLD_SHADERS
 TEXTURE_FILEEXT = '.tga'
 
 # make sure to remember the final slash!!
-PATH_TO_CONTENT_ROOT = ""
-#PATH_TO_NEW_CONTENT_ROOT = ""
+PATH_TO_CONTENT_ROOT = r""
+#PATH_TO_NEW_CONTENT_ROOT = r""
 
 # Set this to True if you wish to overwrite your old vmat files
 OVERWRITE_VMAT = True
@@ -68,7 +59,7 @@ FINE_RENAME = 2
 # True for messier file system while making the script a bit faster.
 FILE_COUNT_OR_PROCESS = True
 
-# True if you want simple, fast and inaccurate PBR
+# True if you want simple, fast and inaccurate PBR (neither methods are implemented as of now)
 BASIC_PBR = False
 
 DEBUG = False
@@ -179,7 +170,7 @@ materialTypes = {
 
 ignoreList = [ "dx9", "dx8", "dx7", "dx6"]
 
-surfprop_repl = {
+surfprop_force = {
     'stucco':       'world.drywall',
     'tile':         'world.tile_floor',
     'metalpanel':   'world.metal_panel',
@@ -203,6 +194,10 @@ def parseDir(dirName):
         for fileName in fileNames:
             if fileName.lower().endswith('.vmt'): # : #
                 files.append(os.path.join(root,fileName))
+                if len(files) % randint(90, 270) == 0:
+                    print("Found", len(files), "files")
+
+    print("Total:", len(files), "files")
 
     return files
 
@@ -224,7 +219,7 @@ if not PATH_TO_CONTENT_ROOT:
     else:
         while not PATH_TO_CONTENT_ROOT:
             c = input('Type the root directory of the vmt materials you want to convert (enter to use current directory, q to quit).: ') or currentDir
-            if not path.isdir(c):
+            if not os.path.isdir(c):
                 if c in ('q', 'quit', 'exit', 'close'): quit()
                 print('Could not find directory.')
                 continue
@@ -252,9 +247,7 @@ PATH_TO_CONTENT_ROOT = os.path.normpath(PATH_TO_CONTENT_ROOT) + '\\'
 
 print('\nSource 2 Material Conveter! By Rectus via Github.')
 print('Initially forked by Alpyne, this version by caseytube.\n')
-print('+ Scanning directory: ' + PATH_TO_CONTENT_ROOT)
 print('--------------------------------------------------------------------------------------------------------')
-
 
 # "environment maps/metal_generic_002" -> "materials/environment maps/metal_generic_002(.tga)"
 def formatVmtTextureDir(localPath, fileExt = TEXTURE_FILEEXT):
@@ -468,14 +461,19 @@ def getTexture(vmtParams):
 # Verify file paths
 fileList = []
 if(PATH_TO_CONTENT_ROOT):
-    absFilePath = os.path.abspath(os.path.join(PATH_TO_CONTENT_ROOT, 'materials'))
-    
+    folderPath = PATH_TO_CONTENT_ROOT
+    if not PATH_TO_CONTENT_ROOT.rstrip('\\/').endswith('materials'):
+        folderPath = os.path.join(PATH_TO_CONTENT_ROOT, 'materials')
+
+    absFilePath = os.path.abspath(folderPath)
+
     if os.path.isdir(absFilePath):
+        print("Scanning for .vmt files. This may take a while...")
         fileList.extend(parseDir(absFilePath))
     elif(absFilePath.lower().endswith('.vmt')):
         fileList.append(absFilePath)
 else:
-    input("No directory specified, press any key to quit...")
+    input("No file or directory specified, press any key to quit...")
     quit()
 
 def parseVMTParameter(line, parameters):
@@ -562,23 +560,20 @@ def createMaskFromChannel(vmtTexture, channel = 'A', copySub = '_mask.tga', inve
             last_time = time()
             for x in range(image.width):
                 for y in range(image.height):
-                    #R = G = B = 255
-                    #R, G, B, _ = image.getpixel( (x,y) )
-                    R, G, B, _ = imagePixels[x,y]
-                    ####################################################################
-                    LuminanceB = (0.299*R + 0.587*G + 0.114*B)
-                    ####################################################################
 
-                    #maskImage.putpixel((x,y), round(LuminanceB))
-                    maskPixels[x,y] = round(LuminanceB)
-                    
+                    R, G, B, _ = imagePixels[x,y] # image.getpixel( (x,y) )
+                    #######################################################
+                    LuminanceB = (0.299*R + 0.587*G + 0.114*B)
+                    #######################################################
+                    maskPixels[x,y] = round(LuminanceB) # maskImage.putpixel((x,y), )
+
             dbg_msg("It took:", time()-last_time, "seconds to calculate luminance")
             maskImage.save(newMaskPath, optimize=True, quality=85)
             maskImage.close()
 
         else:
             imgChannel = image.getchannel(str(channel))
-            # Create a new image with an opaque black background
+            # Create a new image with an opaque black background TODO: 'L'
             bg = Image.new("RGBA", image.size, (0,0,0,255))
 
             # Copy the alpha channel to the new image using itself as the mask
@@ -587,20 +582,19 @@ def createMaskFromChannel(vmtTexture, channel = 'A', copySub = '_mask.tga', inve
             if invert:
                 r,g,b,_ = bg.split()
                 rgb_image = Image.merge('RGB', (r,g,b))
-                inverted_image = PIL.ImageOps.invert(rgb_image)
+                inverted_image = ImageOps.invert(rgb_image)
 
                 r2,g2,b2 = inverted_image.split()
                 final_transparent_image = Image.merge('RGB', (r2,g2,b2)).convert('RGBA')
 
-                final_transparent_image.save(newMaskPath)
+                final_transparent_image.save(newMaskPath, optimize=True)
                 final_transparent_image.close()
             else:
-                bg.save(newMaskPath)
+                bg.save(newMaskPath, optimize=True)
                 bg.close()
 
     else:
         print("~ ERROR: Couldn't find requested image (" + vmtTexture + "). Please check.")
-        #vmatContent += '\t' + COMMENT + 'Missing ' + formatVmatDir(vmtTexture) + '\n'
         return 'materials/default/default' + copySub
 
     if not queue:
@@ -611,7 +605,7 @@ def createMaskFromChannel(vmtTexture, channel = 'A', copySub = '_mask.tga', inve
 def flipNormalMap(localPath):
 
     image_path = formatFullDir(localPath)
-    if not path.exists(image_path): return
+    if not os.path.exists(image_path): return
 
     if FILE_COUNT_OR_PROCESS:
         with open(formatFullDir(localPath[:-4] + '.txt'), 'w') as settingsFile:
@@ -621,7 +615,7 @@ def flipNormalMap(localPath):
         image = Image.open(image_path).convert('RGBA')
 
         r,g,b,a = image.split()
-        g = PIL.ImageOps.invert(g)
+        g = ImageOps.invert(g)
         final_transparent_image = Image.merge('RGBA', (r,g,b,a))
         final_transparent_image.save(image_path)
 
@@ -829,7 +823,7 @@ vmt_to_vmat = {
       # '$vmtKey':                      (extract_from,      extract_as,         channel to extract)
         # TODO: envmap, phong need processing. They should be added as a key.
         '$normalmapalphaenvmapmask':    (normalmaps,        '$envmapmask',      'A'), 
-        '$basealphaenvmapmask':         ('$basetexture',    '$envmapmask',      'A'),
+        '$basealphaenvmapmask':         ('$basetexture',    '$envmapmask',      'A'), # 'M_1-A'
         '$envmapmaskintintmasktexture': ('$tintmasktexture','$envmapmask',      'R'),
 
         '$basemapalphaphongmask':       ('$basetexture',    '$phongmask',       'A'),
@@ -1036,8 +1030,8 @@ def convertVmtToVmat(vmtKeyValList):
                         if oldVal in ('default', 'default_silent', 'no_decal', 'player', 'roller', 'weapon'):
                             pass
 
-                        elif oldVal in surfprop_repl:
-                            outVal = surfprop_repl[oldVal]
+                        elif oldVal in surfprop_force:
+                            outVal = surfprop_force[oldVal]
 
                         else:
                             if("props" in vmatFileName): match = get_close_matches('prop.' + oldVal, surfprop_HLA, 1, 0.4)
@@ -1069,12 +1063,12 @@ def convertVmtToVmat(vmtKeyValList):
                         if oldVal:
                             outVal = fixIntVector(oldVal, True)
                     
-                    elif vmtKey in ('$phongexponent', '$phongexponent2'): # TODO:
-                        if (vmatShader == SH_VR_SIMPLE_2WAY_BLEND) and vmtKey == '$phongexponent':
-                            outKey += 'A'
-                        #break
-                        #continue
-                        pass
+                    #elif vmtKey in ('$phongexponent', '$phongexponent2'): # TODO:
+                    #    if (vmatShader == SH_VR_SIMPLE_2WAY_BLEND) and vmtKey == '$phongexponent':
+                    #        outKey += 'A'
+                    #    #break
+                    #    #continue
+                    #    pass
 
                     # The other part are simple floats. Deal with them
                     else:
@@ -1094,6 +1088,17 @@ def convertVmtToVmat(vmtKeyValList):
                     outAdditionalLines  = vmt_to_vmat['textures'][outVmtTexture][VMAT_EXTRALINES]
                     sourceSubString     = vmt_to_vmat['textures'][outVmtTexture][VMAT_DEFAULT]
 
+                    shouldInvert        = False
+
+                    if ('1-' in sourceChannel):
+                        if 'M_1-' in sourceChannel:
+                            if vmtKeyValList.get('$model'): 
+                                shouldInvert = True
+                        else:
+                            shouldInvert = True
+
+                        sourceChannel = sourceChannel.strip('M_1-')
+
                     sourceTexturePath   = getTexture(sourceTexture)
 
                     if sourceTexturePath:
@@ -1101,8 +1106,7 @@ def convertVmtToVmat(vmtKeyValList):
                             print("~ WARNING: Conflicting " + vmtKey + " with " + outVmtTexture + ". Aborting mask creation (using original).")
                             break
 
-                        
-                        outVal =  createMaskFromChannel(sourceTexturePath, sourceChannel, sourceSubString, False)
+                        outVal =  createMaskFromChannel(sourceTexturePath, sourceChannel, sourceSubString, shouldInvert)
 
                         # invert for brushes; if it's a model, keep the intact one ^
                         # both versions are provided just in case for 'non models'
@@ -1132,18 +1136,14 @@ def convertVmtToVmat(vmtKeyValList):
                     break ### Skip default content write
 
                 elif keyType == 'others2':
-                    #if vmtKey == '$phong':
-                        #if oldVal == '0':
-                        #break
-
-                        #if not vmtKeyValList.get('$basemapalphaphongmask'):
-                            #outVal = createMaskFromChannel(getTexture(('$bumpmap', '$normalmap')), 'A', vmatDefaultValue, False)
-                    #vmatContent += '\t' + COMMENT + outKey + '\t\t' + QUOTATION + outVal + QUOTATION + '\n\t' + outAdditionalLines + '\n'
                     break ### Skip default content write
                 
+                if(outAdditionalLines): outAdditionalLines = '\n\t' + outAdditionalLines + '\n'
+
+                #############################
                 ### Default content write ###
-                if(outAdditionalLines): vmatContent += '\n\t' + outAdditionalLines + '\n\t' + outKey + '\t\t' + QUOTATION + outVal + QUOTATION + '\n'
-                else: vmatContent += '\t' + outKey + '\t\t' + QUOTATION + outVal + QUOTATION + '\n'
+                line = outAdditionalLines + '\t' + outKey + '\t\t' + QUOTATION + outVal + QUOTATION + '\n'
+                vmatContent = vmatContent + line
 
                 if DEBUG:
                     if(outVal.endswith(TEXTURE_FILEEXT)): outVal = formatFullDir(outVal)
@@ -1323,7 +1323,7 @@ for fileName in fileList:
         #    with open(vmatFileName, "w") as f1:
         #        for line in f:
         #            f1.write(COMMENT + line)
-        print ('+ Converted: ' + fileName)
+        if DEBUG: print ('+ Converted: ' + fileName)
         print ('+ Saved at:  ' + vmatFileName)
         print ('---------------------------------------------------------------------------')
     
@@ -1338,10 +1338,12 @@ print("Done with the materials...\nNow onto the images that need processing...")
 for args in Late_Calls:
     createMaskFromChannel( *args )
 
+
 ########################################################################
 # Build skybox cubemap from sky faces
 # (blue_sky_up.tga, blue_sky_ft.tga, ...) -> blue_sky_cube.tga
 # https://developer.valvesoftware.com/wiki/File:Skybox_Template.jpg
+# https://learnopengl.com/img/advanced/cubemaps_skybox.png
 for skyName in skyboxPath:
 
     #if True: break
@@ -1390,6 +1392,7 @@ for skyName in skyboxPath:
         # TODO: i think top and bottom need to be rotated by 90 + side faces offset by x
         # check if front is below top and above bottom
         # move this inside the dict
+        # Ahhhh https://github.com/TheAlePower/TeamFortress2/blob/1b81dded673d49adebf4d0958e52236ecc28a956/tf2_src/utils/splitskybox/splitskybox.cpp#L172
         if face == 'up':   facePosition = (cube_w - 3 * face_w, cube_h - 3 * face_h)
         elif face == 'ft': facePosition = (cube_w - 2 * face_w, cube_h - 2 * face_h)
         elif face == 'lf': facePosition = (cube_w - 1 * face_w, cube_h - 2 * face_h)

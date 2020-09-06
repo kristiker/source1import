@@ -10,6 +10,12 @@ Below is a list of branches that have been tested with the tool:
 Below is a list of branches that DON'T work with this tool (in SteamVR):
 - Left 4 Dead 2 (most content works, but player models crash the engine.)
 
+## vtf_to_tga.py
+
+Similarly to VTFEdit's export function, this script exports all VTFs files to TGA images (and PFM for HDR files) using the Source engine's native tool [VTF2TGA](https://developer.valvesoftware.com/wiki/VTF2TGA). Included in the files are 2 versions of VTF2TGA; however, you can edit the script to use your own local VTF2TGA.
+
+Usage: `python vtf_to_tga.py "C:/../modname/content/materials"`. You can also run the script directly.
+
 ## vmt_to_vmat.py
 
 A simple Python 3.7 batch converter to convert Source 1 .vmt material files to the Source 2 .vmat format.
