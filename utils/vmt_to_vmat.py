@@ -36,8 +36,8 @@ from random import randint
 
 # generic, blend instead of vr_complex, vr_2wayblend etc...
 # blend doesn't seem to work though. why...
-USE_OLD_SHADERS = False
-newshader = not USE_OLD_SHADERS
+USE_LEGACY_SHADER = False
+newshader = not USE_LEGACY_SHADER
 
 # File format of the textures. Needs to be lowercase
 TEXTURE_FILEEXT = '.tga'
@@ -47,7 +47,7 @@ PATH_TO_CONTENT_ROOT = r""
 #PATH_TO_NEW_CONTENT_ROOT = r""
 
 # Set this to True if you wish to overwrite your old vmat files
-OVERWRITE_VMAT = True
+OVERWRITE_EXISTING_VMAT = False
 
 REMOVE_VTF_FILES = False
 # Set this to True if you wish to do basic renaming of your textures
@@ -115,7 +115,7 @@ def chooseShader(matType, vmtKeyValList, fileName):
 
     #TODO: if containts values starting with _rt_ give some empty shader
     
-    if USE_OLD_SHADERS:   shaders[SH_GENERIC] += 1
+    if USE_LEGACY_SHADER:   shaders[SH_GENERIC] += 1
     else:                   shaders[materialTypes[matType]] += 1
 
     if matType == "unlitgeneric":
@@ -183,27 +183,9 @@ COMMENT = "// "
 debugContent = ''
 debugList = []
 
-# and "asphalt_" in fileName
-def parseDir(dirName):
-    files = []
-    skipdirs = ['dev', 'debug', 'tools', 'vgui', 'console', 'correction']
-    for root, _, fileNames in os.walk(dirName):
-        for skipdir in skipdirs:
-            if ('materials\\' + skipdir) in root: continue
-        #if not root.endswith(r'materials\skybox'): continue
-        for fileName in fileNames:
-            if fileName.lower().endswith('.vmt'): # : #
-                files.append(os.path.join(root,fileName))
-                if len(files) % randint(90, 270) == 0:
-                    print("Found", len(files), "files")
-
-    print("Total:", len(files), "files")
-
-    return files
-
-###
-### Main Execution
-###
+print('\nSource 2 Material Conveter! By Rectus via Github.')
+print('Initially forked by Alpyne, this version by caseytube.\n')
+print('--------------------------------------------------------------------------------------------------------')
 
 if DEBUG:
     #currentDir = r"D:\Users\kristi\Desktop\WORK\MOD\content\hlvr"
@@ -218,8 +200,8 @@ if not PATH_TO_CONTENT_ROOT:
         PATH_TO_CONTENT_ROOT = sys.argv[1]
     else:
         while not PATH_TO_CONTENT_ROOT:
-            c = input('Type the root directory of the vmt materials you want to convert (enter to use current directory, q to quit).: ') or currentDir
-            if not os.path.isdir(c):
+            c = input('Type in the directory of the vmt materials you want to convert (enter to use current directory, q to quit).: ') or currentDir
+            if not os.path.isdir(c) and not os.path.isfile(c):
                 if c in ('q', 'quit', 'exit', 'close'): quit()
                 print('Could not find directory.')
                 continue
@@ -232,22 +214,56 @@ if not PATH_TO_NEW_CONTENT_ROOT:
         PATH_TO_NEW_CONTENT_ROOT = sys.argv[2]
     else:
         while not PATH_TO_NEW_CONTENT_ROOT:
-            c = input('Type the directory you wish to output Source 2 materials to (enter to use the same dir): ') or currentDir
-            if(c == currentDir):
-                PATH_TO_NEW_CONTENT_ROOT = PATH_TO_CONTENT_ROOT # currentDir
-            else:
-                if not path.isdir(c):
+            c = input('Type in the directory you wish to output the converted materials to (enter to use the same dir): ') or currentDir
+            if not path.isdir(c):
                     if c in ('q', 'quit', 'exit', 'close'): quit()
                     print('Could not find directory.')
                     continue
                 PATH_TO_NEW_CONTENT_ROOT = c.lower().strip().strip('"')
 """
+
+def parseDir(dirName):
+    files = []
+    skipdirs = ['console', 'correction', 'dev', 'debug', 'editor', 'tools', 'vgui', ]
+    for root, _, fileNames in os.walk(dirName):
+        for skipdir in skipdirs:
+            if ('materials\\' + skipdir) in root: continue
+
+        for fileName in fileNames:
+            if fileName.lower().endswith('.vmt'): # : #
+                filePath = os.path.join(root,fileName)
+                if not OVERWRITE_EXISTING_VMAT:
+                    if os.path.exists(filePath.replace('.vmt', '.vmat')): continue
+                if len(files) % randint(90, 270) == 0:
+                    print("Found", len(files), "files")
+                files.append(filePath)
+
+    print("Total:", len(files), "files")
+    return files
+
+fileList = []
+
+if os.path.isfile(PATH_TO_CONTENT_ROOT): # input is a single file
+    if(PATH_TO_CONTENT_ROOT.lower().endswith('.vmt')):
+        fileList.append(PATH_TO_CONTENT_ROOT)
+        PATH_TO_CONTENT_ROOT = PATH_TO_CONTENT_ROOT.split("materials", 1)[0]
+    else:
+        print("~ Invalid file.")
+else:
+    folderPath = PATH_TO_CONTENT_ROOT
+    if not 'materials' in PATH_TO_CONTENT_ROOT \
+    and not PATH_TO_CONTENT_ROOT.endswith('.vmt') \
+    and not PATH_TO_CONTENT_ROOT.rstrip('\\/').endswith('materials'):
+        folderPath = os.path.abspath(os.path.join(PATH_TO_CONTENT_ROOT, 'materials'))
+    if os.path.isdir(folderPath):
+        print("\n-", folderPath.capitalize())
+        print("+ Scanning for .vmt files. This may take a while...")
+        fileList.extend(parseDir(folderPath))
+    else: print("~ Could not find a /models/ folder inside this dir.\n")
+
 PATH_TO_CONTENT_ROOT = os.path.normpath(PATH_TO_CONTENT_ROOT) + '\\'
 #PATH_TO_NEW_CONTENT_ROOT =  os.path.normpath(PATH_TO_NEW_CONTENT_ROOT) + '\\'
 
-print('\nSource 2 Material Conveter! By Rectus via Github.')
-print('Initially forked by Alpyne, this version by caseytube.\n')
-print('--------------------------------------------------------------------------------------------------------')
 
 # "environment maps/metal_generic_002" -> "materials/environment maps/metal_generic_002(.tga)"
 def formatVmtTextureDir(localPath, fileExt = TEXTURE_FILEEXT):
@@ -457,24 +473,6 @@ def getTexture(vmtParams):
     if not bFound: texturePath = None # ''
 
     return texturePath
-
-# Verify file paths
-fileList = []
-if(PATH_TO_CONTENT_ROOT):
-    folderPath = PATH_TO_CONTENT_ROOT
-    if not PATH_TO_CONTENT_ROOT.rstrip('\\/').endswith('materials'):
-        folderPath = os.path.join(PATH_TO_CONTENT_ROOT, 'materials')
-
-    absFilePath = os.path.abspath(folderPath)
-
-    if os.path.isdir(absFilePath):
-        print("Scanning for .vmt files. This may take a while...")
-        fileList.extend(parseDir(absFilePath))
-    elif(absFilePath.lower().endswith('.vmt')):
-        fileList.append(absFilePath)
-else:
-    input("No file or directory specified, press any key to quit...")
-    quit()
 
 def parseVMTParameter(line, parameters):
     words = []
@@ -933,7 +931,7 @@ def convertVmtToVmat(vmtKeyValList):
                             outVal = formatNewTexturePath(oldVal, vmatDefaultValue)
 
                     elif vmtKey in ['$basetexture3', '$basetexture4']:
-                        if not USE_OLD_SHADERS: print('~ WARNING: Found 3/4-WayBlend but it is not supported with the current shader ' + vmatShader + '.')
+                        if not USE_LEGACY_SHADER: print('~ WARNING: Found 3/4-WayBlend but it is not supported with the current shader ' + vmatShader + '.')
 
                     elif vmtKey in  ('$bumpmap', '$bumpmap2', '$normalmap', '$normalmap2'):
                         # all(k not in d for k in ('name', 'amount')) vmtKeyValList.keys() & ('newlayerblending', 'basetexture2', 'bumpmap2'): # >=
@@ -1298,7 +1296,7 @@ for fileName in fileList:
 
 
     if validMaterial:
-        if os.path.exists(vmatFileName) and not OVERWRITE_VMAT:
+        if os.path.exists(vmatFileName) and not OVERWRITE_EXISTING_VMAT:
             print('+ File already exists. Skipping!')
             continue
 
