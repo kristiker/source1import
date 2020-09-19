@@ -14,16 +14,16 @@ from random import randint
 OVERWRITE_EXISTING_TGA = False
 IGNORE_WORLD_CUBEMAPS = True
 
-# if available, force skybox vtfs to run on the 2nd row executable
-FORCE_SKYBOX_ON_2ND_EXE = True
+# if there is one, force skybox vtfs to run on the 2nd row executable
+FORCE_SKYBOX_2ND_VTF2TGA = True
 
-currentDir = os.getcwd()
+currentDir = os.path.dirname(os.path.realpath(__file__)) #os.getcwd()
 PATH_TO_CONTENT_ROOT = r""
 
 # Add your vtf2tga.exe here. Accepts full (C:/) and relative paths (../).
 vtf2tga_paths = [
     r"../vtf2tga/2013/vtf2tga.exe",
-    r"../vtf2tga/csgo/vtf2tga.exe", # FORCE_SKYBOX_ON_2ND_EXE
+    r"../vtf2tga/csgo/vtf2tga.exe", # FORCE_SKYBOX_2ND_VTF2TGA
     #r"C:\Program Files (x86)\Steam\steamapps\common\Source SDK Base 2013 Multiplayer\bin\vtf2tga.exe"
     #r"..\vtf2tga\tf2\vtf2tga.exe"
     #r"..\vtf2tga\l4d2\vtf2tga.exe"
@@ -31,26 +31,27 @@ vtf2tga_paths = [
 ]
 
 tags = []
-for item in range(len(vtf2tga_paths)):
-    path = vtf2tga_paths[item]
-    path = os.path.normpath(path.replace("..", currentDir))
 
-    if os.path.exists(path):
-        print("+ Using", path)
-        vtf2tga_paths[item] = path
+for path in vtf2tga_paths:
+    full_path = os.path.normpath(path.replace("..", currentDir))
+
+    if os.path.exists(full_path):
+        print("+ Using", full_path)
+        vtf2tga_paths[vtf2tga_paths.index(path)] = full_path
         tags.append(os.path.basename(path.replace('vtf2tga', '').replace('.exe', '').replace('bin', '').strip('/\\.')))
     else:
-         vtf2tga_paths.remove(path)
+        print("Invalid file at", full_path)
+        vtf2tga_paths[vtf2tga_paths.index(path)] = None
 
-if not vtf2tga_paths:
-    print("The specified VTF2TGA executables were not found.")
+if not any(vtf2tga_paths):
+    print("No valid vtf2tga.exe was found. Please verify your paths.")
     quit(-1)
 
 if not PATH_TO_CONTENT_ROOT:
     if(len(sys.argv) >= 2): PATH_TO_CONTENT_ROOT = sys.argv[1]
     else:
         while not PATH_TO_CONTENT_ROOT:
-            c = input('Type the main directory of the vtf files you want to export (enter to use current directory, q to quit).: ') or currentDir
+            c = input('\nType in the directory of your .vtf file(s) (enter to use current directory, q to quit).: ') or currentDir
             if not os.path.isdir(c) and not os.path.isfile(c):
                 if c in ('q', 'quit', 'exit', 'close'): quit()
                 print('Could not find file or directory.')
@@ -77,11 +78,11 @@ def parseDir(dirName):
                         #print("Ignoring world cubemap file", fileName)
                         continue
 
-                if OVERWRITE_EXISTING_TGA:
+                if not OVERWRITE_EXISTING_TGA:
                     if os.path.exists(filePath.replace('.vtf', '.tga'))\
                     or os.path.exists(filePath.replace('.vtf', '.pfm'))\
+                    or os.path.exists(filePath.replace('.vtf', 'up.tga'))\
                     or os.path.exists(filePath.replace('.vtf', '000.tga')):
-                        #print("Ignoring already exported file", fileName)
                         continue
 
                 files.append(filePath)
@@ -109,9 +110,9 @@ else:
         folderPath = os.path.abspath(os.path.join(PATH_TO_CONTENT_ROOT, 'materials'))
     if os.path.isdir(folderPath):
         print("\n-", folderPath.capitalize())
-        print("+ Scanning for .vtf files. This may take a while...")
+        print("+ Scanning for%s .vtf files. This may take a while..." % ("" if OVERWRITE_EXISTING_TGA else " unexported"))
         fileList.extend(parseDir(folderPath))
-    else: print("~ Could not find a /models/ folder inside this dir.\n")
+    else: print("~ Could not find a /materials/ folder inside this dir.\n")
 
 PATH_TO_CONTENT_ROOT = os.path.normpath(PATH_TO_CONTENT_ROOT) + '\\'
 
@@ -124,31 +125,39 @@ erroredFileList = []
 
 for vtfFile in fileList:
 
-    expectedOutputTGA = vtfFile.replace('.vtf', '.tga')
-    expectedOutputPFM = vtfFile.replace('.vtf', '.pfm')
-    expectedOutputTGA_frame = vtfFile.replace('.vtf', '000.tga')
+    expectOutTGA = vtfFile.replace('.vtf', '.tga')
+    expectOutPFM = vtfFile.replace('.vtf', '.pfm')
+    expectOutTGA_frame = vtfFile.replace('.vtf', '000.tga')
+    expectOutTGA_cubeface = vtfFile.replace('.vtf', 'up.tga')
 
     force_2nd = False
-    if(FORCE_SKYBOX_ON_2ND_EXE and (len(vtf2tga_paths) > 1) and ('skybox' in vtfFile)):
+    if(FORCE_SKYBOX_2ND_VTF2TGA and (len(vtf2tga_paths) > 1) and ('skybox' in vtfFile)):
         force_2nd = True # 2nd exe outputs pfm files. use that for hdr skybox files
 
     for vtf2tga_exe in vtf2tga_paths:
-        if(force_2nd and (vtf2tga_paths.index(vtf2tga_exe) != 1)):
-            continue
 
         try:
+            # TODO: custom output
             command = [vtf2tga_exe, "-i", vtfFile]
             result = subprocess.run(command, stdout=subprocess.PIPE)
             #print (result.stdout)
 
+            # do not break for index 0 if we are forcing file on index 1
+            if (force_2nd and (vtf2tga_paths.index(vtf2tga_exe) != 1)):
+                continue
+            
             if result.returncode == 0: # TGA or PFM file created. Onto the next VTF.
-                textureFile = ''
-                if os.path.exists(expectedOutputTGA): textureFile = formatVmatDir(expectedOutputTGA)
-                elif os.path.exists(expectedOutputPFM): textureFile = formatVmatDir(expectedOutputPFM)
-                elif os.path.exists(expectedOutputTGA_frame): textureFile = formatVmatDir(expectedOutputPFM)
+                if os.path.exists(expectOutTGA): out = formatVmatDir(expectOutTGA)
+                elif os.path.exists(expectOutPFM): out = formatVmatDir(expectOutPFM)
+                elif os.path.exists(expectOutTGA_frame): out = formatVmatDir(expectOutTGA_frame)
+                elif os.path.exists(expectOutTGA_cubeface):
+                    out = "6 faces incl. " + formatVmatDir(expectOutTGA_cubeface)
+                else:
+                    out = "uhm...? " + formatVmatDir(expectOutTGA)
+                
+                print("[" + tags[vtf2tga_paths.index(vtf2tga_exe)] + "]", "Sucessfully created:", out)
 
-                print("[" + tags[vtf2tga_paths.index(vtf2tga_exe)] + "]", "Sucessfully created", textureFile)
-                break
+                break # break if created sucessfully
 
             if not ((len(vtf2tga_paths) > 1) and (vtf2tga_paths.index(vtf2tga_exe) < (len(vtf2tga_paths) - 1))):
                 erroredFileList.append(vtfFile)
@@ -156,7 +165,7 @@ for vtfFile in fileList:
         except: pass
 
 if erroredFileList:
-    print("Could not export the following files:")
+    print("No vtf2tga could export the following files:")
     for erroredFile in erroredFileList:
         print(formatVmatDir(erroredFile))
 

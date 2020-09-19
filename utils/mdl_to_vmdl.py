@@ -19,14 +19,14 @@ print('-------------------------------------------------------------------------
 
 fileList = []
 
-currentDir = os.getcwd()
+currentDir = os.path.dirname(os.path.realpath(__file__)) #os.getcwd()
 PATH_TO_CONTENT_ROOT = r""
 
 if not PATH_TO_CONTENT_ROOT:
     if(len(sys.argv) >= 2): PATH_TO_CONTENT_ROOT = sys.argv[1]
     else:
         while not PATH_TO_CONTENT_ROOT:
-            c = input('Type the directory of the mdl files you want to import (enter to use current directory, q to quit).: ') or currentDir
+            c = input('Type in the directory of the .mdl file(s) (enter to use current directory, q to quit).: ') or currentDir
             if not os.path.isdir(c) and not os.path.isfile(c):
                 if c in ('q', 'quit', 'exit', 'close'): quit()
                 print('Could not find file or directory.')
