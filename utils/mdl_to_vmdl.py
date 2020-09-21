@@ -34,15 +34,18 @@ if not PATH_TO_CONTENT_ROOT:
             PATH_TO_CONTENT_ROOT = c.lower().strip().strip('"')
 
 def parseDir(dirName):
+    fileCount = 0
     files = []
     for root, _, fileNames in os.walk(dirName):
+        if "models\\editor" in root: fileNames.clear()
         for fileName in fileNames:
             if fileName.lower().endswith(INPUT_FILE_EXT):
+                fileCount += 1
                 filePath = os.path.join(root,fileName)
+                if len(files) % 17 == 0 or (len(files) == 0): print(f"  Found {len(files)} %sfiles" % ("" if OVERWRITE_EXISTING_VMDL else f"/ {fileCount} "), end="\r")
                 if not OVERWRITE_EXISTING_VMDL:
                     if os.path.exists(filePath.replace(INPUT_FILE_EXT, OUTPUT_FILE_EXT)): continue
                 files.append(filePath)
-    print("+ Found:", len(files), "files.")
     return files
 
 if os.path.isfile(PATH_TO_CONTENT_ROOT): # input is a single file
@@ -59,8 +62,10 @@ else:
         folderPath = os.path.abspath(os.path.join(PATH_TO_CONTENT_ROOT, 'models'))
     if os.path.isdir(folderPath):
         print("\n-", folderPath.capitalize())
-        print("\n+ Scanning for", INPUT_FILE_EXT, "files. This may take a while...")
+        print("\n+ Scanning for%s" % ("" if OVERWRITE_EXISTING_VMDL else " unexported"), INPUT_FILE_EXT, "files. This may take a while...")
         fileList.extend(parseDir(folderPath))
+        PATH_TO_CONTENT_ROOT = PATH_TO_CONTENT_ROOT.split("models", 1)[0] # join 
+        # ^^ this is bad. rework PATH_TO_CONTENT_ROOT
     else:
         print("~ Could not find a /models/ folder inside this dir.")
 
@@ -79,13 +84,12 @@ def fix_path(s):
 # Main function, loop through every .mdl
 #
 for mdl_path in fileList:
-    out_name = mdl_path.replace(INPUT_FILE_EXT, OUTPUT_FILE_EXT)
+    out_file = mdl_path.replace(INPUT_FILE_EXT, OUTPUT_FILE_EXT)
+    mdl_file = fix_path(mdl_path.replace(PATH_TO_CONTENT_ROOT, ""))
 
-    print('Importing', os.path.basename(mdl_path))
+    print('Importing', mdl_file)
 
     out = sys.stdout
 
-    mdl_file = fix_path(mdl_path.replace(PATH_TO_CONTENT_ROOT, ""))
-
-    with open(out_name, 'w') as out:
+    with open(out_file, 'w') as out:
         putl(out, VMDL_BASE.replace('<mdl>', mdl_file).replace((' ' * 4), '\t'))

@@ -16,15 +16,16 @@ This is a 3rd generation fork, first created by Rectus and then Forked by DankPa
 - Enough disk space
 
 # Usage:
-Step 1: Create your mod in the [HL:A Workshop Tools](https://developer.valvesoftware.com/wiki/Half-Life:_Alyx_Workshop_Tools/Creating_an_Addon). I would recommend naming the mod the same name as the name you're pulling files from, especially if you're batch converting a whole game.
+1. Create your mod in the [HL:A Workshop Tools](https://developer.valvesoftware.com/wiki/Half-Life:_Alyx_Workshop_Tools/Creating_an_Addon). I would recommend naming the mod the same name as the name you're pulling files from, especially if you're batch converting a whole game.
 
-Step 2: Extract the files you desire using GCFScape to the __CONTENT__ root of the mod, i.e. Half-Life Alyx/content/hlvr_addons/csgo, following the same directory and naming scheme as Source 1 (`/sound/` however has to be renamed into `/sounds/`).
+2. Extract the files you desire using GCFScape to the __CONTENT__ root of the mod, i.e. Half-Life Alyx/content/hlvr_addons/csgo, following the same directory and naming scheme as Source 1 (`/sound/` however has to be renamed into `/sounds/`).
 
-Step 3: Make sure you have requirements in check (see [System Requirements](https://github.com/kristixx/source2utils#system-requirements)). Close your tools before running any script.
+3. Make sure you have requirements in check (see [System Requirements](https://github.com/kristixx/source2utils#system-requirements)). Close your tools before running any script.
 
-Step 4: First run vtf_to_tga.py, then run vmt_to_vmat.py, then lastly mdl_to_vmdl.py using the instructions below.
+4. Run [vtf_to_tga.py](https://github.com/kristixx/source2utils#vtf_to_tgapy) first and [vmt_to_vmat.py](https://github.com/kristixx/source2utils#vmt_to_vmatpy) second using the instructions below. [mdl_to_vmdl.py](https://github.com/kristixx/source2utils#mdl_to_vmdlpy) can be safely ran at any order.
 
-Step 4: Open your mod. Your files should now attempt to convert as you load them, but sometimes doing this process too fast (i.e. scrolling through the Content Browser super quick) will crash the game. Tools will constantly hang while compiling, check the vconsole.
+5. Open your mod. Your files should now attempt to compile as you load them, but sometimes doing this process too fast (i.e. scrolling through the Content Browser super quick) will make the tools hang. Simply wait and check the vconsole for messages.
+- If your tools crash on load the problem is with the compiler being unable to import some of the source1 models.
 
 ## vtf_to_tga.py
 
@@ -43,6 +44,6 @@ Usage: Run the script directly, or from the command line: `python vmt_to_vmat.py
 
 Generates a .vmdl file that will tell Source 2 to import its accompanying .mdl file. See [this](https://developer.valvesoftware.com/wiki/Half-Life:_Alyx_Workshop_Tools/Importing_Source_1_Models)
 
-You must leave the original .mdl files for the .vmdls to compile.
+Do not delete the .mdl files. You must leave them for the .vmdls to compile.
 
 Usage: Run the script directly, or from the command line: `python mdl_to_vmdl.py "C:/../my_addon/content/models"`. Make sure you leave all the MDLs in tact so Source 2 can convert them.
