@@ -1,5 +1,6 @@
 import sys, os
 import subprocess
+import threading, multiprocessing
 
 # https://developer.valvesoftware.com/wiki/VTF2TGA
 # Runs vtf2tga.exe on every vtf file
@@ -10,16 +11,17 @@ import subprocess
 # or `python vtf_to_tga.py input_path` from the cmd prompt
 
 
-OVERWRITE_EXISTING_TGA = False
+OVERWRITE_EXISTING_TGA = True
 IGNORE_WORLD_CUBEMAPS = True
+MULTITHREAD = True
 
 # Add your vtf2tga.exe here. Accepts full (C:/) and relative paths (../). Priority is top to bottom
 vtf2tga_paths = [
     r"../vtf2tga/2013/vtf2tga.exe",
     r"../vtf2tga/csgo/vtf2tga.exe", # FORCE_SKYBOX_2ND_VTF2TGA
-    r"C:\Program Files (x86)\Steam\steamapps\common\Source SDK Base 2013 Multiplayer\bin\vtf2tga.exe",
+    #r"C:\Program Files (x86)\Steam\steamapps\common\Source SDK Base 2013 Multiplayer\bin\vtf2tga.exe",
     r"C:\Program Files (x86)\Steam\steamapps\common\Team Fortress 2\bin\vtf2tga.exe",
-    r"D:\Games\steamapps\common\Team Fortress 2\bin\vtf2tga.exe",
+    #r"D:\Games\steamapps\common\Team Fortress 2\bin\vtf2tga.exe",
     #r"..\vtf2tga\tf2\vtf2tga.exe",
     #r"..\vtf2tga\hl2\vtf2tga.exe",
 ]
@@ -36,7 +38,8 @@ OUTPUT_FILE_EXT = [
     '.pfm',     # HDR
     'up.tga',   # LDR CUBEMAP FACE UP (+ dn, lf, rt, ft, bk)
     'up.pfm',   # HDR CUBEMAP FACE UP (+ dn, lf, rt, ft, bk)
-    '000.tga'   # GIF FRAME 0 (+ 001, 002, 003, ...)
+    '000.tga',  # GIF FRAME 0 (+ 001, 002, 003, ...)
+    '_z000.tga',# ??? LAYER 0 (+ _z001, _z002, _z003, ...)
 ]
 
 tags = []
@@ -102,6 +105,7 @@ def parseDir(dirName):
 
                 files.append(filePath)
 
+    print(f"  Found {len(files)} %sfiles" % ("" if OVERWRITE_EXISTING_TGA else f"/ {fileCount} "))
     return files
 
 fileList = []
@@ -132,60 +136,88 @@ def formatVmatDir(localPath):
     return localPath.replace(PATH_TO_CONTENT_ROOT, '')
 
 erroredFileList = []
+threads = []
+totalFiles = 0
+MAX_THREADS = multiprocessing.cpu_count()
+semaphore = multiprocessing.BoundedSemaphore(value=MAX_THREADS)
 
-for vtfFile in fileList:
-
-    expectOutput = []
-    for outExt in OUTPUT_FILE_EXT:
-        expectOutput.append(os.path.normpath(vtfFile.replace(INPUT_FILE_EXT, outExt)))
-
-    force_2nd = False
-    if(FORCE_SKYBOX_2ND_VTF2TGA and (len(vtf2tga_paths) > 1) and ('skybox' in vtfFile)):
-        force_2nd = True # 2nd exe outputs pfm files. use that for hdr skybox files
+def vtf2TGA_try(vtfFile, expectOutput, force_2nd, vtf2tga_paths):
+    semaphore.acquire()
+    global totalFiles, erroredFileList
 
     for vtf2tga_exe in vtf2tga_paths:
         tag = tags[vtf2tga_paths.index(vtf2tga_exe)]
-        try:
-            # TODO: custom output
-            command = [vtf2tga_exe, "-i", vtfFile]
-            result = subprocess.run(command, stdout=subprocess.PIPE)
-            #print (result.stdout)
 
-            # if we are forcing on index 1, continue (don't break) even if index 0 got bCreated
-            if (force_2nd and (vtf2tga_paths.index(vtf2tga_exe) != 1)):
-                continue
-            
-            if result.returncode == 0: # VTF2TGA reported success
-                
-                bCreated = False
-                
-                for outPath in expectOutput:
-                    if os.path.exists(outPath):
-                        bCreated = True
-                        print(f"[{tag}] Sucessfully created: {formatVmatDir(outPath)}")
-                        break
+        # TODO: custom output
+        command = [vtf2tga_exe, "-i", vtfFile]
+        result = subprocess.run(command, stdout=subprocess.PIPE) #
+        #print (result.stdout)
 
-                if not bCreated:
-                    print(f"[{tag}] uhm...? {formatVmatDir(vtfFile)}")
+        # if we are forcing on index 1, continue (don't break) even if index 0 got bCreated
+        if (force_2nd and (vtf2tga_paths.index(vtf2tga_exe) != 1)):
+            continue
+        
+        if result.returncode == 0: # VTF2TGA reported success
+
+            bCreated = False
+
+            for outPath in expectOutput:
+                if os.path.exists(outPath):
+                    bCreated = True
+                    totalFiles +=1
+                    print(f"[{tag}] Sucessfully created: {formatVmatDir(outPath)}")
+                    break
+
+            if not bCreated:
+                print(f"[{tag}] uhm...? {formatVmatDir(vtfFile)}")
+
+            break # Output file created. Onto the next VTF.
+
+        #else: # VTF2TGA reported failure
+        #    print(f"[{tag}] Something went wrong!", result.stdout)
+
+        if not ((len(vtf2tga_paths) > 1) and (vtf2tga_paths.index(vtf2tga_exe) < (len(vtf2tga_paths) - 1))):
+            erroredFileList.append(vtfFile)
+
+    semaphore.release()
     
-                break # Output file created. Onto the next VTF.
-                    
+def main():
 
-            #else: # VTF2TGA reported failure
-            #    print(f"[{tag}] Something went wrong!")
+    for vtfFile in fileList:
 
-            if not ((len(vtf2tga_paths) > 1) and (vtf2tga_paths.index(vtf2tga_exe) < (len(vtf2tga_paths) - 1))):
-                erroredFileList.append(vtfFile)
+        if threading.active_count() > (multiprocessing.cpu_count()) *15:
+            quit(-1)
 
-        except: pass
+        expectOutput = []
+        for outExt in OUTPUT_FILE_EXT:
+            expectOutput.append(os.path.normpath(vtfFile.replace(INPUT_FILE_EXT, outExt)))
 
-if erroredFileList:
-    print("\tNo vtf2tga could export the following files:")
+        force_2nd = False
+        if(FORCE_SKYBOX_2ND_VTF2TGA and (len(vtf2tga_paths) > 1) and ('skybox' in vtfFile)):
+            force_2nd = True # 2nd exe outputs pfm files. use that for hdr skybox files
 
-    for erroredFile in erroredFileList:
-        print(formatVmatDir(erroredFile))
+        if MULTITHREAD:
+            semaphore.acquire() # blocking=True
+            threads.append(threading.Thread(target=vtf2TGA_try,  args=(vtfFile, expectOutput, force_2nd, vtf2tga_paths)))
+            startThread = threads[-1]
+            startThread.start()
+            semaphore.release()
+        else:
+            vtf2TGA_try(vtfFile, expectOutput, force_2nd, vtf2tga_paths)
 
-    print(f"\tTotal: {len(erroredFileList)} / {len(fileList)}  |  " + "{:.2f}".format((len(erroredFileList)/len(fileList)) * 100) + r" % Error rate\n")
+    for unfinished_thread in threads:
+        unfinished_thread.join() # wait for the final threads to finish
 
-print("\n+ Looks like we are done.")
+    if erroredFileList:
+        print("\tNo vtf2tga could export the following files:")
 
+        for erroredFile in erroredFileList:
+            print(formatVmatDir(erroredFile))
+
+        print(f"\tTotal: {len(erroredFileList)} / {len(fileList)}  |  " + "{:.2f}".format((len(erroredFileList)/len(fileList)) * 100) + f" % Error rate\n")
+
+    print("\n+ Looks like we are done.")
+
+
+if __name__ == '__main__':
+    main()

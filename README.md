@@ -31,13 +31,13 @@ This is a 3rd generation fork, first created by Rectus and then Forked by DankPa
 
 Similarly to VTFEdit's export function, this script exports all VTF files into TGA/PFM using the Source engine's native converter tool [VTF2TGA](https://developer.valvesoftware.com/wiki/VTF2TGA). Included in the files are 2 versions of VTF2TGA; however, you can edit the script to use your own local VTF2TGA.
 
+This step can be ignored if you already have the VTF's exported (if you used VTFEdit etc).
+
 Usage: Run the script directly, or from the command line: `python vtf_to_tga.py "C:/../my_addon/content/materials"`.
 
 ## vmt_to_vmat.py
 
 A simple Python 3.7 batch converter to convert Source 1 .vmt material files to the Source 2 .vmat format.
-
-The material parameters does not map one to one, so it won't convert the materials perfectly. 
 
 Usage: Run the script directly, or from the command line: `python vmt_to_vmat.py "C:/../my_addon/content/materials"`.
 ## mdl_to_vmdl.py
