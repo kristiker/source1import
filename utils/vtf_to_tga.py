@@ -11,23 +11,11 @@ import threading, multiprocessing
 # or `python vtf_to_tga.py input_path` from the cmd prompt
 
 
-OVERWRITE_EXISTING_TGA = True
+OVERWRITE_EXISTING_TGA = False
 IGNORE_WORLD_CUBEMAPS = True
+
+
 MULTITHREAD = True
-
-# Add your vtf2tga.exe here. Accepts full (C:/) and relative paths (../). Priority is top to bottom
-vtf2tga_paths = [
-    r"../vtf2tga/2013/vtf2tga.exe",
-    r"../vtf2tga/csgo/vtf2tga.exe", # FORCE_SKYBOX_2ND_VTF2TGA
-    #r"C:\Program Files (x86)\Steam\steamapps\common\Source SDK Base 2013 Multiplayer\bin\vtf2tga.exe",
-    r"C:\Program Files (x86)\Steam\steamapps\common\Team Fortress 2\bin\vtf2tga.exe",
-    #r"D:\Games\steamapps\common\Team Fortress 2\bin\vtf2tga.exe",
-    #r"..\vtf2tga\tf2\vtf2tga.exe",
-    #r"..\vtf2tga\hl2\vtf2tga.exe",
-]
-
-# if there is one, force skybox vtfs to run on the 2nd row executable
-FORCE_SKYBOX_2ND_VTF2TGA = True
 
 currentDir = os.path.dirname(os.path.realpath(__file__)) #os.getcwd()
 PATH_TO_CONTENT_ROOT = r""
@@ -42,6 +30,19 @@ OUTPUT_FILE_EXT = [
     '_z000.tga',# ??? LAYER 0 (+ _z001, _z002, _z003, ...)
 ]
 
+# if there is one, force skybox vtfs to run on the 2nd row executable
+FORCE_SKYBOX_2ND_VTF2TGA = True
+
+# Add your vtf2tga.exe here. Accepts full (C:/) and relative paths (../). Priority is top to bottom
+vtf2tga_paths = [
+    r"../vtf2tga/2013/vtf2tga.exe",
+    r"../vtf2tga/csgo/vtf2tga.exe", # FORCE_SKYBOX_2ND_VTF2TGA
+    #r"C:\Program Files (x86)\Steam\steamapps\common\Source SDK Base 2013 Multiplayer\bin\vtf2tga.exe",
+    r"C:\Program Files (x86)\Steam\steamapps\common\Team Fortress 2\bin\vtf2tga.exe",
+    #r"D:\Games\steamapps\common\Team Fortress 2\bin\vtf2tga.exe",
+    #r"..\vtf2tga\tf2\vtf2tga.exe",
+    #r"..\vtf2tga\hl2\vtf2tga.exe",
+]
 tags = []
 
 for vtf2tga_path in vtf2tga_paths:
@@ -63,7 +64,7 @@ if not PATH_TO_CONTENT_ROOT:
     if(len(sys.argv) >= 2): PATH_TO_CONTENT_ROOT = sys.argv[1]
     else:
         while not PATH_TO_CONTENT_ROOT:
-            c = input('\n\nType in the directory of your .vtf file(s) (enter to use current directory, q to quit).: ') or currentDir
+            c = input('\n\nType in the directory where  your /materials/*.vtf reside in (enter to use current directory, q to quit).: ') or currentDir
             if not os.path.isdir(c) and not os.path.isfile(c):
                 if c in ('q', 'quit', 'exit', 'close'): quit()
                 print('Could not find file or directory.')
@@ -73,10 +74,9 @@ if not PATH_TO_CONTENT_ROOT:
 def parseDir(dirName):
     fileCount = 0
     files = []
-    skipdirs = ['console', 'correction', 'dev', 'debug', 'editor', 'tools', 'vgui']
     
     for root, _, fileNames in os.walk(dirName):
-        for skipdir in skipdirs:
+        for skipdir in ['console', 'correction', 'dev', 'debug', 'editor', 'tools', 'models\\editor']: # , 'vgui'
             if ('materials\\' + skipdir) in root: fileNames.clear()
 
         for fileName in fileNames:
@@ -95,13 +95,14 @@ def parseDir(dirName):
                         #os.path.exists(fileName.lower().replace('.vtf', '.hdr.vtf')):
                         continue
 
-                bExists = False
+                bSkipThis = False
                 if not OVERWRITE_EXISTING_TGA:
                     for outExt in OUTPUT_FILE_EXT:
                         if os.path.exists(filePath.replace(INPUT_FILE_EXT, outExt)):
-                            bExists = True
-                    if bExists:
-                        continue
+                            bSkipThis = True
+                            continue
+
+                    if bSkipThis: continue
 
                 files.append(filePath)
 
@@ -138,7 +139,7 @@ def formatVmatDir(localPath):
 erroredFileList = []
 threads = []
 totalFiles = 0
-MAX_THREADS = multiprocessing.cpu_count()
+MAX_THREADS = min(multiprocessing.cpu_count(), 10)
 semaphore = multiprocessing.BoundedSemaphore(value=MAX_THREADS)
 
 def vtf2TGA_try(vtfFile, expectOutput, force_2nd, vtf2tga_paths):

@@ -37,15 +37,22 @@ def parseDir(dirName):
     fileCount = 0
     files = []
     for root, _, fileNames in os.walk(dirName):
-        if "models\\editor" in root: fileNames.clear()
+        if r"models\editor" in root: fileNames.clear()
         for fileName in fileNames:
             if fileName.lower().endswith(INPUT_FILE_EXT):
-                fileCount += 1
                 filePath = os.path.join(root,fileName)
-                if len(files) % 17 == 0 or (len(files) == 0): print(f"  Found {len(files)} %sfiles" % ("" if OVERWRITE_EXISTING_VMDL else f"/ {fileCount} "), end="\r")
+                if r"models\props_wasteland\bridge_railing.mdl" in filePath \
+                or r"models\player\custom_player\animset" in filePath:
+                    continue
+                fileCount += 1
                 if not OVERWRITE_EXISTING_VMDL:
-                    if os.path.exists(filePath.replace(INPUT_FILE_EXT, OUTPUT_FILE_EXT)): continue
+                    if os.path.exists(filePath.replace(INPUT_FILE_EXT, OUTPUT_FILE_EXT)):
+                        continue
+
                 files.append(filePath)
+
+                if len(files) % 17 == 0 or (len(files) == 0):
+                    print(f"  Found {len(files)} %sfiles" % ("" if OVERWRITE_EXISTING_VMDL else f"/ {fileCount} "), end="\r")
     return files
 
 if os.path.isfile(PATH_TO_CONTENT_ROOT): # input is a single file
