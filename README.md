@@ -5,9 +5,10 @@
 This is a 3rd generation fork, first created by Rectus and then Forked by DankParrot/Alpyne and Caseytube. These are a set of scripts to help convert Source 1 assets to Source 2 with ease, partly using the tools Valve already have available, and using a materials script that takes a lot of guesswork. These tools were intended to be used with the Source 2 Filmmaker, but can be applied to any Source 2 project.
 
 ## System Requirements:
-- [Python](https://www.python.org/downloads/) 3.7 or later
+- [Python](https://www.python.org/downloads/) 3.8 or later
 
 - [Python Image Library](https://pillow.readthedocs.io/en/5.1.x/installation.html) (`python -m pip install --upgrade Pillow`)
+- [Numpy](https://numpy.org/install/) (`python -m pip install --upgrade numpy`)
 
 - The Half-Life: Alyx Workshop Tools
 
@@ -31,13 +32,13 @@ This is a 3rd generation fork, first created by Rectus and then Forked by DankPa
 
 Similarly to VTFEdit's export function, this script exports all VTF files into TGA/PFM using the Source engine's native converter tool [VTF2TGA](https://developer.valvesoftware.com/wiki/VTF2TGA). Included in the files are 2 versions of VTF2TGA; however, you can edit the script to use your own local VTF2TGA.
 
-This step can be ignored if you already have the VTF's exported (if you used VTFEdit etc).
+This step can be ignored if you already have the VTF's exported (if you used VTFEdit or copied the images from /materialsrc/).
 
 Usage: Run the script directly, or from the command line: `python vtf_to_tga.py "C:/../my_addon/content/materials"`.
 
 ## vmt_to_vmat.py
 
-A simple Python 3.7 batch converter to convert Source 1 .vmt material files to the Source 2 .vmat format.
+A simple Python 3.8 batch converter to convert Source 1 .vmt material files to the Source 2 .vmat format.
 
 Usage: Run the script directly, or from the command line: `python vmt_to_vmat.py "C:/../my_addon/content/materials"`.
 ## mdl_to_vmdl.py
