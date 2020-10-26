@@ -138,12 +138,14 @@ def chooseShader():
     if LEGACY_SHADER:   sh[shader.generic] += 1
     else:               sh[materialTypes[matType]] += 1
 
+    if vmtKeyValues.get('$decal') == '1': sh[shader.vr_projected_decals] += 10
+
     if matType == "worldvertextransition":
         if vmtKeyValues.get('$basetexture2'): sh[shader.vr_simple_2way_blend] += 10
 
     elif matType == "lightmappedgeneric":
         if vmtKeyValues.get('$newlayerblending') == '1': sh[shader.vr_simple_2way_blend] += 10
-        if vmtKeyValues.get('$decal') == '1': sh[shader.vr_static_overlay] += 10
+        #if vmtKeyValues.get('$decal') == '1': sh[shader.vr_projected_decals] += 10
 
     elif matType == "":
         pass
@@ -930,6 +932,14 @@ def convertSpecials(vmtKeyValues):
     if (matType == 'unlitgeneric') and (vmatShader == shader.vr_complex):
         vmtKeyValues["$_vmat_unlit"] = '1'
 
+    # fix mod2x logic for shader.vr_projected_decals
+    if matType == 'decalmodulate':
+        vmtKeyValues['$_vmat_blendmode'] = '1'
+
+    # fix lit logic for shader.vr_projected_decals
+    if matType in ('lightmappedgeneric', 'vertexlitgeneric'):
+        if vmatShader == shader.vr_static_overlay: vmtKeyValues["$_vmat_lit"] = '1'
+        elif vmatShader == shader.vr_projected_decals: vmtKeyValues["$_vmat_samplightm"] = '1' # F_SAMPLE_LIGHTMAP 1 ?
 
     # csgo viewmodels
     viewmodels = Path("models/weapons/v_models")
