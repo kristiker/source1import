@@ -1,44 +1,62 @@
-import sys, os
+import sys, os, re
 import subprocess
 import threading, multiprocessing
+import shutil
+from pathlib import Path
+import py_shared as sh 
 
 # https://developer.valvesoftware.com/wiki/VTF2TGA
 # Runs vtf2tga.exe on every vtf file
 # Same thing as `VTFCmd.exe -folder "<dir>\materials\*.vtf" -recurse`
 
-# Usage Instructions:
-# run the script directly
-# or `python vtf_to_tga.py input_path` from the cmd prompt
+
+# Path to content root, before /materials/
+PATH_TO_CONTENT_ROOT = r""
+PATH_TO_NEW_CONTENT_ROOT = r""
 
 
-OVERWRITE_EXISTING_TGA = False
+fs = sh.Source("materials", PATH_TO_CONTENT_ROOT, PATH_TO_NEW_CONTENT_ROOT)
+
+OVERWRITE = False
 IGNORE_WORLD_CUBEMAPS = True
-
 
 MULTITHREAD = True
 
 currentDir = os.path.dirname(os.path.realpath(__file__)) #os.getcwd()
-PATH_TO_CONTENT_ROOT = r""
 
-INPUT_FILE_EXT = ".vtf"
-OUTPUT_FILE_EXT = [
+IN_EXT = ".vtf"
+VTEX_PARAMS_EXT = ".txt"
+
+OUT_EXT_LIST = [
     '.tga',     # LDR
     '.pfm',     # HDR
-    'up.tga',   # LDR CUBEMAP FACE UP (+ dn, lf, rt, ft, bk)
-    'up.pfm',   # HDR CUBEMAP FACE UP (+ dn, lf, rt, ft, bk)
-    '000.tga',  # GIF FRAME 0 (+ 001, 002, 003, ...)
-    '_z000.tga',# ??? LAYER 0 (+ _z001, _z002, _z003, ...)
 ]
 
-# if there is one, force skybox vtfs to run on the 2nd row executable
+OUT_NAME_ENDS = [
+    "",     # default
+    "up",   # CUBEMAP FACE UP (+ dn, lf, rt, ft, bk)
+    "000",  # GIF FRAME 0 (+ 001, 002, 003, ...)
+    "_z000" # ??? LAYER 0 (+ _z001, _z002, _z003, ...)
+]
+
+def OutputList(path: Path, with_suffix = False) -> list:
+    """ Return list with all the possible output names
+    """ 
+    for name in OUT_NAME_ENDS:
+        outPath = Path(path.parent) / Path(path.stem + name)
+        if not with_suffix: yield outPath
+        for ext in OUT_EXT_LIST:
+            yield Path(str(outPath) + ext) #.with_suffix(ext)
+
+# if there is one, force skybox vtfs to run on the 2nd row executable __very specific__ 
 FORCE_SKYBOX_2ND_VTF2TGA = True
 
 # Add your vtf2tga.exe here. Accepts full (C:/) and relative paths (../). Priority is top to bottom
 vtf2tga_paths = [
     r"../vtf2tga/2013/vtf2tga.exe",
     r"../vtf2tga/csgo/vtf2tga.exe", # FORCE_SKYBOX_2ND_VTF2TGA
-    #r"C:\Program Files (x86)\Steam\steamapps\common\Source SDK Base 2013 Multiplayer\bin\vtf2tga.exe",
     r"C:\Program Files (x86)\Steam\steamapps\common\Team Fortress 2\bin\vtf2tga.exe",
+    #r"C:\Program Files (x86)\Steam\steamapps\common\Source SDK Base 2013 Multiplayer\bin\vtf2tga.exe",
     #r"D:\Games\steamapps\common\Team Fortress 2\bin\vtf2tga.exe",
     #r"..\vtf2tga\tf2\vtf2tga.exe",
     #r"..\vtf2tga\hl2\vtf2tga.exe",
@@ -46,113 +64,37 @@ vtf2tga_paths = [
 tags = []
 
 for vtf2tga_path in vtf2tga_paths:
-    full_path = os.path.normpath(vtf2tga_path.replace("..", currentDir))
+    full_path = Path(vtf2tga_path.replace("..", currentDir))
 
-    if os.path.exists(full_path):
+    if full_path.exists():
         print("+ Using:", full_path)
         vtf2tga_paths[vtf2tga_paths.index(vtf2tga_path)] = full_path
         tags.append(os.path.basename(vtf2tga_path.replace('vtf2tga', '').replace('.exe', '').replace('bin', '').strip('/\\.')))
     else:
-        print("~ Path does not exist:", full_path)
+        print("~ Invalid vtf2tga path:", full_path)
         vtf2tga_paths[vtf2tga_paths.index(vtf2tga_path)] = None
 
 if not any(vtf2tga_paths):
     print(f"No valid vtf2tga.exe was found. Please open {os.path.basename(__file__)} and verify your paths.")
     quit(-1)
 
-if not PATH_TO_CONTENT_ROOT:
-    if(len(sys.argv) >= 2): PATH_TO_CONTENT_ROOT = sys.argv[1]
-    else:
-        while not PATH_TO_CONTENT_ROOT:
-            c = input('\n\nType in the directory where  your /materials/*.vtf reside in (enter to use current directory, q to quit).: ') or currentDir
-            if not os.path.isdir(c) and not os.path.isfile(c):
-                if c in ('q', 'quit', 'exit', 'close'): quit()
-                print('Could not find file or directory.')
-                continue
-            PATH_TO_CONTENT_ROOT = c.lower().strip().strip('"')
-
-def parseDir(dirName):
-    fileCount = 0
-    files = []
-    
-    for root, _, fileNames in os.walk(dirName):
-        for skipdir in ['console', 'correction', 'dev', 'debug', 'editor', 'tools', 'models\\editor']: # , 'vgui'
-            if ('materials\\' + skipdir) in root: fileNames.clear()
-
-        for fileName in fileNames:
-            if fileName.lower().endswith(INPUT_FILE_EXT):
-                fileCount += 1
-                filePath = os.path.join(root,fileName)
-
-                if len(files) % 17 == 0 or (len(files) == 0):
-                    print(f"  Found {len(files)} %sfiles" % ("" if OVERWRITE_EXISTING_TGA else f"/ {fileCount} "), end="\r")
-
-                if IGNORE_WORLD_CUBEMAPS:
-                    numbers = sum(c.isdigit() for c in fileName)
-                    dashes = fileName.count('_') + fileName.count('-')
-                    if (numbers > 4) and (dashes >= 2) and (fileName.startswith('c')):
-                        #if fileName.lower().endswith('.hdr.vtf') or \
-                        #os.path.exists(fileName.lower().replace('.vtf', '.hdr.vtf')):
-                        continue
-
-                bSkipThis = False
-                if not OVERWRITE_EXISTING_TGA:
-                    for outExt in OUTPUT_FILE_EXT:
-                        if os.path.exists(filePath.replace(INPUT_FILE_EXT, outExt)):
-                            bSkipThis = True
-                            continue
-
-                    if bSkipThis: continue
-
-                files.append(filePath)
-
-    print(f"  Found {len(files)} %sfiles" % ("" if OVERWRITE_EXISTING_TGA else f"/ {fileCount} "))
-    return files
-
-fileList = []
-
-if os.path.isfile(PATH_TO_CONTENT_ROOT):
-    if(PATH_TO_CONTENT_ROOT.lower().endswith(INPUT_FILE_EXT)):
-        fileList.append(PATH_TO_CONTENT_ROOT)
-        PATH_TO_CONTENT_ROOT = PATH_TO_CONTENT_ROOT.split("materials", 1)[0]
-    else:
-        print("~ Invalid file.")
-else:
-    folderPath = PATH_TO_CONTENT_ROOT
-    if not 'materials' in PATH_TO_CONTENT_ROOT \
-    and not PATH_TO_CONTENT_ROOT.endswith(INPUT_FILE_EXT) \
-    and not PATH_TO_CONTENT_ROOT.rstrip('\\/').endswith('materials'):
-        folderPath = os.path.abspath(os.path.join(PATH_TO_CONTENT_ROOT, 'materials'))
-    if os.path.isdir(folderPath):
-        print("\n-", folderPath.capitalize())
-        print("+ Scanning for%s" % ("" if OVERWRITE_EXISTING_TGA else " unexported"), INPUT_FILE_EXT, "files. This may take a while...")
-        fileList.extend(parseDir(folderPath))
-    else: print("~ Could not find a /materials/ folder inside this dir.\n")
-
-PATH_TO_CONTENT_ROOT = os.path.normpath(PATH_TO_CONTENT_ROOT) + '\\'
-
-def formatVmatDir(localPath):
-    if not localPath: return None
-    localPath = os.path.normpath(localPath)
-    return localPath.replace(PATH_TO_CONTENT_ROOT, '')
-
 erroredFileList = []
 threads = []
 totalFiles = 0
-MAX_THREADS = min(multiprocessing.cpu_count(), 10)
+MAX_THREADS = min(multiprocessing.cpu_count() + 2, 10)
 semaphore = multiprocessing.BoundedSemaphore(value=MAX_THREADS)
 
-def vtf2TGA_try(vtfFile, expectOutput, force_2nd, vtf2tga_paths):
+def vtf_import(vtfFile, expectOutput, force_2nd, vtf2tga_paths):
     semaphore.acquire()
     global totalFiles, erroredFileList
 
     for vtf2tga_exe in vtf2tga_paths:
         tag = tags[vtf2tga_paths.index(vtf2tga_exe)]
 
-        # TODO: custom output
-        command = [vtf2tga_exe, "-i", vtfFile]
+        #print(fs.Output(vtfFile.parent))
+        command = [vtf2tga_exe, "-i", vtfFile] #, "-o", fs.Output(vtfFile.parent)
         result = subprocess.run(command, stdout=subprocess.PIPE) #
-        #print (result.stdout)
+        #print (result.stdout.decode("utf-8"))
 
         # if we are forcing on index 1, continue (don't break) even if index 0 got bCreated
         if (force_2nd and (vtf2tga_paths.index(vtf2tga_exe) != 1)):
@@ -161,16 +103,19 @@ def vtf2TGA_try(vtfFile, expectOutput, force_2nd, vtf2tga_paths):
         if result.returncode == 0: # VTF2TGA reported success
 
             bCreated = False
-
             for outPath in expectOutput:
-                if os.path.exists(outPath):
-                    bCreated = True
-                    totalFiles +=1
-                    print(f"[{tag}] Sucessfully created: {formatVmatDir(outPath)}")
-                    break
+                if not outPath.exists(): continue
+                bCreated = True
+                totalFiles +=1
+                print(f"[{tag}] Sucessfully created: {fs.LocalDir(outPath)}")
+    
+                # shitty workaround to vtf2tga not being able to output properly
+                movePath = fs.Output(outPath)
+                os.makedirs(movePath.parent, exist_ok=True) #fs.MakeDir(movePath)
+                shutil.move(outPath, movePath)
 
             if not bCreated:
-                print(f"[{tag}] uhm...? {formatVmatDir(vtfFile)}")
+                print(f"[{tag}] uhm...? {fs.LocalDir(vtfFile)}")
 
             break # Output file created. Onto the next VTF.
 
@@ -181,30 +126,77 @@ def vtf2TGA_try(vtfFile, expectOutput, force_2nd, vtf2tga_paths):
             erroredFileList.append(vtfFile)
 
     semaphore.release()
-    
+
+# https://developer.valvesoftware.com/wiki/Vtex_compile_parameters
+def txt_import(txtFile):
+    transl_table = {
+        "clamps": "clampu",
+        "clampt": "clampv",
+        "clampu": "clampw",
+        "nocompress": "nocompress",
+        "nolod": "nolod",
+        "maxwidth": "maxres",
+        "maxheight": "maxres",
+        #"": "picmip0res",
+        #"maxheight_360": "maxresmobile",
+        #"maxwidth_360": "maxresmobile",
+        "nomip": "nomip",
+        "invertgreen": "legacy_source1_inverted_normal",
+        #"": "brightness",
+        #"": "brightness_offset",
+    }
+
+    with open(txtFile, 'r+') as fp:
+        oldLines = fp.readlines()
+        if "settings" in oldLines[0]: return
+        fp.seek(0)
+        fp.truncate()
+        fp.write("\"settings\"\n{\n")
+        for line in oldLines:
+            key, value = re.split(r'\s', line, maxsplit=1)
+            key, value = key.strip('"'), value.strip().strip('"')
+            new_key = transl_table.get(key)
+            if not new_key:
+                fp.write(f"\t// \"{key}\"\t\t\"{value}\"\n") # comment it
+            else:
+                fp.write(f"\t\"{new_key}\"\t\t\"{value}\"\n")
+        fp.write("}")
+
 def main():
 
-    for vtfFile in fileList:
+    vtfFileList = fs.collect_files(IN_EXT, OUT_EXT_LIST, existing = OVERWRITE, outNameRule = OutputList)
+    txtFileList = fs.collect_files(VTEX_PARAMS_EXT, VTEX_PARAMS_EXT, existing = True)
 
+    for vtfFile in vtfFileList:
         if threading.active_count() > (multiprocessing.cpu_count()) *15:
-            quit(-1)
+            print("Chief, there's a prob with your multithread code")
+        
+        if IGNORE_WORLD_CUBEMAPS:
+            s_vtfFile = str(vtfFile.name)
+            numbers = sum(c.isdigit() for c in s_vtfFile)
+            dashes = s_vtfFile.count('_') + s_vtfFile.count('-')
+            if (numbers > 4) and (dashes >= 2) and (s_vtfFile.startswith('c')):
+                #if fileName.lower().endswith('.hdr.vtf') or \
+                #os.path.exists(fileName.lower().replace('.vtf', '.hdr.vtf')):
+                continue
 
-        expectOutput = []
-        for outExt in OUTPUT_FILE_EXT:
-            expectOutput.append(os.path.normpath(vtfFile.replace(INPUT_FILE_EXT, outExt)))
-
+        expectOutput = OutputList(vtfFile, True)
         force_2nd = False
-        if(FORCE_SKYBOX_2ND_VTF2TGA and (len(vtf2tga_paths) > 1) and ('skybox' in vtfFile)):
+        if(FORCE_SKYBOX_2ND_VTF2TGA and (len(vtf2tga_paths) > 1) and ('skybox' in str(vtfFile))):
             force_2nd = True # 2nd exe outputs pfm files. use that for hdr skybox files
 
         if MULTITHREAD:
             semaphore.acquire() # blocking=True
-            threads.append(threading.Thread(target=vtf2TGA_try,  args=(vtfFile, expectOutput, force_2nd, vtf2tga_paths)))
+            threads.append(threading.Thread(target=vtf_import,  args=(vtfFile, expectOutput, force_2nd, vtf2tga_paths)))
             startThread = threads[-1]
             startThread.start()
             semaphore.release()
         else:
-            vtf2TGA_try(vtfFile, expectOutput, force_2nd, vtf2tga_paths)
+            vtf_import(vtfFile, expectOutput, force_2nd, vtf2tga_paths)
+
+    for txtFile in txtFileList:
+        print(f"Found vtex compile param file {txtFile}")
+        #txt_import() blah blah
 
     for unfinished_thread in threads:
         unfinished_thread.join() # wait for the final threads to finish
@@ -213,12 +205,8 @@ def main():
         print("\tNo vtf2tga could export the following files:")
 
         for erroredFile in erroredFileList:
-            print(formatVmatDir(erroredFile))
+            print(fs.LocalDir(erroredFile))
 
-        print(f"\tTotal: {len(erroredFileList)} / {len(fileList)}  |  " + "{:.2f}".format((len(erroredFileList)/len(fileList)) * 100) + f" % Error rate\n")
+        print(f"\tTotal: {len(erroredFileList)} / {len(vtfFileList)}  |  " + "{:.2f}".format((len(erroredFileList)/len(vtfFileList)) * 100) + f" % Error rate\n")
 
     print("\n+ Looks like we are done.")
-
-
-if __name__ == '__main__':
-    main()
