@@ -1,0 +1,9 @@
+{
+    "EXPORT_GAME": "D:/Games/steamapps/common/Half-Life Alyx/game/csgo",
+    "IMPORT_GAME": "D:/Games/steamapps/common/Half-Life Alyx/content/csgo",
+    "materials": 1,
+    "models": 0,
+    "models_move": 1,
+    "overwrite_all": 1,
+    "textures": 1
+}
