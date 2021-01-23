@@ -5,7 +5,7 @@
 This is a 3rd generation fork, first created by Rectus and then Forked by DankParrot/Alpyne and Caseytube. These are a set of scripts to help convert Source 1 assets to Source 2 with ease, partly using the tools Valve already have available, and using a materials script that takes a lot of guesswork. These tools were intended to be used with the Source 2 Filmmaker, but can be applied to any Source 2 project.
 
 ## System Requirements:
-- [Python](https://www.python.org/downloads/) 3.8
+- [Python](https://www.python.org/downloads/release/python-386/) 3.8
 
 - [Python Image Library](https://pillow.readthedocs.io/en/5.1.x/installation.html) (`python -m pip install --upgrade Pillow`)
 - [Numpy](https://numpy.org/install/) (`python -m pip install --upgrade numpy`)
@@ -29,15 +29,15 @@ This is a 3rd generation fork, first created by Rectus and then Forked by DankPa
         * using _imported mod: `vmt_to_vmat.py -i "D:/Games/Half-Life Alyx/game/tf" -o "D:/Games/Half-Life Alyx/content/tf_imported"`
         * using addon: `vmt_to_vmat.py -i "D:/my files/tf" -o "D:/Games/Half-Life Alyx/content/hlvr_addons/tf"`
 
-4. To import materials
-    - Have your `.tga` image files ready inside the __CONTENT__ folder. To export from `.vtf`:
-        * Use VTFEdit Export first if you are exporting a lot of files!
-        * After that, run __vtf_to_tga.py__ to export the remaining files. This is the safest option but also somewhat slower (with large amounts of files).
+4. Importing materials
+    - Have your `.tga` image files ready inside the __CONTENT__ folder. To export `.tga` files from `.vtf`:
+        * Use VTFEdit Folder Export (especially for large numbers of files!). Can be skipped now that we have __vtf_to_tga.py__
+        * VTFEdit will usually skip some `.vtf` files (especially for newer games). __vtf_to_tga.py__ can be used to export these remaining files.
         <!--- * __vtf_to_tga.py__ can import (read: translate) `*.txt` VTEX compile parameters too! Make sure to include them too. -->
 
     - Now that you have the texture images ready, run __vmt_to_vmat.py__ to import the actual `.vmt` material files.
 
-5. To import models
+5. Importing models
     - Run __mdl_to_vmdl.py__ to import `.mdl` model files.
         * This script doesn't actually do any 'real' importing. The importing process is achieved in engine by resourcecompiler.
         Unfortunately this in-house `.mdl` importer does not work on every asset, and will often crash the tools.
@@ -46,13 +46,13 @@ This is a 3rd generation fork, first created by Rectus and then Forked by DankPa
     
     - Move the entire source1 /models/ folder (containing `.mdl`s) to source2, otherwise your models will show up as errors. <!--- this is dumb -->
 
-6. To import sounds
+6. Importing sounds
     - Rename the entire `/sound/` folder to `/sounds/` then move/copy it to the __CONTENT__ folder of your imported mod.
 
-7. To import particle system/sprite/script/ files
+7. Importing particle system/sprite/script/ files
     - Not supported yet. You have to do them manually
 
-8. To import maps
+8. Importing maps
     - Hammer can import `.vmf` map files on its own. https://developer.valvesoftware.com/wiki/Half-Life:_Alyx_Workshop_Tools/Importing_Source_1_Maps
 
 9. Done! Open your mod. Your files should now attempt to compile as you load them, but sometimes doing this process too fast (i.e. scrolling through the Content Browser super quick) will make the tools hang. Simply wait and check the vconsole for messages.
