@@ -82,7 +82,7 @@ class ValveMaterial:
         return mainKey, KeyValues
 
     def __str__(self):
-        return f"{self.shader} Source{self.version} {self.getShaderName()} Material at {self.path}"
+        return f"{self.shader} Source{self.version} {self.shader} Material at {self.path}"
 
 # keep everything lowercase !!!
 shaderDict = {
@@ -384,6 +384,10 @@ VMAT_DEFAULTVAL = 1
 VMAT_TRANSLFUNC = 2
 VMAT_EXTRALINES = 3
 
+IMPORT_MOD = "csgo"
+EXPORT_MOD = "hlvr"
+
+
 vmt_to_vmat = {
 
 #'shader': { '$_vmat_shader':    ('shader',  'generic.vfx', [ext, SOURCE2_SHADER_EXT]),},
@@ -397,6 +401,7 @@ vmt_to_vmat = {
     '$translucent':     ('F_TRANSLUCENT',           '1', None), # "F_BLEND_MODE 0" for "vr_projected_decals"
     '$alphatest':       ('F_ALPHA_TEST',            '1', None),
     '$envmap':          ('F_SPECULAR',              '1', None), # in "environment maps/metal" | "env_cubemap" F_SPECULAR_CUBE_MAP 1 // In-game Cube Map
+    '$envmapanisotropy':('F_ANISOTROPIC_GLOSS',     '1', None),
     '$selfillum':       ('F_SELF_ILLUM',            '1', None),
     '$additive':        ('F_ADDITIVE_BLEND',        '1', None),
     '$ignorez':         ('F_DISABLE_Z_BUFFERING',   '1', None),
@@ -408,6 +413,9 @@ vmt_to_vmat = {
     '$sequence_blend_mode': ('F_FAST_SEQUENCE_BLEND_MODE', '1', [mapped_val, {'0':'1', '1':'2', '2':'3'}]),
 
     '$selfillum_envmapmask_alpha': ('F_SELF_ILLUM', '1', None),
+
+    "$masks1": ('F_MASKS_1',    '1', None) if EXPORT_MOD == "dota" else None, # 
+    "$masks2": ('F_MASKS_2',    '1', None) if EXPORT_MOD == "dota" else None, # 
 
     #'$phong':           ('F_PHONG',                 '1'),
     #'$vertexcolor:      ('F_VERTEX_COLOR',          '1'),
@@ -422,8 +430,12 @@ vmt_to_vmat = {
     '$basetexture':     ('TextureColor',        '_color',   [formatNewTexturePath],     '' ),
     '$painttexture':    ('TextureColor',        '_color',   [formatNewTexturePath],     '' ),
     '$material':        ('TextureColor',        '_color',   [formatNewTexturePath],     '' ),
+    '$compress':        ('TextureSquishColor',  '_color',   [formatNewTexturePath],     'F_MORPH_SUPPORTED 1\n\tF_WRINKLE 1' ),
+    '$stretch':         ('TextureStretchColor', '_color',   [formatNewTexturePath],     'F_MORPH_SUPPORTED 1\n\tF_WRINKLE 1' ),
 
     '$normalmap':       ('TextureNormal',       '_normal',  [formatNewTexturePath],     '' ), # $bumpmap
+    '$bumpcompress':    ('TextureSquishNormal', '_normal',  [formatNewTexturePath],     'F_MORPH_SUPPORTED 1\n\tF_WRINKLE 1' ),
+    '$bumpstretch':     ('TextureStretchNormal','_normal',  [formatNewTexturePath],     'F_MORPH_SUPPORTED 1\n\tF_WRINKLE 1' ),
 
     ## Layer blend mask
     '$blendmodulatetexture':\
@@ -448,17 +460,23 @@ vmt_to_vmat = {
     '$tintmasktexture': ('TextureTintMask',     '_mask',   [createMask, 'G', False],   'F_TINT_MASK 1'), #('TextureTintTexture',)
     '$_vmat_metalmask': ('TextureMetalness',    '_metal',  [formatNewTexturePath],     'F_METALNESS_TEXTURE 1'), # F_SPECULAR too
     '$_vmat_transmask': ('TextureTranslucency', '_trans',  [formatNewTexturePath],     ''),
+    '$_vmat_rimmask':   ('TextureRimMask',      '_rimmask',[formatNewTexturePath],     ''),
 
     # only the G channel ## $ambientoccltexture': '$ambientocclusiontexture':
     '$ao':          ('TextureAmbientOcclusion', '_ao',     [createMask, 'G', False],    'F_AMBIENT_OCCLUSION_TEXTURE 1'), # g_flAmbientOcclusionDirectSpecular "1.000"
     '$aotexture':   ('TextureAmbientOcclusion', '_ao',     [createMask, 'G', False],    'F_AMBIENT_OCCLUSION_TEXTURE 1'), # g_flAmbientOcclusionDirectSpecular "1.000"
 
+    '$phongexponenttexture': ('TextureSpecularExponent', '_specexp', [formatNewTexturePath], ''),
     #'$phongexponent2' $phongmaskcontrastbrightness2, $phongbasetint2, $phongamount2
+    '$lightwarptexture': ('TextureDiffuseWarp', '_diffusewarp', [formatNewTexturePath], 'F_DIFFUSE_WARP 1'),
+    '$phongwarptexture': ('TextureSpecularWarp', '_specwarp', [formatNewTexturePath], 'F_SPECULAR_WARP 1'),
 
     # Next script should take care of these, unless BASIC_PBR
     '$envmapmask':  ('$envmapmask',         '_env_mask',   [formatNewTexturePath], '') if not BASIC_PBR else \
                     ('TextureRoughness',    '_rough',      [formatNewTexturePath], '') if not LEGACY_SHADER else \
                     ('TextureGlossiness',   '_gloss',      [formatNewTexturePath], ''),
+
+                    #if out dota2 'TextureCubeMapSeparateMask' '_mask' 'F_MASK_CUBE_MAP_BY_SEPARATE_MASK 1'
 
     '$phongmask':   ('$phongmask',          '_phong_mask', [formatNewTexturePath], '') if not BASIC_PBR else \
                     ('TextureRoughness',    '_rough',      [formatNewTexturePath], '') if not LEGACY_SHADER else \
@@ -486,12 +504,17 @@ vmt_to_vmat = {
     '$color':               ('g_vColorTint',        '[1.000 1.000 1.000 0.000]',    [fixVector, True],  ''),
     '$color2':              ('g_vColorTint',        '[1.000 1.000 1.000 0.000]',    [fixVector, True],  ''),
     '$selfillumtint':       ('g_vSelfIllumTint',    '[1.000 1.000 1.000 0.000]',    [fixVector, True],  ''),
+    '$envmaptint':          ('g_vSpecularColor',    '[1.000 1.000 1.000 0.000]',    [fixVector, True],  ''),
+    # s1 channels relative to each other "[0 0 0]" = "[1 1 1]" -> s2 is color so it has a birghtness factor within it
+    # perhaps default to 0.5 0.5 0.5 and scale it with $phongboost, etc
+    '$phongtint':           ('g_vSpecularColor',    '[1.000 1.000 1.000 0.000]',    [fixVector, True],  ''),
 
     '$alpha':               ('g_flOpacityScale',        '1.000',    [float_val], ''),
     '$alphatestreference':  ('g_flAlphaTestReference',  '0.500',    [float_val], 'g_flAntiAliasedEdgeStrength "1.000"'),
     '$blendtintcoloroverbase':('g_flModelTintAmount',   '1.000',    [float_val], ''), # $layertint1
     '$selfillumscale':      ('g_flSelfIllumScale',      '1.000',    [float_val], ''),
-    '$phongboost':          ('g_flPhongBoost',          '1.000',    [float_val], ''),
+    '$phongexponent':       ('g_flSpecularExponent',    '32.000',   [float_val], ''),
+    '$phongboost':          ('g_flPhongBoost',          '1.000',    [float_val], ''), # 
     '$metalness':           ('g_flMetalness',           '0.000',    [float_val], ''),
     '$_metalness2':         ('g_flMetalnessB',          '0.000',    [float_val], ''),
     '$refractamount':       ('g_flRefractScale',        '0.200',    [float_val], ''),
@@ -503,6 +526,7 @@ vmt_to_vmat = {
     "$notint":  ('g_flModelTintAmount', '1.000',    [int_val, True], ''),
 
     # rimlight
+    '$rimlightexponent':    ('g_flRimLightScale',   '1.000',    [int_val],  ''),
     #'$warpindex':           ('g_flDiffuseWrap',         '1.000',    [float_var], ''), # requires F_DIFFUSE_WRAP 1. "?
     #'$diffuseexp':          ('g_flDiffuseExponent',     '2.000',    [float_var], 'g_vDiffuseWrapColor "[1.000000 1.000000 1.000000 0.000000]'),
 
@@ -514,7 +538,7 @@ vmt_to_vmat = {
     '$layerbordertint':     ('g_vLayer1BorderColor',    '[1.000000 1.000000 1.000000 0.000000]', [fixVector, True], ''),
 },
 
-'channeled_masks': { # 1-X will extract the inverse of channel X; M_1-X to only invert on models
+'channeled_masks': { # 1-X will extract and invert channel X // M_1-X to only invert on models
    #'$vmtKey':                      (extract_from,       extract_as,       channel to extract)
     '$normalmapalphaenvmapmask':    ('$normalmap',    '$envmapmask',      '1-A'),
     '$basealphaenvmapmask':         ('$basetexture',    '$envmapmask',      'M_1-A'),
@@ -533,12 +557,30 @@ vmt_to_vmat = {
     '$selfillum':                   ('$basetexture',    '$selfillummask',   'A'),
     #'$phong':                       (normalmap_list,    '$phongmask',       'A'),
 
-    #'$masks1': ('self', ('$rimmask', '$phongalbedomask', '$_vmat_metalmask', '$warpindex'), 'RGBA')
+    '$rimmask':         ('$phongexponenttexture',       '$_vmat_rimmask',   'A'),
+
+    '$masks1':  ('self', ('$_vmat_rimmask', '$phongalbedomask', '$_vmat_metalmask', '$warpindex'), 'RGBA') if IMPORT_MOD == "csgo" else \
+                ('self', ('$rimmask', '$phongalbedomask', '$_vmat_metalmask', '$selfillum'), 'RGBA') if IMPORT_MOD == "dota" else \
+                None,
+    '$masks2':  ('self', ("$shadowsaturationmask", '$phongalbedomask', '$_vmat_metalmask', '$warpindex'), 'RGBA') if IMPORT_MOD == "csgo" else \
+                ('self', ('$detailmask', '$_vmat_metalmask', '$_vmat_metalmask', '$selfillum'), 'RGBA') if IMPORT_MOD == "dota" else \
+                None,
+},
+
+'dicts': {
+    "proxies": None#(None, None, proxyshit, '')
 },
 
 'SystemAttributes': {
     '$surfaceprop':     ('PhysicsSurfaceProperties', 'default', [fixSurfaceProp], '')
 },
+
+'texture_settings': {
+    '$noenvmapmip':             None, # Lock specular cubemap to mip 0
+    '$phongexponentfactor':     None, # Multiply $phongexponenttexture by this amount
+    '$invertphongmask':         None, # Invert $phongmask specmask
+},
+
 # no direct replacement, etc
 'others2': {
     # ssbump dose not work?
