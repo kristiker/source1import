@@ -86,6 +86,7 @@ KeyValue5 = {
     }),
 }
 
+
 def add(srcvar1, srcvar2, **_):         return f"{srcvar1} + {srcvar2}"
 def multiply(srcvar1, srcvar2, **_):    return f"{srcvar1} * {srcvar2}"
 def substract(srcvar1, srcvar2, **_):   return f"{srcvar1} - {srcvar2}"
@@ -94,7 +95,10 @@ def divide(srcvar1, srcvar2, **_):      return f"{srcvar1} / {srcvar2}"
 def equals(srcvar1, **_):   return f"{srcvar1}"
 def abs(srcvar1, **_):      return f"abs({srcvar1})"
 def frac(srcvar1, **_):     return f"frac({srcvar1})"
-def _int(srcvar1, **_):      return f"(frac({srcvar1}) >= 0.5 ? ceil({srcvar1}) : floor({srcvar1}))"
+
+_int = int
+def int(srcvar1, **_):
+    return f"(frac({srcvar1}) >= 0.5 ? ceil({srcvar1}) : floor({srcvar1}))"
 
 def clamp(srcvar1, minval, maxval, **_):
     return f"clamp({srcvar1}, {minval}, {maxval})"
@@ -109,11 +113,32 @@ def wrapminmax(srcvar1, minval, maxval, **_):
     if ( maxval <= minval ): # Bad input, just return the min
         return f"{minval}"
     else: #TODO
-        return \
-            f"flResult = ( {srcvar1} - {minval} ) / ( {maxval} - {minval} );\n" + \
-                f"(flResult >= 0) ? flResult = flResult - ({_int('flResult')}) : flResult = flResult - ({Int('flResult')}) - 1;\n" + \
-                    f"(flResult * ( {maxval} - {minval} )) + {minval}"
+        expr = (
+            f"flResult = ( {srcvar1} - {minval} ) / ( {maxval} - {minval} )",
+            f"(flResult >= 0) ? flResult = flResult - ({_int('flResult')}) : flResult = flResult - ({int('flResult')}) - 1",
+            f"(flResult * ( {maxval} - {minval} )) + {minval}"
+        )
+            
 		            #f"flResult = flResult + minval;
+        return expr
+def remapvalclamp(srcvar1, range_in_min = 0, range_in_max = 1, range_out_min = 0, range_out_max = 1, **_):
+
+    #if ( A == B ) return fsel( val - B , D , C ); // fsel(c,x,y) { ( (c) >= 0 ? (x) : (y) ) }
+	#float cVal = (val - A) / (B - A);
+	#cVal = clamp<float>( cVal, 0.0f, 1.0f );
+	#return C + (D - C) * cVal;
+
+    A, B, C, D = range_in_min, range_in_max, range_out_min, range_out_max
+    expr = (
+        f"remapvalclamp_temp1 = ({srcvar1} - {B}) >= 0 ? {D} : {C}",
+        f"remapvalclamp_temp2 = {C} + ({D} - {C}) * {clamp((srcvar1 - A) / (B - A), 0, 1)}",
+        f"{A} == {B} ? remapvalclamp_temp1 : remapvalclamp_temp2",
+    )
+    return expr
+
+    #if ( A == B )
+	#	return f"({val} - {B}) >= 0 ? {D} : {C}"
+	#return f"{C} + ({D} - {C}) * {clamp((srcvar1 - A) / (B - A), 0, 1)}"
 
 def exponential( minval, maxval, srcvar1, offset = 0, scale = 1, **_):
     return f"clamp({scale} * pow(2.71828, {srcvar1} + {offset}), {minval}, {maxval})"
@@ -122,7 +147,7 @@ def sine(sineperiod, sinemin = -1, sinemax = 1, timeoffset = 0, **_):
     return f"( {sinemax} - {sinemin} ) * (( sin( 2.0 * 3.14159265358979323846264338327950288 * (time() - {timeoffset}) / {sineperiod} ) * 0.5 ) + 0.5) + {sinemin}"
 
 def linearramp(rate = 1, initialvalue = 0, **_):
-    return f"time() + {initialvalue}"
+    return f"( {rate} * time() + {initialvalue} )"
 
 def currenttime(**_):
     return "time()"
