@@ -3,7 +3,7 @@ import subprocess
 import threading, multiprocessing
 import shutil
 from pathlib import Path
-import py_shared as sh 
+import shared.base_utils as sh
 
 # https://developer.valvesoftware.com/wiki/VTF2TGA
 # Runs vtf2tga.exe on every vtf file
