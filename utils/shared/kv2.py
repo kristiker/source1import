@@ -210,7 +210,7 @@ class Sub(collections.UserList):
 
 from functools import partial, wraps
 
-def _subkeylist_method(func, isSub = True):
+def _dec_subkeyvalue(func, isSub = True):
         @wraps(func)
         def ret_fun(self, *args, **kwargs):
             if self.IsSub() == isSub:
@@ -222,10 +222,14 @@ class Value(Sub):
     def IsSub(self):
         return isinstance(self.data, list)
 
-    real_decorator1 = partial(_subkeylist_method, isSub=True)
-    real_decorator2 = partial(_subkeylist_method, isSub=False)
+    KVCollection = partial(_dec_subkeyvalue, isSub=True)
+    KVSingle = partial(_dec_subkeyvalue, isSub=False)
 
-    @
+    @KVSingle
+    def GetInt(self) -> int: return int(self.data) # atoi, int cast
+
+    
+    @KVCollection
     def GetValues(self):
         return self.data
 
@@ -234,26 +238,26 @@ class Value(Sub):
             return str(self)
         return 
 
+class KVType(IntEnum):
+    TYPE_NONE = 0, # hasChild
+    TYPE_STRING = 1,
+    TYPE_INT = 2,
+    TYPE_FLOAT = 3,
+    TYPE_PTR = 4,
+    TYPE_WSTRING = 5,
+    TYPE_COLOR = 6,
+    TYPE_UINT64 = 7,    
 
 class KeyValues(object):
     "Key that holds a Value. Value can be a list holding other KeyValues"
 
-    class Type(IntEnum):
-            TYPE_NONE = 0, # hasChild
-            TYPE_STRING = 1,
-            TYPE_INT = 2,
-            TYPE_FLOAT = 3,
-            TYPE_PTR = 4,
-            TYPE_WSTRING = 5,
-            TYPE_COLOR = 6,
-            TYPE_UINT64 = 7,    
 
     def __init__(self, k: Optional[str] = None, v: Union[int, float, str, Sub] = None):
         self.keyName =k.lower() if k else k
         
         self.value = v
 
-        self.DataType: self.Type = self.Type.TYPE_NONE
+        self.DataType = KVType.TYPE_NONE
         self.HasEscapeSequences: bool
         self.KeyNameCaseSensitive2: int
         
@@ -261,11 +265,28 @@ class KeyValues(object):
         self.Peer: KeyValues = None
         self.Sub: KeyValues = None
         self.Chain: KeyValues = None
+
+    def FindKey(self, keyName, bCreate):
+        if not keyName:
+            return self
+        
+        lastItem = None
+        for dat in self.value:
+            lastItem = dat
+            if dat.keyName == keyName:
+                break
+        
+        if not dat:
+            if bCreate:
+                ...
+            else:
+                return None
+
     
     def Clear(self):
         del self.Sub
         self.Sub = None
-        self.DataType = self.Type.TYPE_NONE
+        self.DataType = KVType.TYPE_NONE
 
     def SetName(self, name: str):
         self.keyName = name.lower()
@@ -394,20 +415,20 @@ class KeyValues(object):
                 fval = 1337.1#float(value)
                 overflow = (lval == 2147483647 or lval == -2147483646)
                 if value == "":
-                    dat.DataType = self.Type.TYPE_STRING
+                    dat.DataType = KVType.TYPE_STRING
                 elif 18 == vlen and value[0] == '0' and value[1] == 'x':
                     dat.value = int(value, 0)
-                    dat.DataType = self.Type.TYPE_UINT64
+                    dat.DataType = KVType.TYPE_UINT64
                 elif len(str(fval).rstrip('0').rstrip('.')) > len(str(lval)): # TODO support this '1.511111111fafsadasd'
                     dat.flValue = fval
-                    dat.DataType = self.Type.TYPE_FLOAT
+                    dat.DataType = KVType.TYPE_FLOAT
                 elif len(str(lval)) == vlen and not overflow:
                     dat.iValue = lval
-                    dat.DataType = self.Type.TYPE_INT
+                    dat.DataType = KVType.TYPE_INT
                 else:
-                    dat.DataType = self.Type.TYPE_STRING
+                    dat.DataType = KVType.TYPE_STRING
 
-                if dat.DataType == self.Type.TYPE_STRING:
+                if dat.DataType == KVType.TYPE_STRING:
                     dat.sValue = value
                 
                 # Look ahead one token for a conditional tag
