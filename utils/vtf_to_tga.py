@@ -108,7 +108,8 @@ def ImportVTFtoTGA(vtfFile, force_2nd = False):
         if (force_2nd and (index != 1)):
             continue
         
-        if result.returncode == 0: # VTF2TGA reported success
+        # VTF2TGA reported success...
+        if result.returncode == 0:
 
             bCreated = False
             for outPath in OutputList(vtfFile, True):

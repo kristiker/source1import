@@ -505,7 +505,9 @@ vmt_to_vmat = {
     '$color2':              ('g_vColorTint',        '[1.000 1.000 1.000 0.000]',    [fixVector, True],  ''),
     '$selfillumtint':       ('g_vSelfIllumTint',    '[1.000 1.000 1.000 0.000]',    [fixVector, True],  ''),
     '$envmaptint':          ('g_vSpecularColor',    '[1.000 1.000 1.000 0.000]',    [fixVector, True],  ''),
-    # s1 channels relative to each other "[0 0 0]" = "[1 1 1]" -> s2 is color so it has a birghtness factor within it
+    '$emissiveblendtint':   ('g_vEmissiveTint',     '[1.000 1.000 1.000 0.000]',    [fixVector, True],  ''),
+
+    # s1 channels relative to each other "[0 0 0]" = "[1 1 1]" (lum preserving) -> s2 is color so it has a birghtness factor within it
     # perhaps default to 0.5 0.5 0.5 and scale it with $phongboost, etc
     '$phongtint':           ('g_vSpecularColor',    '[1.000 1.000 1.000 0.000]',    [fixVector, True],  ''),
 
@@ -614,7 +616,7 @@ def convertVmtToVmat():
     vmatContent = ''    
     lines_SysAtributes = []
 
-    # for each key-value in the vmt file ->
+    # For each key-value in the vmt file...
     for vmtKey, vmtVal in vmt.KeyValues.items():
 
         outKey = outVal = outAddLines = ''

@@ -96,3 +96,38 @@ def getKV_tailored(vmtFilePath: Path, ignoreList: list):
             #row += 1
     
     return matType, vmtKeyValues
+
+
+
+import vdf
+
+def get2KV(buffer):
+    ...
+
+
+def ReadKV(kvFile) -> vdf.VDFDict:
+
+    kvDict = {}
+    with open(kvFile, 'r') as kvFile:
+        for row, line in enumerate(kvFile):
+
+            line = line.split("//", 1)[0].strip().lower()
+            if not line or line.startswith('/'):
+                continue
+            #line += "\n" + line
+            print(line.split())
+            
+            words = re.split(r'\s', line, maxsplit=1)
+            words = list(filter(len, words))
+            #print(words)
+            #if "proxies" in line:
+            #    collectNextLine = True
+                
+
+            if "}" in line and row != 0:
+                break
+
+    return kvDict
+
+
+print(ReadKV(r"D:\Users\kristi\Documents\GitHub\source1import\utils\shared\keyvalue2.kv3"))
