@@ -1,6 +1,7 @@
 
 import os
 import collections
+
 class Conv:
     def __init__(self) -> None:
         pass
@@ -129,9 +130,10 @@ class CKeyValuesTokenReader:
             if not self.m_Buffer.EatCPPComment():
                 break
 
-        c_full = self.m_Buffer#[0]
-        c = c_full[0]
-        if not c_full or c == 0:
+        #c_full = self.m_Buffer#[0]
+        c = self.m_Buffer[0]
+        #not self.m_Buffer or 
+        if c == 0:
             return 0
         
         # read quoted strings specially
@@ -143,7 +145,7 @@ class CKeyValuesTokenReader:
             self.m_Buffer.lcut(len(token)+2) # buffer workaround
             return token
         
-        if c == '{' or c == '}':
+        if c == '{' or c == '}' or c == '=':
             token.data = c
             self.m_nTokensRead += 1
             self.m_Buffer.lcut(1) # buffer workaround
@@ -164,7 +166,7 @@ class CKeyValuesTokenReader:
             if c == 0:
                 break
             # break if any control character appears in non quoted tokens
-            if c == '"' or c == '{' or c == '}':
+            if c == '"' or c == '{' or c == '}' or c == '=':
                 break
             if c == '[':
                 bConditionalStart = True
@@ -197,16 +199,9 @@ class CKeyValuesTokenReader:
 
 from enum import IntEnum, Enum
 from typing import Generator, Optional, Sequence, Union, Iterable, TypedDict
+from cstr import strtol, strtod
 
 class KeyValues: pass # Prototype LUL ( for typing to work inside own class functions)
-
-class Sub(collections.UserList):
-    def __init__(self, initlist: Union[int, float, str, Iterable[KeyValues]]) -> None:
-        if isinstance(initlist, Iterable):
-            super().__init__(initlist=initlist)
-        else:
-            self.data = initlist
-#class Key(collections.UserString): ...
 
 from functools import partial, wraps
 
@@ -233,7 +228,7 @@ class KVValue:#(KVCollection):
             # Iterator BUG here as every KV is considered Iterable simply becaue it has a __iter__
             # KV("", KV("", 2).value) -> KV("", []) instead of  KV("", 2)
             # KVValue(KVValue()) forces into KVCollection instead of preserving data type 
-            if isinstance(val, Sequence):
+            if isinstance(val, Sequence) and not isinstance(val, str):
                 cls = KVCollection
             else:
                 cls = GenericValue
@@ -268,10 +263,21 @@ class KVValue:#(KVCollection):
     def GetValues(self) -> Generator[KeyValues, None, None]:
         yield from self
 
-    def __str__(self):
-        if not self.IsSub():
-            return str(self.data)
-        return str(self.data)
+    def __repr__(self):
+        return repr(self.data)
+
+    def ToStr(self, level = 0):
+        line_indent = '\t' * level
+        s = ""
+        if self.IsSub():
+            s += "\n" + line_indent + '{\n'
+            for item in self:
+                s += (item.ToStr(level+1))
+            s += line_indent + "}\n"
+        else:
+            s = f'    "{self.data}"\n'
+
+        return s
 
 class KVCollection(collections.UserList, KVValue): ...
 class ColorValue(collections.UserList, KVValue): ... # unsigned char [4]
@@ -304,8 +310,15 @@ class KeyValues(object):
         self.Peer: KeyValues = None
         #self.Sub: KeyValues = None
         self.Chain: KeyValues = None
-    def __str__(self) -> str:
-        return f"(\"{self.keyName}\": {self.value})"
+
+        self._sValue: str = None
+        self._wsValue: str = None
+        self._iValue: int = None
+        self._flValue: float = None
+        self._Color: list = None
+
+    #def __str__(self) -> str:
+    #    return f"(\"{self.keyName}\": {self.value})"
 
     @property
     def Sub(self):
@@ -313,6 +326,42 @@ class KeyValues(object):
     @Sub.setter
     def Sub(self, subvalues: Iterable[KeyValues]):
         self.value = KVValue(subvalues)
+    @Sub.deleter
+    def Sub(self):
+        del self.value
+        self.value = GenericValue(None)
+    @property ##### m_sValue
+    def m_sValue(self):
+        return self._sValue
+    @m_sValue.setter
+    def m_sValue(self, val: str):
+        self.value = KVValue(val)
+        self._sValue = val
+    @m_sValue.deleter
+    def m_sValue(self):
+        self._sValue = None
+
+    @property ##### m_iValue
+    def m_iValue(self):
+        return self._iValue
+    @m_iValue.setter
+    def m_iValue(self, val: float):
+        self.value = KVValue(val)
+        self._iValue = val
+    @m_iValue.deleter
+    def m_iValue(self):
+        self._iValue = None
+    
+    @property ##### m_flValue
+    def m_flValue(self):
+        return self._flValue
+    @m_flValue.setter
+    def m_flValue(self, val: float):
+        self.value = KVValue(val)
+        self._flValue = val
+    @m_flValue.deleter
+    def m_flValue(self):
+        self._flValue = None
 
     def FindKey(self, keyName, bCreate):
         if keyName is None:
@@ -352,13 +401,13 @@ class KeyValues(object):
         #wasQuoted: bool
         #wasConditional: bool
         tokenReader = CKeyValuesTokenReader(buf) # (self, buf)
-        print(tokenReader, tokenReader.__dict__)
+        #print(tokenReader, tokenReader.__dict__)
         
         while True: # do while
             # the first thing must be a key
             s = tokenReader.ReadToken()
-            print(s)
-            if not buf.IsValid() or not s:
+            #print(s)
+            if not buf.IsValid() or s == 0:
                 break
 
             if not s.wasQuoted and not s:
@@ -396,6 +445,7 @@ class KeyValues(object):
 
             if s and s[0] == '{' and not s.wasQuoted:
                 # header is valid so load the file
+                currentKey.Sub = []
                 currentKey.RecursiveLoadFromBuffer(resourceName, tokenReader)
             else:
                 print("LoadFromBuffer: missing {")
@@ -415,13 +465,17 @@ class KeyValues(object):
             if name == 0: # EOF stop reading
                 print("got EOF instead of keyname")
                 break
-            if not name: # empty token, maybe "" or EOF
+            if name == "": # empty token, maybe "" or EOF BUG this doesnt make sense for empty keys?
                 print("got empty keyname")
                 break
             if name[0] == '}' and not name.wasQuoted: # top level closed, stop reading
                 break
-
+            
+            #if name == ".filelist":
+            #    breakpoint()
             dat = KeyValues(name)
+            self.value.append(dat)
+            del name
             value = tokenReader.ReadToken()
             foundConditional = value.wasConditional
             if value.wasConditional and value:
@@ -431,6 +485,7 @@ class KeyValues(object):
                 print("Got NULL key")
                 break
 
+            
             # support the '=' as an assignment, makes multiple-keys-on-one-line easier to read in a keyvalues file
             if value[0] == '=' and not value.wasQuoted:
                 # just skip over it
@@ -442,42 +497,52 @@ class KeyValues(object):
                 if foundConditional and True:
                     # if there is a conditional key see if we already have the key defined and blow it away, last one in the list wins
                     ...
-            if not value:
+            if value == 0:
+                print("RecursiveLoadFromBuffer:  got NULL key" )
                 break
             if value[0] == '}' and not value.wasQuoted:
                 print("RecursiveLoadFromBuffer:  got } in key")
                 break
             if value[0] == '{' and not value.wasQuoted:
                 # sub value list
+                dat.Sub = []
                 dat.RecursiveLoadFromBuffer(resourceName, tokenReader)
             else:
                 if value.wasConditional:
                     print("RecursiveLoadFromBuffer:  got conditional between key and value" )
                     break
-                #if dat.GetValue(dat.Type.TYPE_STRING):
-                #    dat.SetValue(dat.Type.TYPE_STRING, None)
-                #    dat.sValue = None
-                
-                vlen = len(value)
-                lval = 1337#int(value)
-                fval = 1337.1#float(value)
-                overflow = (lval == 2147483647 or lval == -2147483646)
+                if dat.m_sValue:
+                    del dat.m_sValue # dont need
+                    dat.m_sValue = None
+
+                length = len(value)
+                pSEnd = length
+
+                lval = strtol(str(value))
+                pIEnd = lval.endpos
+                lval = lval.value
+
+                fval = strtod(str(value))
+                pFEnd = fval.endpos
+                fval = fval.value
+
+                overflow: bool = (lval == 2147483647 or lval == -2147483646)
                 if value == "":
                     dat.DataType = KVType.TYPE_STRING
-                elif 18 == vlen and value[0] == '0' and value[1] == 'x':
-                    dat.value = int(value, 0)
+                elif 18 == length and value[0] == '0' and value[1] == 'x':
+                    dat.m_sValue = str(int(value, 0)) # 16?
                     dat.DataType = KVType.TYPE_UINT64
-                elif len(str(fval).rstrip('0').rstrip('.')) > len(str(lval)): # TODO support this '1.511111111fafsadasd'
-                    dat.flValue = fval
+                elif (pFEnd > pIEnd) and (pFEnd == pSEnd):#len(str(fval).rstrip('0').rstrip('.')) > len(str(lval)): # TODO support this '1.511111111fafsadasd'
+                    dat.m_flValue = fval
                     dat.DataType = KVType.TYPE_FLOAT
-                elif len(str(lval)) == vlen and not overflow:
-                    dat.iValue = lval
+                elif (pIEnd == pSEnd) and not overflow: # len(str(lval)) == length 
+                    dat.m_iValue = lval
                     dat.DataType = KVType.TYPE_INT
                 else:
                     dat.DataType = KVType.TYPE_STRING
 
                 if dat.DataType == KVType.TYPE_STRING:
-                    dat.sValue = value
+                    dat.m_sValue = str(value)
                 
                 # Look ahead one token for a conditional tag
                 #peek = tokenReader.ReadToken()
@@ -488,42 +553,50 @@ class KeyValues(object):
 
                 if bAccepted:
                     ...
-                    # basically let it be on the list
+                    #self.value.append(dat)
                 else:
                     # remove key from list
+                    del self.value[dat]
                     del dat
                 
+        print("Total tokens read:", tokenReader.m_nTokensRead)
     def EvaluateConditional(self, **args):
         return True
     def __repr__(self):
-        return f"({self.keyName}, {self.value})"
-    #def __str__(self) -> str:
-    #    key = self.keyName
-    #    value = ""
-    #    if self.DataType == KeyValues.Type.TYPE_NONE:
-    #        for kv in [("key1", "value1"), ("key2", "value2")]:
-    #            value += str(kv)
-    #    else:
-    #        value = str(self.sValue)
-    #    return f"{key} {value}"
+        return f"{self.__class__.__name__}({repr(self.keyName)}, {self.value.__class__.__name__}({repr(self.value)}))"
 
-    
+    def ToStr(self, level=0):
+        line_indent = "\t" * level
 
-kv = KeyValues("$basetexture", "test")
+        return line_indent + f'"{self.keyName}"{self.value.ToStr(level)}'
+
+
+#kv = KeyValues("$basetexture", "test")
 import vdf
-print(kv)
-kv2 = vdf.VDFDict([("$basetexture", "test"), ("$basetextur2", "test"), ("$basetexture", "test"), ("Proxy", vdf.VDFDict([("$basetexture", "test"), ("$basetexture3", "test")]))])
-print(kv.__dict__)
-print(kv2)
+#print(kv)
+#kv2 = vdf.VDFDict([("$basetexture", "test"), ("$basetextur2", "test"), ("$basetexture", "test"), ("Proxy", vdf.VDFDict([("$basetexture", "test"), ("$basetexture3", "test")]))])
+#print(kv.__dict__)
+#print(kv2)
 
 print("BEGIN READ")
 kv5 = KeyValues()
 kv5.LoadFromFile(r"D:\Users\kristi\Documents\GitHub\source1import\utils\shared\keyvalue2.kv3")
-print(kv5, kv5.__dict__)
+print(kv5.ToStr())
 print("END READ")
 print("\n\n\n")
 
+with open(r"C:\Users\kristi\Desktop\source1import_txtmap.txt", 'r') as f:
+    quit()
+    buf = CUtlBuffer(f.read())
+    reader = CKeyValuesTokenReader(buf)
+    #buffer.EatCPPComment()
+    #print(f".\n{text}\n`")
+    print()
+    while((token:=reader.ReadToken()) != 0):
+        print(f"{token}\t- quoted: {token.wasQuoted}")
+    print()
 
+quit()
 text = "//asdasd\nvalue {\"key\"  \"key\"  \"\"value }"
 buffer = CUtlBuffer(text)
 reader = CKeyValuesTokenReader(buffer)
