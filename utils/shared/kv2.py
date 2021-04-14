@@ -196,13 +196,13 @@ class CKeyValuesTokenReader:
     #    self.m_bUsePriorToken = True
 
 from enum import IntEnum, Enum
-from typing import Generator, Optional, Union, Iterable
+from typing import Generator, Optional, Sequence, Union, Iterable, TypedDict
 
 class KeyValues: pass # Prototype LUL ( for typing to work inside own class functions)
 
 class Sub(collections.UserList):
     def __init__(self, initlist: Union[int, float, str, Iterable[KeyValues]]) -> None:
-        if initlist is Iterable:
+        if isinstance(initlist, Iterable):
             super().__init__(initlist=initlist)
         else:
             self.data = initlist
@@ -218,25 +218,64 @@ def _dec_subkeyvalue(func, isSub = True):
             return None
         return ret_fun
 
-class Value(Sub):
+class KeyValues: pass # Prototype LUL ( for typing to work inside own class functions)
+class KVCollection: pass
+class GenericValue: pass
+
+#KVCollection = NewType("KVCollection", collections.UserList)
+
+class KVValue:#(KVCollection):
+    KVCollect = partial(_dec_subkeyvalue, isSub=True)
+    KVSingle = partial(_dec_subkeyvalue, isSub=False)
+
+    def __new__(cls, val) -> Union[KVCollection, GenericValue]:
+        if cls is KVValue:
+            # Iterator BUG here as every KV is considered Iterable simply becaue it has a __iter__
+            # KV("", KV("", 2).value) -> KV("", []) instead of  KV("", 2)
+            # KVValue(KVValue()) forces into KVCollection instead of preserving data type 
+            if isinstance(val, Sequence):
+                cls = KVCollection
+            else:
+                cls = GenericValue
+        self = object.__new__(cls)
+        self.data = val
+        return self
+        
+    def __init__(self, val: Union[int, float, str, Iterable[int], Iterable[KeyValues]]) -> None:
+        self.data = val
+
+    def __iter__(self):
+        if self.IsSub():
+            return super().__iter__()
+        return iter(()) # is this the behavior of cpp? i think so
+    
+    def append(self, item: KeyValues) -> None:
+        print('Appending item', item)
+        if not isinstance(item, KeyValues):
+            raise ValueError("Can only add KeyValues")
+        return super().append(item)
+
     def IsSub(self):
         return isinstance(self.data, list)
 
-    KVCollection = partial(_dec_subkeyvalue, isSub=True)
-    KVSingle = partial(_dec_subkeyvalue, isSub=False)
-
     @KVSingle
     def GetInt(self) -> int: return int(self.data) # atoi, int cast
+    @KVSingle
+    def GetFloat(self) -> int: return float(self.data) # atof, float cast
 
     
-    @KVCollection
-    def GetValues(self):
-        return self.data
+    #@KVCollect
+    def GetValues(self) -> Generator[KeyValues, None, None]:
+        yield from self
 
     def __str__(self):
         if not self.IsSub():
-            return str(self)
-        return 
+            return str(self.data)
+        return str(self.data)
+
+class KVCollection(collections.UserList, KVValue): ...
+class ColorValue(collections.UserList, KVValue): ... # unsigned char [4]
+class GenericValue(KVValue): ... # int, float, char*, wchar*, ptr, 
 
 class KVType(IntEnum):
     TYPE_NONE = 0, # hasChild
@@ -252,10 +291,10 @@ class KeyValues(object):
     "Key that holds a Value. Value can be a list holding other KeyValues"
 
 
-    def __init__(self, k: Optional[str] = None, v: Union[int, float, str, Sub] = None):
+    def __init__(self, k: Optional[str] = None, v: Union[int, float, str, KVCollection] = None):
         self.keyName =k.lower() if k else k
         
-        self.value = v
+        self.value = KVValue(v) # Iterator BUG
 
         self.DataType = KVType.TYPE_NONE
         self.HasEscapeSequences: bool
@@ -263,11 +302,20 @@ class KeyValues(object):
         
         # listlike pointery variables 
         self.Peer: KeyValues = None
-        self.Sub: KeyValues = None
+        #self.Sub: KeyValues = None
         self.Chain: KeyValues = None
+    def __str__(self) -> str:
+        return f"(\"{self.keyName}\": {self.value})"
+
+    @property
+    def Sub(self):
+        return self.value.GetValues()
+    @Sub.setter
+    def Sub(self, subvalues: Iterable[KeyValues]):
+        self.value = KVValue(subvalues)
 
     def FindKey(self, keyName, bCreate):
-        if not keyName:
+        if keyName is None:
             return self
         
         lastItem = None
