@@ -1,25 +1,22 @@
+# cppkeyvalues.py
+# A keyvalues.cpp python rewrite
 
-import os
 import collections
+from warnings import warn
+
+NULL = 0
 
 class Conv:
-    def __init__(self) -> None:
-        pass
-
     def GetDelimiter(self):
         return '"'
     def GetDelimiterLength(self):
         return 1
 
-
-from io import BufferedReader 
+#from io import BufferedReader # ????
 class CUtlBuffer(collections.UserString):
-    #...
-    # eatcppcomment, isvalid
 
     def IsValid(self) -> bool:
         return self.data != ""
-    
 
     def GetDelimitedString(self, conv: Conv, nMaxChars: int) -> str:
         
@@ -86,15 +83,6 @@ class CUtlBuffer(collections.UserString):
             self.data = self.data[i:]
             return True
 
-
-        #newdata = ''
-        #for i, char in enumerate(self.data):
-        #    if char == '\n':
-        #        break
-        #    newdata= self.data[i+1:]
-        #self.data = newdata
-        #return True
-
 KEYVALUES_TOKEN_SIZE = 1024 * 32
 
 # const char *KeyValues::ReadToken( CUtlBuffer &buf, bool &wasQuoted, bool &wasConditional )
@@ -104,29 +92,36 @@ class Token(collections.UserString):
         self.wasQuoted = False
         self.wasConditional = False
 
-    #    self.Buf: str = self.data
-    #def __str__(self) -> str:
-    #    return str(self.Buf)
+class NullObj:
+    def __bool__(self):
+        return False
+    def __eq__(self, other):
+        if other == 0:
+            return True
+
+class NullToken(NullObj): # str
+    def __init__(self, wasQuoted = False, wasConditional = False):
+        self.wasQuoted = wasQuoted
+        self.wasConditional = wasConditional
 
 class CKeyValuesTokenReader:
     def __init__(self, buf: CUtlBuffer) -> None:
-        self.m_pKeyValues: KeyValues
         self.m_Buffer: CUtlBuffer = buf
         self.m_nTokensRead: int = 0
-        #self.m_bUsePriorToken: bool = False
-        #self.m_bPriorTokenWasQuoted: bool
-        #self.m_bPriorTokenWasConditional: bool
-        #self.TokenBuf: str
+
+        self.lastToken = Token()
     
     def ReadToken(self):
+        nullToken = NullToken(self.lastToken.wasQuoted, self.lastToken.wasConditional) # 
         token = Token()
+        self.lastToken = token
 
         if not self.m_Buffer:
-            return 0
+            return nullToken
 
         while ( True ):
             self.m_Buffer.EatWhiteSpace()
-            if not self.m_Buffer.IsValid(): return 0
+            if not self.m_Buffer.IsValid(): return nullToken
             if not self.m_Buffer.EatCPPComment():
                 break
 
@@ -134,7 +129,7 @@ class CKeyValuesTokenReader:
         c = self.m_Buffer[0]
         #not self.m_Buffer or 
         if c == 0:
-            return 0
+            return nullToken
         
         # read quoted strings specially
         if c == '\"':
@@ -190,12 +185,8 @@ class CKeyValuesTokenReader:
         self.m_Buffer.lcut(nCount) # buffer workaround
         return token
 
-    #def SeekBackOneToken(self):
-    #    if self.m_bUsePriorToken:
-    #        raise RuntimeError("It is only possible to seek back one token at a time")
-    #    if self.m_nTokensRead == 0:
-    #        raise RuntimeError("No tokens read yet")
-    #    self.m_bUsePriorToken = True
+    def SeekBackOneToken(self): # and return it
+        return self.lastToken
 
 from enum import IntEnum, Enum
 from typing import Generator, Optional, Sequence, Union, Iterable, TypedDict
@@ -235,9 +226,11 @@ class KVValue:#(KVCollection):
         self = object.__new__(cls)
         self.data = val
         return self
-        
+
     def __init__(self, val: Union[int, float, str, Iterable[int], Iterable[KeyValues]]) -> None:
         self.data = val
+        self.fancyGetInt = self.data.__int__
+        self.fancyGetFlat = self.data.__float__
 
     def __iter__(self):
         if self.IsSub():
@@ -254,7 +247,7 @@ class KVValue:#(KVCollection):
         return isinstance(self.data, list)
 
     @KVSingle
-    def GetInt(self) -> int: return int(self.data) # atoi, int cast
+    def GetInt(self) -> int: return int(self.data) # atoi, int cast#
     @KVSingle
     def GetFloat(self) -> int: return float(self.data) # atof, float cast
 
@@ -275,7 +268,7 @@ class KVValue:#(KVCollection):
                 s += (item.ToStr(level+1))
             s += line_indent + "}\n"
         else:
-            s = f'    "{self.data}"\n'
+            s = f'\t"{self.data}"\n'
 
         return s
 
@@ -406,7 +399,6 @@ class KeyValues(object):
         while True: # do while
             # the first thing must be a key
             s = tokenReader.ReadToken()
-            #print(s)
             if not buf.IsValid() or s == 0:
                 break
 
@@ -477,6 +469,9 @@ class KeyValues(object):
             self.value.append(dat)
             del name
             value = tokenReader.ReadToken()
+            
+            vne = (value != "") # value not empty
+
             foundConditional = value.wasConditional
             if value.wasConditional and value:
                 bAccepted = self.EvaluateConditional(peek, pfnEvaluateSymbolProc)
@@ -487,7 +482,7 @@ class KeyValues(object):
 
             
             # support the '=' as an assignment, makes multiple-keys-on-one-line easier to read in a keyvalues file
-            if value[0] == '=' and not value.wasQuoted:
+            if vne and value[0] == '=' and not value.wasQuoted: #value[0] == '=' value is sometimes empty giving IndexError
                 # just skip over it
                 value = tokenReader.ReadToken()
                 foundConditional = value.wasConditional
@@ -500,10 +495,10 @@ class KeyValues(object):
             if value == 0:
                 print("RecursiveLoadFromBuffer:  got NULL key" )
                 break
-            if value[0] == '}' and not value.wasQuoted:
+            if vne and value[0] == '}' and not value.wasQuoted:
                 print("RecursiveLoadFromBuffer:  got } in key")
                 break
-            if value[0] == '{' and not value.wasQuoted:
+            if vne and value[0] == '{' and not value.wasQuoted:
                 # sub value list
                 dat.Sub = []
                 dat.RecursiveLoadFromBuffer(resourceName, tokenReader)
@@ -527,7 +522,7 @@ class KeyValues(object):
                 fval = fval.value
 
                 overflow: bool = (lval == 2147483647 or lval == -2147483646)
-                if value == "":
+                if not vne:#value == "":
                     dat.DataType = KVType.TYPE_STRING
                 elif 18 == length and value[0] == '0' and value[1] == 'x':
                     dat.m_sValue = str(int(value, 0)) # 16?
@@ -558,8 +553,7 @@ class KeyValues(object):
                     # remove key from list
                     del self.value[dat]
                     del dat
-                
-        print("Total tokens read:", tokenReader.m_nTokensRead)
+
     def EvaluateConditional(self, **args):
         return True
     def __repr__(self):
@@ -570,39 +564,51 @@ class KeyValues(object):
 
         return line_indent + f'"{self.keyName}"{self.value.ToStr(level)}'
 
+if __name__ == "__main__":
 
-#kv = KeyValues("$basetexture", "test")
-import vdf
-#print(kv)
-#kv2 = vdf.VDFDict([("$basetexture", "test"), ("$basetextur2", "test"), ("$basetexture", "test"), ("Proxy", vdf.VDFDict([("$basetexture", "test"), ("$basetexture3", "test")]))])
-#print(kv.__dict__)
-#print(kv2)
+    #kv = KeyValues("$basetexture", "test")
+    import vdf
+    from demez import DemezKeyValue, ReadFile
+    from pathlib import Path
+    #print(kv)
+    #kv2 = vdf.VDFDict([("$basetexture", "test"), ("$basetextur2", "test"), ("$basetexture", "test"), ("Proxy", vdf.VDFDict([("$basetexture", "test"), ("$basetexture3", "test")]))])
+    #print(kv.__dict__)
+    #print(kv2)
 
-print("BEGIN READ")
-kv5 = KeyValues()
-kv5.LoadFromFile(r"D:\Users\kristi\Documents\GitHub\source1import\utils\shared\keyvalue2.kv3")
-print(kv5.ToStr())
-print("END READ")
-print("\n\n\n")
+    for file in Path(r"D:\Users\kristi\Documents\GitHub\source1import\test\keyvalues\data").glob("*"):
+    #file = r"C:\Users\kristi\Desktop\source1import_txtmap.txt"
+        with open(file, "r") as fp:
+            #kv1 = None #vdf.load(fp)
+            kv2 = KeyValues()
+            kv2.LoadFromFile(file)
+            #kv3 = ReadFile(str(file))
 
-with open(r"C:\Users\kristi\Desktop\source1import_txtmap.txt", 'r') as f:
-    quit()
-    buf = CUtlBuffer(f.read())
-    reader = CKeyValuesTokenReader(buf)
-    #buffer.EatCPPComment()
+            #print(kv1)
+            print(kv2.ToStr())
+            #print(kv3.ToString())
+            #quit()
+
+    #kv5 = KeyValues()
+    #kv5.LoadFromFile(r"C:\Program Files (x86)\Steam\steamapps\common\Counter-Strike Global Offensive\csgo\scripts\ai\guardian\bt_config.kv3")
+    #print(kv5.ToStr())
+    #print("END READ")
+    #print("\n\n\n")
+    import unittest
+ 
+    class Test_strtod(unittest.TestCase):
+        def test_1(self):
+            text = "//asdasd\nvalue {\"key\"  \"key\"  \"\"value }"
+            text_expected = "value\n{\t\"key\"\t\"key\"\n\t\"\"\t\"value\"\n}"
+            kv = KeyValues()
+            kv.LoadFromBuffer("as", CUtlBuffer(text))
+            print(kv)
+            self.assertEqual(1, 1)
+    unittest.main()
+    #buffer = CUtlBuffer(text)
+    #reader = CKeyValuesTokenReader(buffer)
+    ##buffer.EatCPPComment()
     #print(f".\n{text}\n`")
-    print()
-    while((token:=reader.ReadToken()) != 0):
-        print(f"{token}\t- quoted: {token.wasQuoted}")
-    print()
-
-quit()
-text = "//asdasd\nvalue {\"key\"  \"key\"  \"\"value }"
-buffer = CUtlBuffer(text)
-reader = CKeyValuesTokenReader(buffer)
-#buffer.EatCPPComment()
-print(f".\n{text}\n`")
-print()
-while((token:=reader.ReadToken()) != 0):
-    print(f"{token}\t- quoted: {token.wasQuoted}")
-print()
+    #print()
+    #while((token:=reader.ReadToken()) != 0):
+    #    print(f"{token}\t- quoted: {token.wasQuoted}")
+    #print()
