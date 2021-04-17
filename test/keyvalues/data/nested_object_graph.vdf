@@ -1,0 +1,12 @@
+"test data"
+{
+	"OGInt"		"3"
+	"FooObj"
+	{
+		"FooStr"	"blah"
+		"BarObj"
+		{
+			"Baz"	"blahdiladila"
+		}
+	}
+}

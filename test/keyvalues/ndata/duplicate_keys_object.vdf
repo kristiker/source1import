@@ -1,0 +1,10 @@
+"object"
+{
+	"foolookup"
+	{
+		"foo"	"I am Foo."
+		"bar"	"First Bar"
+		"bar"	"Second Bar"
+		"bar"	"Third Bar"
+	}
+}

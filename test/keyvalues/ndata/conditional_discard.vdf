@@ -1,0 +1,18 @@
+"gameinfo"
+{
+	"one"
+	{
+		"key1"	"1"
+		"[$mobile]"	"None"
+	}
+	"two"
+	{
+		"key2"	"2"
+		"[$mobile]"	"None"
+	}
+	"three"
+	{
+		"key3"	"3"
+		"[$mobile]"	"None"
+	}
+}

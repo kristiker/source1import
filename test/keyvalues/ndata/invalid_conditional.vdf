@@ -1,0 +1,9 @@
+"test case"
+{
+	"foo"	"bar"
+	"["
+	{
+		"condition"	"None"
+	}
+	"]"	"None"
+}

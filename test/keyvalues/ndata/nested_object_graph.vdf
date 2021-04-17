@@ -1,0 +1,12 @@
+"test data"
+{
+	"ogint"	"3"
+	"fooobj"
+	{
+		"foostr"	"blah"
+		"barobj"
+		{
+			"baz"	"blahdiladila"
+		}
+	}
+}
