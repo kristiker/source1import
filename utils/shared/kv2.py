@@ -4,6 +4,7 @@
 import collections
 from warnings import warn
 
+from ctypes import *
 NULL = 0
 
 class Conv:
@@ -229,8 +230,8 @@ class KVValue:#(KVCollection):
 
     def __init__(self, val: Union[int, float, str, Iterable[int], Iterable[KeyValues]]) -> None:
         self.data = val
-        self.fancyGetInt = self.data.__int__
-        self.fancyGetFlat = self.data.__float__
+        #self.fancyGetInt = self.data.__int__
+        #self.fancyGetFlat = self.data.__float__
 
     def __iter__(self):
         if self.IsSub():
@@ -470,7 +471,7 @@ class KeyValues(object):
             del name
             value = tokenReader.ReadToken()
             
-            vne = (value != "") # value not empty
+            vne = (value != "") # value not empty -> True
 
             foundConditional = value.wasConditional
             if value.wasConditional and value:
@@ -525,7 +526,7 @@ class KeyValues(object):
                 if not vne:#value == "":
                     dat.DataType = KVType.TYPE_STRING
                 elif 18 == length and value[0] == '0' and value[1] == 'x':
-                    dat.m_sValue = str(int(value, 0)) # 16?
+                    dat.m_sValue = str(int(str(value), 16)) # 16?
                     dat.DataType = KVType.TYPE_UINT64
                 elif (pFEnd > pIEnd) and (pFEnd == pSEnd):#len(str(fval).rstrip('0').rstrip('.')) > len(str(lval)): # TODO support this '1.511111111fafsadasd'
                     dat.m_flValue = fval
@@ -557,58 +558,47 @@ class KeyValues(object):
     def EvaluateConditional(self, **args):
         return True
     def __repr__(self):
-        return f"{self.__class__.__name__}({repr(self.keyName)}, {self.value.__class__.__name__}({repr(self.value)}))"
+        return f"{self.__class__.__name__}({self.keyName!r}, {self.value.__class__.__name__}({self.value!r}))"
 
     def ToStr(self, level=0):
         line_indent = "\t" * level
 
         return line_indent + f'"{self.keyName}"{self.value.ToStr(level)}'
 
+
 if __name__ == "__main__":
 
-    #kv = KeyValues("$basetexture", "test")
-    import vdf
-    from demez import DemezKeyValue, ReadFile
     from pathlib import Path
-    #print(kv)
-    #kv2 = vdf.VDFDict([("$basetexture", "test"), ("$basetextur2", "test"), ("$basetexture", "test"), ("Proxy", vdf.VDFDict([("$basetexture", "test"), ("$basetexture3", "test")]))])
-    #print(kv.__dict__)
-    #print(kv2)
 
-    for file in Path(r"D:\Users\kristi\Documents\GitHub\source1import\test\keyvalues\data").glob("*"):
-    #file = r"C:\Users\kristi\Desktop\source1import_txtmap.txt"
+    def updateTestOutpt(file: Path):
         with open(file, "r") as fp:
-            #kv1 = None #vdf.load(fp)
             kv2 = KeyValues()
             kv2.LoadFromFile(file)
-            #kv3 = ReadFile(str(file))
+            newfile = file.parents[1] / "ndata" / file.name
+            with newfile.open("w") as newfp:
+                newfp.write(kv2.ToStr())
 
-            #print(kv1)
-            print(kv2.ToStr())
-            #print(kv3.ToString())
-            #quit()
-
-    #kv5 = KeyValues()
-    #kv5.LoadFromFile(r"C:\Program Files (x86)\Steam\steamapps\common\Counter-Strike Global Offensive\csgo\scripts\ai\guardian\bt_config.kv3")
-    #print(kv5.ToStr())
-    #print("END READ")
-    #print("\n\n\n")
+    for file in Path(r".\test\keyvalues\data").glob("*"):
+        pass
+        #updateTestOutpt(file)
     import unittest
  
-    class Test_strtod(unittest.TestCase):
+    class Test_KeyValues(unittest.TestCase):
         def test_1(self):
             text = "//asdasd\nvalue {\"key\"  \"key\"  \"\"value }"
-            text_expected = "value\n{\t\"key\"\t\"key\"\n\t\"\"\t\"value\"\n}"
+            text_expected = '"value"\n{\n\t"key"\t"key"\n}\n'
             kv = KeyValues()
             kv.LoadFromBuffer("as", CUtlBuffer(text))
-            print(kv)
-            self.assertEqual(1, 1)
+            self.assertEqual(kv.ToStr(), text_expected)
+
+    for i, file in enumerate(Path(r".\test\keyvalues\data").glob("*")):
+        def test_filen(self):
+            with (file.parents[1] / "ndata" / file.name).open() as e:
+                expect = e.read()
+                kv = KeyValues()
+                kv.LoadFromFile(file.as_posix())
+
+                self.assertEqual(kv.ToStr(), expect)
+        setattr(Test_KeyValues, f"{test_filen.__name__}{i}", test_filen)
+
     unittest.main()
-    #buffer = CUtlBuffer(text)
-    #reader = CKeyValuesTokenReader(buffer)
-    ##buffer.EatCPPComment()
-    #print(f".\n{text}\n`")
-    #print()
-    #while((token:=reader.ReadToken()) != 0):
-    #    print(f"{token}\t- quoted: {token.wasQuoted}")
-    #print()
