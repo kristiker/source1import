@@ -7,6 +7,56 @@ from warnings import warn
 from ctypes import *
 NULL = 0
 
+MAX_ERROR_STACK = 64
+INVALID_KEY_SYMBOL = -1
+class CKeyValuesErrorStack():
+    errorStack = []
+    FileName = "NULL"
+    errorIndex = 0
+    maxErrorIndex = 0
+    EncounteredErrors = False
+
+    stackLevel = 0
+
+    def SetFilename(self, filename):
+        self.FileName = filename
+        self.maxErrorIndex = 0
+
+    def Push(self, symName):
+        if self.errorIndex < MAX_ERROR_STACK:
+            self.errorStack.insert(self.errorIndex, symName)
+        self.errorIndex += 1
+        self.maxErrorIndex = max(self.maxErrorIndex, self.errorIndex-1)
+        return self.errorIndex-1
+    def Pop(self):
+        self.errorIndex -=1
+        assert self.errorIndex >= 0
+    def Reset(self, symName: int):
+        assert self.stackLevel >= 0 and self.stackLevel < self.errorIndex
+        if self.stackLevel < MAX_ERROR_STACK:
+            self.errorStack[self.stackLevel] = symName
+    # Hit an error, report it and the parsing stack for context
+    def ReportError(self, Error):
+        pv = "KeyValues Error: %s in file %s\n" % (Error, self.FileName)
+        for i in range(self.maxErrorIndex):
+            if ( i < MAX_ERROR_STACK and self.errorStack[i] != INVALID_KEY_SYMBOL ):
+                if ( i < self.errorIndex ):
+                    pv += "%s, "#, KeyValuesSystem()->GetStringForSymbol(m_errorStack[i]) )
+                else:
+                    pv += "(*%s*), "#, KeyValuesSystem()->GetStringForSymbol(m_errorStack[i]) )
+        pv += "\n"
+        print(pv, end='')
+        self.EncounteredErrors = True
+g_KeyValuesErrorStack = CKeyValuesErrorStack()
+
+class CKeyErrorContext:
+    stackLevel = 0
+    def __init__(self, symName: int):
+        self.stackLevel = g_KeyValuesErrorStack.Push(symName)
+    def Reset(self, symName: int):
+        g_KeyValuesErrorStack.Reset(self.stackLevel, symName)
+    def GetStackLevel(self):
+        return self.stackLevel
 class Conv:
     def GetDelimiter(self):
         return '"'
@@ -177,7 +227,7 @@ class CKeyValuesTokenReader:
                 nCount+=1
             elif(not bReportedError):
                 bReportedError = True
-                print(" ReadToken overflow")
+                g_KeyValuesErrorStack.ReportError(" ReadToken overflow")
 
         if not token.data:
             token.data = 0
@@ -397,6 +447,7 @@ class KeyValues(object):
         tokenReader = CKeyValuesTokenReader(buf) # (self, buf)
         #print(tokenReader, tokenReader.__dict__)
         
+        g_KeyValuesErrorStack.SetFilename( resourceName )
         while True: # do while
             # the first thing must be a key
             s = tokenReader.ReadToken()
@@ -414,7 +465,7 @@ class KeyValues(object):
                 # Name of subfile to load is now in s
 
                 if not s:
-                    print(f"{macro} is NULL.")
+                    g_KeyValuesErrorStack.ReportError(f"{macro} is NULL.")
                 else:
                     ...
                     #ParseIncludedKeys(resourceName, s, "baseKeys if #base else includedKeys") #TODO
@@ -441,7 +492,7 @@ class KeyValues(object):
                 currentKey.Sub = []
                 currentKey.RecursiveLoadFromBuffer(resourceName, tokenReader)
             else:
-                print("LoadFromBuffer: missing {")
+                g_KeyValuesErrorStack.ReportError("LoadFromBuffer: missing {")
             
             if False:
                 if previousKey:
@@ -456,10 +507,10 @@ class KeyValues(object):
             # get the key name
             name = tokenReader.ReadToken()
             if name == 0: # EOF stop reading
-                print("got EOF instead of keyname")
+                g_KeyValuesErrorStack.ReportError("RecursiveLoadFromBuffer:  got EOF instead of keyname")
                 break
             if name == "": # empty token, maybe "" or EOF BUG this doesnt make sense for empty keys?
-                print("got empty keyname")
+                g_KeyValuesErrorStack.ReportError("RecursiveLoadFromBuffer:  got empty keyname")
                 break
             if name[0] == '}' and not name.wasQuoted: # top level closed, stop reading
                 break
@@ -478,7 +529,7 @@ class KeyValues(object):
                 bAccepted = self.EvaluateConditional(peek, pfnEvaluateSymbolProc)
                 value = tokenReader.ReadToken()
             if value == 0:
-                print("Got NULL key")
+                g_KeyValuesErrorStack.ReportError("RecursiveLoadFromBuffer:  got NULL key")
                 break
 
             
@@ -494,10 +545,10 @@ class KeyValues(object):
                     # if there is a conditional key see if we already have the key defined and blow it away, last one in the list wins
                     ...
             if value == 0:
-                print("RecursiveLoadFromBuffer:  got NULL key" )
+                g_KeyValuesErrorStack.ReportError("RecursiveLoadFromBuffer:  got NULL key" )
                 break
             if vne and value[0] == '}' and not value.wasQuoted:
-                print("RecursiveLoadFromBuffer:  got } in key")
+                g_KeyValuesErrorStack.ReportError("RecursiveLoadFromBuffer:  got } in key")
                 break
             if vne and value[0] == '{' and not value.wasQuoted:
                 # sub value list
@@ -505,7 +556,7 @@ class KeyValues(object):
                 dat.RecursiveLoadFromBuffer(resourceName, tokenReader)
             else:
                 if value.wasConditional:
-                    print("RecursiveLoadFromBuffer:  got conditional between key and value" )
+                    g_KeyValuesErrorStack.ReportError("RecursiveLoadFromBuffer:  got conditional between key and value" )
                     break
                 if dat.m_sValue:
                     del dat.m_sValue # dont need
@@ -580,6 +631,7 @@ if __name__ == "__main__":
 
     for file in Path(r".\test\keyvalues\data").glob("*"):
         pass
+        KeyValues().LoadFromFile(file)
         #updateTestOutpt(file)
     import unittest
  
