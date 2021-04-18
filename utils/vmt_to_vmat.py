@@ -355,6 +355,8 @@ class TexTransform:
             self._readLegacyMatrix(legacyMatrix)
 
     def _readLegacyMatrix(self, s):
+        #  scale %f %f translate %f %f rotate %f (count 5, assumed center syntax)
+        #  center %f %f scale %f %f rotate %f translate %f %f (count 7)
         s = s.strip('"')
         mxTerms = [i.strip("'") for i in s.split(' ')]
 

@@ -1,121 +1,7 @@
-import re
-import vdf
+# Reads DemezKeyValue files and ReadFile() returns a list of DemezKeyValues
+# TODO: put this onto github, maybe MIT license?
 
-
-
-
-stream = r'key1\n{key2 value\n\t"key3"\t"value"\n}'
-
-class KV1TokenReader:
-    QuotationMark = '"'
-    ObjectStart = '{'
-    ObjectEnd = '}'
-    CommentBegin = '/' # Although Valve uses the double-slash convention, the KV spec allows for single-slash comments.
-    ConditionBegin = '['
-    ConditionEnd = ']'
-    InclusionMark = '#'
-
-
-def get2KV(buffer):
-    ...
-
-def LoadFromBuffer(buffer):
-    ...
-
-
-def kvsplit(s):
-    slist = []
-    news = ''
-    commentSkip = False
-
-    tokenComplete = False
-    isQuoted = False
-    for pos, char in enumerate(s):
-
-        if char == '\n':
-            commentSkip = False
-
-        if char == '/' and s[pos+1] == '/':
-            commentSkip = True
-        if commentSkip: continue
-
-        if tokenComplete:
-            
-            tokenComplete = False
-            news = ''
-
-        if char == '"':
-            if isQuoted: isQuoted = False
-            else: isQuoted = True
-            continue
-
-        print(repr(char))
-
-
-        isLast = (pos == len(s)-1)
-        if isLast: news += char
-
-        if char.isspace() or isLast:
-            if isQuoted:
-                ...
-            else:
-                if news:
-                    slist.append(news)
-                    news = ''
-                continue
-
-        news += char
-
-    return slist
-
-def ReadKV(kvFile) -> vdf.VDFDict:
-
-    kvDict = {}
-    with open(kvFile, 'r') as kvFile:
-        buffer = kvFile.read()
-        
-        tokenlist = kvsplit(buffer)#buffer.split(' ')
-
-        commentSkip = False
-        print(tokenlist)
-        return
-        for token in tokenlist:
-
-            if commentSkip:
-                if '\n' in token: commentSkip = False
-                #continue
-
-            if token[:2] == "//":
-                commentSkip = True
-            print(token)
-        return
-        
-        for row, line in enumerate(kvFile):
-
-            line = line.split("//", 1)[0].strip().lower()
-            if not line or line.startswith('/'):
-                continue
-            #line += "\n" + line
-            print(line.split())
-            
-            words = re.split(r'\s', line, maxsplit=1)
-            words = list(filter(len, words))
-            #print(words)
-            #if "proxies" in line:
-            #    collectNextLine = True
-                
-
-            if "}" in line and row != 0:
-                break
-
-    return kvDict
-
-
-# readfile -> readbuffer -> readline -> readkvtuple
-
-
-#print(ReadKV(r"D:\Users\kristi\Documents\GitHub\source1import\utils\shared\keyvalue2.kv3"))
-
+import os
 
 
 class DemezKeyValueBase:
@@ -166,7 +52,7 @@ class DemezKeyValue(DemezKeyValueBase):
                 string += dkv.ToString(depth+1, indent, use_tabs, use_quotes_for_keys)
                 
             if indent != 0:
-                string += space + "}\n"
+                string += space + "}"
             else:
                 string += "}"
             
@@ -522,7 +408,7 @@ class DemezKeyValuesLexer:
             if char in self.chars_item:
                 break
                 
-            if char in {' ', '\t', '='}:
+            if char in {' ', '\t'}:
                 self.chari += 1
                 if value:
                     break
@@ -737,90 +623,3 @@ class DemezKeyValuesLexer:
     
         self.chari += 1
         return quote
-"""
-def GetSubkeys(self) -> Generator[KeyValues]: # new
-        
-        if self.DataType == KeyValues.Type.TYPE_NONE:
-            return None
-        iter = self.GetFirstSubKey()
-        while (iter):
-            yield iter
-            iter = iter.GetNextKey()
-
-    def is_lone(self):
-        return self.Peer == None
-
-    def AddSubKey(self, subKey):
-        assert self.is_lone()
-        # add into subkey list
-        if self.Sub == None:
-            self.Sub == subKey
-        else:
-            temp = self.Sub # BUGWATCH: is this really equal to *pTempDat = m_pSub? Bare copy? changing things in temp changes them in sub?
-            while next := temp.GetNextKey(): # scroll to last
-                temp = next
-            temp.SetNextKey(subKey)
-
-    def RemoveSubKey(self, subKey):
-        if not subKey:
-            return
-        # check the list pointer
-        if self.Sub == subKey:
-            self.Sub == subKey.Peer
-        else:
-            # look through the list
-            kv = self.Sub
-            while(kv.Peer):
-                if kv.Peer == subKey:
-                    kv.Peer = subKey.Peer
-                    break
-                kv = kv.Peer
-        subKey.Peer = None
-
-    def InsertSubKey(self, index: int, subKey: KeyValues):
-        assert self.is_lone()
-        if index == 0:
-            subKey.Peer = self.Sub
-            self.Sub = subKey
-        else:
-            currentIndex = 0
-            for iter in self.GetSubkeys():
-                currentIndex += 1
-                if currentIndex == index:
-                    subKey.Peer = self.Sub
-                    self.Sub = subKey
-                    return
-            raise IndexError
-
-        
-    def ContainsSubKey(self, subKey: KeyValues) -> bool:
-        iter = self.GetFirstSubKey()
-        while (iter):
-            if subKey == iter:
-                return True
-            iter = iter.GetNextKey()
-        return False
-    def SwapSubKey(self, existingSubkey: KeyValues, newSubKey: KeyValues): ...
-    def ElideSubKey(self, subKey: KeyValues): ...
-    def FindLastSubKey(self) -> Optional[KeyValues]:
-        if not self.Sub:
-            return
-
-        # Scan for the last one
-        lastChild = self.Sub
-        while (lastChild and lastChild.Peer):
-            lastChild = lastChild.Peer
-        return lastChild
-        
-    def GetFirstSubKey(self):
-        return self.Sub
-
-    def GetNextKey(self):
-        return self.Peer #WATCH cpp has checks for null self that dont make sense here
-
-    def SetNextKey(self, dat: KeyValues):
-        self.Peer = dat
-"""
-print(ReadFile(r"D:\Users\kristi\Documents\GitHub\source1import\utils\shared\keyvalue2.kv3").ToString())
-
-#print(ReadFile(r"C:\Program Files (x86)\Steam\steamapps\common\Counter-Strike Global Offensive\csgo\scripts\ai\guardian\bt_config.kv3").ToString())

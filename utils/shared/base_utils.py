@@ -286,7 +286,6 @@ if not hasattr(Path, 'is_relative_to'):
 def MakeDir(self):
     "Creates directory tree"
     self.mkdir(parents=True, exist_ok=True)
-Path.MakeDir = MakeDir
 
 if __name__ == "__main__":
     print("Hi")

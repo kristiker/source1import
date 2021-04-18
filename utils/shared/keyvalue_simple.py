@@ -129,5 +129,5 @@ def ReadKV(kvFile) -> vdf.VDFDict:
 
     return kvDict
 
-
-print(ReadKV(r"D:\Users\kristi\Documents\GitHub\source1import\utils\shared\keyvalue2.kv3"))
+if __name__ == "__main__":
+    print(ReadKV(r"D:\Users\kristi\Documents\GitHub\source1import\utils\shared\keyvalue2.kv3"))
