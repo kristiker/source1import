@@ -907,7 +907,7 @@ def ImportVMTtoVMAT(vmtFilePath: Path) -> Path:
     for k in kvv[vmt.shader].get("proxies", {}):
         print(k)
     
-    vmt.KV_branches["proxies"] = kvv[vmt.shader]["proxies"]
+    vmt.KV_branches["proxies"] = kvv[vmt.shader].get("proxies", {})
     del kvv
 
     #print(vmtFilePath.name)
