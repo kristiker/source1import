@@ -241,8 +241,10 @@ class CKeyValuesTokenReader:
 
 from enum import IntEnum, Enum
 from typing import Generator, Optional, Sequence, Union, Iterable, TypedDict
-from cstr import strtol, strtod
-
+try:
+    from cstr import strtol, strtod
+except:
+    from shared.cstr import strtol, strtod
 class KeyValues: pass # Prototype LUL ( for typing to work inside own class functions)
 
 from functools import partial, wraps
@@ -320,8 +322,12 @@ class KVValue:#(KVCollection):
             s += line_indent + "}\n"
         else:
             s = f'\t"{self.data}"\n'
-
         return s
+    
+    def ToBuiltin(self):
+        if self.IsSub():
+            return [*(kv.ToTuple() for kv in self.data)]
+        return self.data
 
 class KVCollection(collections.UserList, KVValue): ...
 class ColorValue(collections.UserList, KVValue): ... # unsigned char [4]
@@ -517,7 +523,7 @@ class KeyValues(object):
             
             #if name == ".filelist":
             #    breakpoint()
-            dat = KeyValues(name)
+            dat = KeyValues(str(name))
             self.value.append(dat)
             del name
             value = tokenReader.ReadToken()
@@ -616,6 +622,8 @@ class KeyValues(object):
 
         return line_indent + f'"{self.keyName}"{self.value.ToStr(level)}'
 
+    def ToTuple(self) -> tuple:
+        return self.keyName, self.value.ToBuiltin()
 
 if __name__ == "__main__":
 
@@ -640,7 +648,7 @@ if __name__ == "__main__":
             text = "//asdasd\nvalue {\"key\"  \"key\"  \"\"value }"
             text_expected = '"value"\n{\n\t"key"\t"key"\n}\n'
             kv = KeyValues()
-            kv.LoadFromBuffer("as", CUtlBuffer(text))
+            kv.LoadFromBuffer("NULL_test", CUtlBuffer(text))
             self.assertEqual(kv.ToStr(), text_expected)
 
     for i, file in enumerate(Path(r".\test\keyvalues\data").glob("*")):
