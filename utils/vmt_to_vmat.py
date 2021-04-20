@@ -884,7 +884,7 @@ def convertProxies():
     if dynamicParams:
         buffer += "\tDynamicParams\n\t{\n"
         for key, val in dynamicParams.items():
-            buffer += "\t" + f_KeyValQuoted.format(key, val)
+            buffer += "\t" + f_KeyValQuoted.format(key, repr(val).strip("'"))
         buffer += "\t}\n"
     return buffer
 
