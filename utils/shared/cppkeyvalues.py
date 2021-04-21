@@ -77,7 +77,6 @@ class CUtlBuffer(collections.UserString):
             return string # null, empty string
         if nMaxChars == 0:
             nMaxChars = 2147483647
-        
         # skippp
         return string.split('"')[1][:nMaxChars]
         
@@ -108,6 +107,8 @@ class CUtlBuffer(collections.UserString):
     def rcut(self, n): self.data = self.data[:n]
 
     def PeekGet(self, i) -> list: # from start get i chars
+
+        return self.data[:i]
         peek = []
         for j in range(i):
             try: char = self.data[j]
@@ -176,9 +177,8 @@ class CKeyValuesTokenReader:
             if not self.m_Buffer.EatCPPComment():
                 break
 
-        #c_full = self.m_Buffer#[0]
         c = self.m_Buffer[0]
-        #not self.m_Buffer or 
+
         if c == 0:
             return nullToken
         
@@ -197,20 +197,13 @@ class CKeyValuesTokenReader:
             self.m_Buffer.lcut(1) # buffer workaround
             return token
 
-
         # read in the token until we hit a whitespace or a control character
         bReportedError = False
         bConditionalStart = False
         nCount = 0
 
-        charz = self.m_Buffer.PeekGet(len(self.m_Buffer)+1) # made up
-        #print(charz)
         #while (True): #( c = (const char*)buf.PeekGet( sizeof(char), 0 ) )
-        for c in charz:
-    
-            # end of file
-            if c == 0:
-                break
+        for c in self.m_Buffer.data:
             # break if any control character appears in non quoted tokens
             if c == '"' or c == '{' or c == '}' or c == '=':
                 break
@@ -639,10 +632,25 @@ if __name__ == "__main__":
 
     for file in Path(r".\test\keyvalues\data").glob("*"):
         pass
-        KeyValues().LoadFromFile(file)
+        #KeyValues().LoadFromFile(file)
         #updateTestOutpt(file)
     import unittest
- 
+    from functools import wraps
+    from time import time, sleep
+    def measure(func):
+        @wraps(func)
+        def _time_it(*args, **kwargs):
+            start = int(round(time() * 1000))
+            try: return func(*args, **kwargs)
+            finally:
+                end_ = int(round(time() * 1000)) - start
+                print(f"Total execution time: {end_ if end_ > 0 else 0} ms")
+        return _time_it
+
+    def test_speed():
+        for _ in range(100): KeyValues().LoadFromFile(r"D:\Users\kristi\Desktop\WORK\test\materials\test_proxy.vmt")
+    measure(test_speed)();sleep(1)
+
     class Test_KeyValues(unittest.TestCase):
         def test_1(self):
             text = "//asdasd\nvalue {\"key\"  \"key\"  \"\"value }"
