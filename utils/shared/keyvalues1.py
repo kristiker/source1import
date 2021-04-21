@@ -2,8 +2,10 @@
 
 from collections import Counter
 from typing import Generator, Sequence
-from cppkeyvalues import KeyValues, _dec_subkeyvalue
-
+try:
+    from cppkeyvalues import KeyValues, _dec_subkeyvalue
+except:
+    from shared.cppkeyvalues import KeyValues, _dec_subkeyvalue
 class VDFDict(dict):
     def __init__(self, data=None):
         """
@@ -207,7 +209,20 @@ class VDFDict(dict):
             return False
 
         return dict_recurse(self)
-
+    def ToStr(self, level = 0):
+        line_indent = '\t' * level
+        s = ""
+        #if self.IsSub():
+        s += "\n" + line_indent + '{\n'
+        for item in self:
+            if isinstance(self[item], VDFDict):
+                s += line_indent + f"\t{item}{self[item].ToStr(level+1)}"
+            else:
+                s += line_indent + f'\t{item}\t"{self[item]}"\n' # and value...
+        s += line_indent + "}\n"
+        #else:
+        #    s = f'\t"{self.data}"\n'
+        return s
 
 def _NoneOnException(func):
     def wrapper(*args, **kwargs):

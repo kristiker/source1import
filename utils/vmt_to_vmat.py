@@ -1,6 +1,6 @@
-import re, sys, os, json
+import re
 from pathlib import Path
-from shutil import copyfile, move
+from shutil import copyfile
 from difflib import get_close_matches
 from shared.keyvalue_simple import getKV_tailored as getKeyValues
 from PIL import Image, ImageOps
@@ -118,7 +118,7 @@ def chooseShader():
 
     if vmt.shader not in shaderDict:
         if DEBUG:
-            if (ffff := "At least 1 material: unmatched shader " + vmt.shader) not in failureList: failureList.append(ffff)
+            failureList.append("At least 1 material: unmatched shader " + vmt.shader)
         return "vr_black_unlit"
 
     if LEGACY_SHADER:   sh["generic"] += 1
@@ -203,7 +203,7 @@ def createMask(vmtTexture, copySub = '_mask', channel = 'A', invert = False, que
 
     if not imagePath:
         msg("No input for createMask.", imagePath)
-        failureList.append(f"{str(vmt.path)} - {vmtTexture} not found")
+        failureList.add(f"{str(vmt.path)} - {vmtTexture} not found")
         return default(copySub)
 
     if invert:  newMask = imagePath.stem + '_' + channel[:3].lower() + '-1' + copySub
@@ -214,7 +214,7 @@ def createMask(vmtTexture, copySub = '_mask', channel = 'A', invert = False, que
         return fs.LocalDir(newMaskPath)
 
     if not imagePath.is_file() or not imagePath.exists():
-        failureList.append(str(vmt.path))
+        failureList.add(str(vmt.path))
         print(f"~ ERROR: Couldn't find requested image ({imagePath}). Please check.")
         return default(copySub)
 
@@ -884,7 +884,7 @@ def convertProxies():
     if dynamicParams:
         buffer += "\tDynamicParams\n\t{\n"
         for key, val in dynamicParams.items():
-            buffer += "\t" + f_KeyValQuoted.format(key, repr(val).strip("'"))
+            buffer += "\t" + f_KeyValQuoted.format(key, val.strip("'"))
         buffer += "\t}\n"
     return buffer
 
@@ -893,10 +893,11 @@ from materials_import_skybox import \
 
 def ImportVMTtoVMAT(vmtFilePath: Path) -> Path:
 
-    global vmat, jsonSkyCollection
+    global vmt, vmat, jsonSkyCollection
     validMaterial = False
     validInclude = False
 
+    vmt = ValveMaterial(1, vmtFilePath)
     vmt.shader, vmt.KeyValues = getKeyValues(vmtFilePath, ignoreList)
 
     kvv = vdf.parse(open(vmtFilePath), mapper=vdf.VDFDict, merge_duplicate_keys=False)
@@ -916,7 +917,7 @@ def ImportVMTtoVMAT(vmtFilePath: Path) -> Path:
 
     if vmt.shader == 'patch':
         includePath = vmt.KeyValues.get("include")
-        if vmt.KeyValues.get("#include"): failureList.append(includePath + " -- HASHED.") # temp
+        if vmt.KeyValues.get("#include"): failureList.add(includePath + " -- HASHED.") # temp
         if includePath:
             if includePath == r'materials\models\weapons\customization\paints\master.vmt':
                 return
@@ -934,7 +935,7 @@ def ImportVMTtoVMAT(vmtFilePath: Path) -> Path:
 
             except FileNotFoundError:
                 print(" ...Did not find")
-                failureList.append(includePath + " -- Cannot find include.")
+                failureList.add(includePath + " -- Cannot find include.")
                 return
 
             if not validInclude:
@@ -983,8 +984,11 @@ def ImportVMTtoVMAT(vmtFilePath: Path) -> Path:
  #   else: import_invalid += 1
 
 vmt, vmat = None, None
-failureList = []
-jsonSkyCollection = []
+failureList = set()
+jsonSkyCollection = set()
+
+import shared.cppkeyvalues as cppkv
+import shared.keyvalues1 as kv1
 
 #######################################################################################
 # Main function, loop through every .vmt
@@ -992,16 +996,12 @@ jsonSkyCollection = []
 def main():
     print('\nSource 2 Material Conveter!')
     print('----------------------------------------------------------------------------')
-    vmtFileList_extra = []
-    #jsonSkyCollection = []
+    #vmtFileList_extra = set()
+
     vmtFileList = fs.collect_files(IN_EXT, OUT_EXT, existing=OVERWRITE_VMAT, outNameRule = OutName)
     total, import_total, import_invalid = 0, 0, 0
-    global vmt, vmat
-    for vmtFilePath in sh.combine_files(vmtFileList, vmtFileList_extra):
-        #break
+    for vmtFilePath in vmtFileList:#sh.combine_files(vmtFileList, vmtFileList_extra):
         total += 1
-        #if total > 1000: break
-        vmt = ValveMaterial(1, vmtFilePath)
         ImportVMTtoVMAT(vmtFilePath)
 
     print("\nSkybox materials...")
