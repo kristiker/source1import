@@ -254,14 +254,15 @@ class KV(KeyValues):
         self.value = self.value.ToBuiltin()
         if isinstance(self.value, list):
             self.value = _vdfdictify_tuple_list(self.value)#VDFDict(self.value)
+        elif isinstance(self.value, dict): # silly workaround
+            self.value = VDFDict(self.value)
 
     def items(self) -> Generator:
         yield from self.value.iteritems()
 
-    #@_NoneOnException
     def __getitem__(self, key):
-        return self.value[key]#store[self._keytransform(key)]
-
+        try: return self.value[key]#store[self._keytransform(key)]
+        except: return
     @_NoneOnException
     def __setitem__(self, key, value):
         self.value[key] = value
@@ -280,22 +281,22 @@ class KV(KeyValues):
 #class DatadVDF(VDFDict):
 #    @property
 #    def data(self): return self #return getattr(self, "_VDFDict__omap")#self.__omap
+if __name__ == "__main__":
+    vmt = KV.FromFile(r"D:\Users\kristi\Desktop\WORK\test\materials\test_proxy.vmt")
 
-vmt = KV.FromFile(r"D:\Users\kristi\Desktop\WORK\test\materials\test_proxy.vmt")
+    print(vmt.keyName)
+    for k, v in vmt.items():
+        if k == "proxies":
+            for proxy, proxyitems in v.items():
+                #v[proxy] = "5"
+                #v[proxy] = "5"
+                #v[proxy] = "5"
 
-print(vmt.keyName)
-for k, v in vmt.items():
-    if k == "proxies":
-        for proxy, proxyitems in v.items():
-            #v[proxy] = "5"
-            #v[proxy] = "5"
-            #v[proxy] = "5"
-            
-            #v.setdefault((2, proxy), "255555")
-            
-            #print(v.get((2, proxy)))#, proxyitems)
-            print(proxy)
-            #for sett, val in proxyitems.items():
-            #    print(sett, val)
+                #v.setdefault((2, proxy), "255555")
 
-#print(vmt)
+                #print(v.get((2, proxy)))#, proxyitems)
+                print(proxy)
+                #for sett, val in proxyitems.items():
+                #    print(sett, val)
+
+    #print(vmt)

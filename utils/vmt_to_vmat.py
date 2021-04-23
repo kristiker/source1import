@@ -4,8 +4,8 @@ from shutil import copyfile
 from difflib import get_close_matches
 from shared.keyvalue_simple import getKV_tailored as getKeyValues
 from PIL import Image, ImageOps
-import shared.base_utils as sh
-import vdf
+from shared import base_utils as sh
+import shared.keyvalues1 as kv1
 
 import materials_import_skybox as sky
 # generic, blend instead of vr_complex, vr_simple_2wayblend etc...
@@ -42,48 +42,79 @@ SOURCE2_SHADER_EXT = ".vfx"
 VMAT_DEFAULT_PATH = Path("materials/default")
 
 materials = Path("materials")
+skyboxmaterials = materials / "skybox"
+
 fs = sh.Source(materials, PATH_TO_CONTENT_ROOT, PATH_TO_NEW_CONTENT_ROOT)
 
 skybox = Path("skybox")
 
 class ValveMaterial:
-    def __init__(self, version, materialPath = "", kv: dict = {}):
+    def __init__(self, shader, kv):
+        self._shader = shader
+        self._kv = kv
 
-        self.version = version # materialsystem 1/2
-        self.shader = "error"
+    @property
+    def KV(self): return self._kv
 
-        self.KeyValues = {} # main KV settings; getFullKeyValues() if you want the full thing
-        self.KV_branches = {} # proxy {}, systemattributes {}, dynamicparams {}
+    @property
+    def shader(self): return self._shader
 
-        if kv: self.shader, self.KeyValues = self._processRawKeyValues(kv)
+class VMT(ValveMaterial):
 
-        self.path = Path(materialPath)
+    ver = 1 # materialsystem1
+    __defaultkv = kv1.KV('error', {})  # unescaped, supports duplicates
 
-    def getFullKeyValues(self):
-        mainKey = self.shader
-        if self.version == 2:
-            mainKey = "Layer0"
-        return dict( (mainKey, self.KeyValues) )
+    shader = ValveMaterial.shader
+    KeyValues = ValveMaterial.KV
 
-    def setShader(self, shader: str):
-        self.shader = shader
-        if self.version == 2:
-            self.KeyValues["shader"] = self.shader + SOURCE2_SHADER_EXT
+    def __init__(self, kv=__defaultkv):
+        super().__init__(kv.keyName, kv)
 
-    def _processRawKeyValues(self, kv: dict) -> tuple:
-        try:
-            mainKey = next(iter(kv))
-        except StopIteration:
-            return "", {}
+    @KeyValues.setter
+    def KeyValues(self, n):
+        if isinstance(n, kv1.KV): # change entire material
+            self._kv = n
+            self._shader = n.keyName
+        elif isinstance(n, dict):  # change body, keep shader (VMT.KeyValues = { })
+            self._kv = kv1.KV(self._shader, n)
+        else:
+            try: n = kv1.KV(*n) # FIXME shit shit
+            except Exception as ex:
+                raise ValueError("Can only assign `kv1`, `dict` or similar to VMT KeyValues, not %s" % type(n))
 
-        KeyValues = kv[mainKey]
-        if self.version == 2:
-            return KeyValues.get("shader", ""), KeyValues
-        return mainKey, KeyValues
+    @KeyValues.deleter
+    def KeyValues(self):
+        self._kv = self.__defaultkv
+        del self.shader
 
-    def __str__(self):
-        return f"{self.shader} Source{self.version} {self.shader} Material at {self.path}"
+    @shader.setter #  @ValveMaterial.shader.setter
+    def shader(self, n):
+        self._kv.keyName = n
+        self._shader = n
 
+    @classmethod
+    def FromDict(cls, shader="error", dict={ }):
+        kv = kv1.KV(shader, dict)
+        return cls(kv)
+    def WriteToFile(self, file):
+        ...
+
+class VMAT(ValveMaterial):
+
+    ver = 2  # materialsystem2
+    __defaultkv = kv1.KV('Layer0', {'shader': 'error.vfx'})  # unescaped
+
+    shader = ValveMaterial.shader
+    KeyValues = ValveMaterial.KV
+
+    def __init__(self, kv=__defaultkv):
+        super().__init__(kv['shader'] or 'error.vfx', kv)
+
+    @shader.setter
+    def shader(self, n: str):
+        if not n.endswith('.vfx'): n += '.vfx'
+        self._shader = n
+        self._kv['shader'] = n
 # keep everything lowercase !!!
 shaderDict = {
     "black":                "black",
@@ -124,14 +155,14 @@ def chooseShader():
     if LEGACY_SHADER:   sh["generic"] += 1
     else:               sh[shaderDict[vmt.shader]] += 1
 
-    if vmt.KeyValues.get('$decal') == '1': sh["vr_projected_decals"] += 10
+    if vmt.KeyValues['$decal'] == '1': sh["vr_projected_decals"] += 10
 
     if vmt.shader == "worldvertextransition":
-        if vmt.KeyValues.get('$basetexture2'): sh["vr_simple_2way_blend"] += 10
+        if vmt.KeyValues['$basetexture2']: sh["vr_simple_2way_blend"] += 10
 
     elif vmt.shader == "lightmappedgeneric":
-        if vmt.KeyValues.get('$newlayerblending') == '1': sh["vr_simple_2way_blend"] += 10
-        #if vmt.KeyValues.get('$decal') == '1': sh["vr_projected_decals"] += 10
+        if vmt.KeyValues['$newlayerblending'] == '1': sh["vr_simple_2way_blend"] += 10
+        #if vmt.KeyValues['$decal'] == '1': sh["vr_projected_decals"] += 10
 
     elif vmt.shader == "":
         pass
@@ -176,7 +207,7 @@ def getTexture(vmtParam):
     path/to/texture_color.tga -> C:/../materials/path/to/texture_color.tga\n
     """
     if type(vmtParam) is str:
-        if value := vmt.KeyValues.get(vmtParam):
+        if value := vmt.KeyValues[vmtParam]:
             if (path := fs.Output(fixVmtTextureDir(value))).exists():
                 return path
         elif (path := fs.Output(fixVmtTextureDir(vmtParam))).exists():
@@ -624,7 +655,7 @@ def convertVmtToVmat():
         outKey = outVal = outAddLines = ''
 
         vmtKey = vmtKey.lower()
-        vmtVal = vmtVal.strip().strip('"' + "'").strip(' \n\t"')
+        vmtVal = str(vmtVal).strip().strip('"' + "'").strip(' \n\t"') #temp str
 
         # search through the dictionary above to find the appropriate replacement.
         for keyType in list(vmt_to_vmat):
@@ -759,14 +790,14 @@ def convertVmtToVmat():
                 outAddLines     = vmt_to_vmat['textures'][outVmtTexture][VMAT_EXTRALINES]
                 sourceSubString = vmt_to_vmat['textures'][outVmtTexture][VMAT_DEFAULTVAL]
 
-                if vmt.KeyValues.get(outVmtTexture):
+                if vmt.KeyValues[outVmtTexture]:
                     print("~", vmtKey, "conflicts with", outVmtTexture + ". Aborting mask extration (using original).")
                     continue
 
                 shouldInvert    = False
                 if ('1-' in sourceChannel):
                     if 'M_1-' in sourceChannel:
-                        if vmt.KeyValues.get('$model'):
+                        if vmt.KeyValues['$model']:
                             shouldInvert = True
                     else:
                         shouldInvert = True
@@ -775,7 +806,7 @@ def convertVmtToVmat():
 
                 # invert for brushes; if it's a model, keep the intact one ^
                 # both versions are provided just in case for 'non models'
-                #if not str(vmt.KeyValues.get('$model')).strip('"') != '0': invert
+                #if not str(vmt.KeyValues['$model']).strip('"') != '0': invert
 
                 outVal =  createMask(sourceTexture, sourceSubString, sourceChannel, shouldInvert)
 
@@ -814,17 +845,17 @@ def convertVmtToVmat():
 
 def convertSpecials():
 
-    if bumpmap := vmt.KeyValues.get("$bumpmap"):
+    if bumpmap := vmt.KeyValues["$bumpmap"]:
         del vmt.KeyValues["$bumpmap"]
         vmt.KeyValues["$normalmap"] = bumpmap
 
     # fix phongmask logic
-    if vmt.KeyValues.get("$phong") == '1' and not vmt.KeyValues.get("$phongmask"):
+    if vmt.KeyValues["$phong"] == '1' and not vmt.KeyValues["$phongmask"]:
         # sniper scope
 
         bHasPhongMask = False
         for key, val in vmt_to_vmat['channeled_masks'].items():
-            if val[1] == '$phongmask' and vmt.KeyValues.get(key):
+            if val[1] == '$phongmask' and vmt.KeyValues[key]:
                 bHasPhongMask = True
                 break
         if fs.LocalDir(vmt.path).is_relative_to(materials/Path("models/weapons/shared/scope")):
@@ -833,7 +864,7 @@ def convertSpecials():
             vmt.KeyValues['$normalmapalphaphongmask'] = '1'
 
     # fix additive logic - Source 2 needs Translucency to be enabled for additive to work
-    if vmt.KeyValues.get("$additive") == '1' and not vmt.KeyValues.get("$translucent"):
+    if vmt.KeyValues["$additive"] == '1' and not vmt.KeyValues["$translucent"]:
         vmt.KeyValues['$translucent'] = '1'
 
     # fix unlit shader ## what about generic?
@@ -850,46 +881,34 @@ def convertSpecials():
         elif vmat.shader == "vr_projected_decals": vmt.KeyValues["$_vmat_samplightm"] = '1' # F_SAMPLE_LIGHTMAP 1 ?
 
     # csgo viewmodels
-    viewmodels = Path("models/weapons/v_models")
-    if fs.LocalDir(vmt.path).is_relative_to(materials/viewmodels):
+    # if not mod == csgo: return
+    viewmodels = materials / "models/weapons/v_models"
+    if fs.LocalDir(vmt.path).is_relative_to(viewmodels):
         # use _ao texture in \weapons\customization
-        weaponName = vmt.path.parent.name
-        if (vmt.path.stem == weaponName or vmt.path.stem == weaponName.split('_')[-1]):
-            customization = viewmodels.parent / Path("customization")
-            aoPath = fs.Output(materials/customization/weaponName/ Path(str(weaponName) + "_ao"+ TEXTURE_FILEEXT))
-            if aoPath.exists():
-                aoNewPath = fs.Output(materials/viewmodels/weaponName/ Path(aoPath.name))
+        wpn_name = vmt.path.parent.name
+        if (vmt.path.stem == wpn_name or vmt.path.stem == wpn_name.split('_')[-1]):
+            vm_customization = viewmodels.parent / "customization"
+            ao_path = fs.Output(vm_customization/wpn_name/ str(wpn_name) + "_ao"+ TEXTURE_FILEEXT)
+            if ao_path.exists():
+                ao_path_new = fs.Output(materials/viewmodels/wpn_name/ao_path.name)
                 try:
-                    if not aoNewPath.exists() and aoNewPath.parent.exists():
-                        copyfile(aoPath, aoNewPath)
-                        print("+ Succesfully moved AO texture for weapon material:", weaponName)
-                    vmt.KeyValues["$aotexture"] = str(fs.LocalDir_Legacy(fs.LocalDir(aoNewPath)))
-                    print("+ Using ao:", aoPath.name)
-                except FileNotFoundError: pass
+                    if not ao_path_new.exists() and ao_path_new.parent.exists():
+                        copyfile(ao_path, ao_path_new)
+                        print("+ Succesfully moved AO texture for weapon material:", wpn_name)
+                    vmt.KeyValues["$aotexture"] = str(fs.LocalDir_Legacy(fs.LocalDir(ao_path_new)))
+                    print("+ Using ao:", ao_path.name)
+                except FileNotFoundError:
+                    failureList.add(f"Somehow FileNotFoundError on {ao_path_new.name}, {fs.LocalDir(ao_path)}")
 
         #vmt.KeyValues.setdefault("$envmap", "0") # specular looks ugly on viewmodels so disable it. does not affect scope lens
-        if vmt.KeyValues.get("$envmap"): del vmt.KeyValues["$envmap"]
+        if vmt.KeyValues["$envmap"]: del vmt.KeyValues["$envmap"]
         #"$envmap"                 "environment maps/metal_generic_001" --> metalness
         #"$envmaplightscale"       "1"
         #"$envmaplightscaleminmax" "[0 .3]"     metalness modifier?
 
+from materials_import_skybox import (
+    skyboxFaces, collectSkybox, collect_files_skycollections, ImportSkyVMTtoVMAT)
 from shared.materials.proxies import ProxiesToDynamicParams
-KNOWN = {}
-for d in vmt_to_vmat.values():
-    for k, v in d.items():
-       KNOWN[k] = v 
-def convertProxies():
-    buffer = ""
-    dynamicParams = ProxiesToDynamicParams(vmt.KV_branches["proxies"], KNOWN, vmt.KeyValues)
-    if dynamicParams:
-        buffer += "\tDynamicParams\n\t{\n"
-        for key, val in dynamicParams.items():
-            buffer += "\t" + f_KeyValQuoted.format(key, val.strip("'"))
-        buffer += "\t}\n"
-    return buffer
-
-from materials_import_skybox import \
-    skyboxFaces, collectSkybox, collect_files_skycollections, ImportSkyVMTtoVMAT
 
 def ImportVMTtoVMAT(vmtFilePath: Path) -> Path:
 
@@ -897,27 +916,15 @@ def ImportVMTtoVMAT(vmtFilePath: Path) -> Path:
     validMaterial = False
     validInclude = False
 
-    vmt = ValveMaterial(1, vmtFilePath)
-    vmt.shader, vmt.KeyValues = getKeyValues(vmtFilePath, ignoreList)
-
-    kvv = vdf.parse(open(vmtFilePath), mapper=vdf.VDFDict, merge_duplicate_keys=False)
-    
-    kvv = dict((k.lower(), v) for k,v in kvv.items())
-    kvv[vmt.shader] = dict((k.lower(), v) for k,v in kvv[vmt.shader].items())
-    
-    for k in kvv[vmt.shader].get("proxies", {}):
-        print(k)
-    
-    vmt.KV_branches["proxies"] = kvv[vmt.shader].get("proxies", {})
-    del kvv
-
-    #print(vmtFilePath.name)
+    vmt = VMT(kv1.KV.FromFile(vmtFilePath))
+    vmt.path = vmtFilePath
+ 
     if any(wd in vmt.shader for wd in shaderDict):
         validMaterial = True
 
     if vmt.shader == 'patch':
-        includePath = vmt.KeyValues.get("include")
-        if vmt.KeyValues.get("#include"): failureList.add(includePath + " -- HASHED.") # temp
+        includePath = vmt.KeyValues["include"]
+        if vmt.KeyValues["#include"]: failureList.add(includePath + " -- HASHED.") # temp
         if includePath:
             if includePath == r'materials\models\weapons\customization\paints\master.vmt':
                 return
@@ -944,7 +951,7 @@ def ImportVMTtoVMAT(vmtFilePath: Path) -> Path:
         else:
             print("~ WARNING: No include was provided on material with type 'Patch'. Is it a weapon skin?")
 
-    if fs.LocalDir(vmt.path).is_relative_to(materials/skybox):
+    if fs.LocalDir(vmt.path).is_relative_to(skyboxmaterials):
         name, face = vmt.path.stem[:-2], vmt.path.stem[-2:]
         if face in skyboxFaces:
             faceCollection = collectSkybox(vmt.path, vmt.KeyValues)
@@ -953,33 +960,56 @@ def ImportVMTtoVMAT(vmtFilePath: Path) -> Path:
             #    jsonSkyCollection.append(faceCollection)
             validMaterial = False
 
-    if validMaterial:
-        vmat = ValveMaterial(2, OutName(vmt.path))
-        vmat.setShader( chooseShader() ) #vmat.shader = chooseShader()
+    if not validMaterial: 
+        return
 
-        vmat.path.parent.MakeDir()
+    vmat = VMAT()
+    vmat.shader = chooseShader()
+    vmat.path = OutName(vmt.path)
 
-        if not fs.ShouldOverwrite(vmat.path, OVERWRITE_VMAT):
-            print(f'+ File already exists. Skipping! {vmat.path}')
-            return
+    vmat.path.parent.MakeDir()
 
-        with open(vmat.path, 'w') as vmatFile:
-            vmatFile.write('// Converted with vmt_to_vmat.py\n')
-            vmatFile.write('// From: ' + str(vmt.path) + '\n\n')
-            msg(vmt.shader + " => " + vmat.shader, "\n", vmt.KeyValues)
-            vmatFile.write('Layer0\n{\n\tshader "' + vmat.shader + '.vfx"\n\n')
+    if not fs.ShouldOverwrite(vmat.path, OVERWRITE_VMAT):
+        print(f'+ File already exists. Skipping! {vmat.path}')
+        return
 
-            convertSpecials()
+    KNOWN = {}
+    for d in vmt_to_vmat.values():
+        for k, v in d.items():
+            KNOWN[k] = v
+    def convertProxies():
+        buffer = ""
+        if proxies:= vmt.KeyValues["proxies"]:
 
-            vmatFile.write(convertVmtToVmat()) ###############################
+            dynamicParams = ProxiesToDynamicParams(vmt.KeyValues["proxies"], KNOWN, vmt.KeyValues)
+            if dynamicParams:
+                buffer += "\tDynamicParams\n\t{\n"
+                for key, val in dynamicParams.items():
+                    buffer += "\t" + f_KeyValQuoted.format(key, val.strip("'"))
+                buffer += "\t}\n"
+        return buffer
 
-            vmatFile.write(convertProxies())
-            
-            vmatFile.write('}\n')
+    with open(vmat.path, 'w') as vmatFile:
+        vmatFile.write('// Converted with vmt_to_vmat.py\n')
+        vmatFile.write('// From: ' + str(vmt.path) + '\n\n')
+        msg(vmt.shader + " => " + vmat.shader, "\n", vmt.KeyValues)
+        vmatFile.write('Layer0\n{\n\tshader "' + vmat.shader + '.vfx"\n\n')
+
+        convertSpecials()
+
+        vmatFile.write(convertVmtToVmat()) ###############################
+
+        
+        
+        vmatFile.write(convertProxies())
+        #if proxies := KeyValues["proxies"]:
+        #    pass
+        
+        vmatFile.write('}\n')
 #           import_total += 1
 
-        if DEBUG: print("+ Saved", vmat.path)
-        else: print("+ Saved", fs.LocalDir(vmat.path))
+    if DEBUG: print("+ Saved", vmat.path)
+    else: print("+ Saved", fs.LocalDir(vmat.path))
 
  #   else: import_invalid += 1
 
@@ -987,20 +1017,14 @@ vmt, vmat = None, None
 failureList = set()
 jsonSkyCollection = set()
 
-import shared.cppkeyvalues as cppkv
-import shared.keyvalues1 as kv1
-
-#######################################################################################
-# Main function, loop through every .vmt
-##
 def main():
-    print('\nSource 2 Material Conveter!')
+    print('\nSource 2 Material Converter!')
     print('----------------------------------------------------------------------------')
-    #vmtFileList_extra = set()
 
     vmtFileList = fs.collect_files(IN_EXT, OUT_EXT, existing=OVERWRITE_VMAT, outNameRule = OutName)
     total, import_total, import_invalid = 0, 0, 0
-    for vmtFilePath in vmtFileList:#sh.combine_files(vmtFileList, vmtFileList_extra):
+
+    for vmtFilePath in vmtFileList:
         total += 1
         ImportVMTtoVMAT(vmtFilePath)
 
@@ -1011,15 +1035,16 @@ def main():
     #    #print(f"Attempting to import {jsonCollection}")
     #    ImportSkyVMTtoVMAT(jsonCollection)
 
-    if failureList: print("\n\t<<<< THESE MATERIALS HAVE ERRORS >>>>")
-    for failure in failureList:        print(failure)
-    if failureList: print("\t^^^^ THESE MATERIALS HAVE ERRORS ^^^^")
+    if failureList:
+        print("\n\t<<<< THESE MATERIALS HAVE ERRORS >>>>")
+        for failure in failureList:
+            print(failure)
+        print("\t^^^^ THESE MATERIALS HAVE ERRORS ^^^^")
     
-    try:
-    
-        print(f"\nTotal imports:\t{import_total} / {total}\t| " + "{:.2f}".format((import_total/total) * 100) + f" % Success rate")
-        print(f"Total skipped:\t{import_invalid} / {total}\t| " + "{:.2f}".format((import_invalid/total) * 100) + f" % Skip rate")
-        print(f"Total errors :\t{len(failureList)} / {total}\t| " + "{:.2f}".format((len(failureList)/total) * 100) + f" % Error rate")
+    try: 
+        print(f"\nTotal imports:\t{import_total} / {total}\t| " + "{:.2f}".format((import_total/total) * 100) + f" % Imported")
+        print(f"Total skipped:\t{import_invalid} / {total}\t| " + "{:.2f}".format((import_invalid/total) * 100) + f" % Skipped")
+        print(f"Total errors :\t{len(failureList)} / {total}\t| " + "{:.2f}".format((len(failureList)/total) * 100) + f" % Had Errors")
     
     except: pass
     # csgo -> 206 / 14792 | 1.39 % Error rate -- 4637 / 14792 | 31.35 % Skip rate
