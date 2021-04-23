@@ -61,8 +61,8 @@ class ValveMaterial:
 
 class VMT(ValveMaterial):
 
-    ver = 1 # materialsystem1
-    __defaultkv = kv1.KV('error', {})  # unescaped, supports duplicates
+    ver = 1  # materialsystem1
+    __defaultkv = kv1.KV('error', {})  # unescaped, supports duplicates, keys case insensitive
 
     shader = ValveMaterial.shader
     KeyValues = ValveMaterial.KV
@@ -78,7 +78,7 @@ class VMT(ValveMaterial):
         elif isinstance(n, dict):  # change body, keep shader (VMT.KeyValues = { })
             self._kv = kv1.KV(self._shader, n)
         else:
-            try: n = kv1.KV(*n) # FIXME shit shit
+            try: n = kv1.KV(*n)  # FIXME shit shit
             except Exception as ex:
                 raise ValueError("Can only assign `kv1`, `dict` or similar to VMT KeyValues, not %s" % type(n))
 
@@ -87,7 +87,7 @@ class VMT(ValveMaterial):
         self._kv = self.__defaultkv
         del self.shader
 
-    @shader.setter #  @ValveMaterial.shader.setter
+    @shader.setter  #  @ValveMaterial.shader.setter
     def shader(self, n):
         self._kv.keyName = n
         self._shader = n
@@ -101,8 +101,8 @@ class VMT(ValveMaterial):
 
 class VMAT(ValveMaterial):
 
-    ver = 2  # materialsystem2
-    __defaultkv = kv1.KV('Layer0', {'shader': 'error.vfx'})  # unescaped
+    ver = 2   # materialsystem2
+    __defaultkv = kv1.KV('Layer0', {'shader': 'error.vfx'})  # unescaped, keys case sensitive
 
     shader = ValveMaterial.shader
     KeyValues = ValveMaterial.KV
@@ -121,10 +121,10 @@ shaderDict = {
     "sky":                  "sky",
     "unlitgeneric":         "vr_complex",
     "vertexlitgeneric":     "vr_complex",
-    "decalmodulate":        "vr_projected_decals", # https://developer.valvesoftware.com/wiki/Decals#DecalModulate
+    "decalmodulate":        "vr_projected_decals",  # https://developer.valvesoftware.com/wiki/Decals#DecalModulate
     "lightmappedgeneric":   "vr_complex",
     "lightmappedreflective":"vr_complex",
-    "character":            "vr_complex", # https://developer.valvesoftware.com/wiki/Character_(shader)
+    "character":            "vr_complex",  # https://developer.valvesoftware.com/wiki/Character_(shader)
     "customcharacter":      "vr_complex",
     "teeth":                "vr_complex",
     "water":                "simple_water",
@@ -132,14 +132,14 @@ shaderDict = {
     "worldvertextransition":"vr_simple_2way_blend",
     "lightmapped_4wayblend":"vr_simple_2way_blend",
     "cables":               "cables",
-    "lightmappedtwotexture":"vr_complex", # 2 multiblend $texture2 nocull scrolling, model, additive.
-    "unlittwotexture":      "vr_complex", # 2 multiblend $texture2 nocull scrolling, model, additive.
+    "lightmappedtwotexture":"vr_complex",  # 2 multiblend $texture2 nocull scrolling, model, additive.
+    "unlittwotexture":      "vr_complex",  # 2 multiblend $texture2 nocull scrolling, model, additive.
     "cable":                "cables",
     "splinerope":           "cables",
     "shatteredglass":       "vr_glass",
     "wireframe":            "tools_wireframe",
-    "spritecard":           "spritecard", #"modulate",
-    #"subrect":              "spritecard", # should we just cut? $Pos "256 0" $Size "256 256" $decalscale 0.25 decals\blood1_subrect.vmt
+    "spritecard":           "spritecard",  # "modulate",
+    #"subrect":              "spritecard",  # should we just cut? $Pos "256 0" $Size "256 256" $decalscale 0.25 decals\blood1_subrect.vmt
     #"weapondecal": weapon sticker
     "patch":                "vr_complex", # fallback if include doesn't have one
 }
@@ -260,9 +260,9 @@ def createMask(vmtTexture, copySub = '_mask', channel = 'A', invert = False, que
         imgChannel = ImageOps.invert(imgChannel)
 
     colors = imgChannel.getcolors()
-    if len(colors) == 1: # mask with single color
-        if copySub == "_rough" and colors[0][1] == 0: # fix some very dumb .convert('RGBA') with 255 255 255 alpha
-            return default(copySub) # TODO: should this apply to other types of masks as well?
+    if len(colors) == 1:  # mask with single color
+        if copySub == "_rough" and colors[0][1] == 0:  # fix some very dumb .convert('RGBA') with 255 255 255 alpha
+            return default(copySub)  # TODO: should this apply to other types of masks as well?
         return fixVector(f"{{{colors[0][1]} {colors[0][1]} {colors[0][1]}}}", True)
 
     bg = Image.new("L", image.size)
@@ -270,7 +270,7 @@ def createMask(vmtTexture, copySub = '_mask', channel = 'A', invert = False, que
     # Copy the specified channel to the new image using itself as the mask
     bg.paste(imgChannel)
 
-    bg.convert('L').save(newMaskPath, optimize=True) #.convert('P', palette=Image.ADAPTIVE, colors=8)
+    bg.convert('L').save(newMaskPath, optimize=True)  #.convert('P', palette=Image.ADAPTIVE, colors=8)
     bg.close()
     print("+ Saved mask to", fs.LocalDir(newMaskPath))
 
@@ -307,7 +307,7 @@ def fixVector(s, addAlpha = 1, returnList = False):
     if('{' in s or '}' in s): likelyColorInt = True
     else: likelyColorInt = False
 
-    s = s.strip() # TODO: remove letters
+    s = s.strip()  # TODO: remove letters
     s = s.replace('"', '').replace("'", "")
     s = s.strip().replace(",", "").strip('][}{').strip(')(')
 
@@ -362,7 +362,7 @@ def int_val(vmtVal, bInvert = False):
 
 def mapped_val(vmtVal, dMap):
     if not vmtVal or vmtVal not in dMap:
-        return None # use default value
+        return None  # use default value
     return str(int(dMap[vmtVal]))
 
 def float_val(vmtVal):
@@ -425,30 +425,30 @@ vmt_to_vmat = {
 
 #'shader': { '$_vmat_shader':    ('shader',  'generic.vfx', [ext, SOURCE2_SHADER_EXT]),},
 
-'f_properties': {
+'f_keys': {
     '$_vmat_unlit':     ('F_UNLIT',                 '1', None),
     '$_vmat_lit':       ('F_LIT',                   '1', None),
     '$_vmat_samplightm':('F_SAMPLE_LIGHTMAP',       '1', None),
     '$_vmat_blendmode': ('F_BLEND_MODE',            '0', None),
 
-    '$translucent':     ('F_TRANSLUCENT',           '1', None), # "F_BLEND_MODE 0" for "vr_projected_decals"
+    '$translucent':     ('F_TRANSLUCENT',           '1', None),  # "F_BLEND_MODE 0" for "vr_projected_decals"
     '$alphatest':       ('F_ALPHA_TEST',            '1', None),
-    '$envmap':          ('F_SPECULAR',              '1', None), # in "environment maps/metal" | "env_cubemap" F_SPECULAR_CUBE_MAP 1 // In-game Cube Map
+    '$envmap':          ('F_SPECULAR',              '1', None),  # in "environment maps/metal" | "env_cubemap" F_SPECULAR_CUBE_MAP 1 // In-game Cube Map
     '$envmapanisotropy':('F_ANISOTROPIC_GLOSS',     '1', None),
     '$selfillum':       ('F_SELF_ILLUM',            '1', None),
     '$additive':        ('F_ADDITIVE_BLEND',        '1', None),
     '$ignorez':         ('F_DISABLE_Z_BUFFERING',   '1', None),
-    '$nocull':          ('F_RENDER_BACKFACES',      '1', None), # F_NO_CULLING 1
+    '$nocull':          ('F_RENDER_BACKFACES',      '1', None),  # F_NO_CULLING 1
     '$decal':           ('F_OVERLAY',               '1', None),
     '$flow_debug':      ('F_FLOW_DEBUG',            '0', None),
-    '$detailblendmode': ('F_DETAIL_TEXTURE',        '1', [mapped_val, {'0':'1', '1':'2', '12':'0'} ]), # https://developer.valvesoftware.com/wiki/$detail#Parameters_and_Effects
-    '$decalblendmode':  ('F_DETAIL_TEXTURE',        '1', [mapped_val, {'0':'1', '1':'2', '12':'0'} ]), # materialsystem\stdshaders\BaseVSShader.h#L26
+    '$detailblendmode': ('F_DETAIL_TEXTURE',        '1', [mapped_val, {'0':'1', '1':'2', '12':'0'} ]),  # https://developer.valvesoftware.com/wiki/$detail#Parameters_and_Effects
+    '$decalblendmode':  ('F_DETAIL_TEXTURE',        '1', [mapped_val, {'0':'1', '1':'2', '12':'0'} ]),  # materialsystem\stdshaders\BaseVSShader.h#L26
     '$sequence_blend_mode': ('F_FAST_SEQUENCE_BLEND_MODE', '1', [mapped_val, {'0':'1', '1':'2', '2':'3'}]),
 
     '$selfillum_envmapmask_alpha': ('F_SELF_ILLUM', '1', None),
 
-    "$masks1": ('F_MASKS_1',    '1', None) if EXPORT_MOD == "dota" else None, # 
-    "$masks2": ('F_MASKS_2',    '1', None) if EXPORT_MOD == "dota" else None, # 
+    "$masks1": ('F_MASKS_1',    '1', None) if EXPORT_MOD == "dota" else None,  # 
+    "$masks2": ('F_MASKS_2',    '1', None) if EXPORT_MOD == "dota" else None,  # 
 
     #'$phong':           ('F_PHONG',                 '1'),
     #'$vertexcolor:      ('F_VERTEX_COLOR',          '1'),
@@ -456,8 +456,8 @@ vmt_to_vmat = {
 
 'textures': {
     # for the individual faces; the sky material is handled separately
-    '$hdrcompressedtexture':('TextureColor',    '_color', [formatNewTexturePath], ''), # compress
-    '$hdrbasetexture':      ('TextureColor',    '_color', [formatNewTexturePath], ''), # nocompress
+    '$hdrcompressedtexture':('TextureColor',    '_color', [formatNewTexturePath], ''),  # compress
+    '$hdrbasetexture':      ('TextureColor',    '_color', [formatNewTexturePath], ''),  # nocompress
 
     ## Top / Main layer
     '$basetexture':     ('TextureColor',        '_color',   [formatNewTexturePath],     '' ),
@@ -466,7 +466,7 @@ vmt_to_vmat = {
     '$compress':        ('TextureSquishColor',  '_color',   [formatNewTexturePath],     'F_MORPH_SUPPORTED 1\n\tF_WRINKLE 1' ),
     '$stretch':         ('TextureStretchColor', '_color',   [formatNewTexturePath],     'F_MORPH_SUPPORTED 1\n\tF_WRINKLE 1' ),
 
-    '$normalmap':       ('TextureNormal',       '_normal',  [formatNewTexturePath],     '' ), # $bumpmap
+    '$normalmap':       ('TextureNormal',       '_normal',  [formatNewTexturePath],     '' ),  # $bumpmap
     '$bumpcompress':    ('TextureSquishNormal', '_normal',  [formatNewTexturePath],     'F_MORPH_SUPPORTED 1\n\tF_WRINKLE 1' ),
     '$bumpstretch':     ('TextureStretchNormal','_normal',  [formatNewTexturePath],     'F_MORPH_SUPPORTED 1\n\tF_WRINKLE 1' ),
 
@@ -476,28 +476,28 @@ vmt_to_vmat = {
                         ('TextureLayer1RevealMask', '_blend',  [createMask, 'G', False], 'F_BLEND 1'),
     ## Layer 1
     '$basetexture2':    ('TextureColorB' if NEW_SH else 'TextureLayer1Color',  '_color',  [formatNewTexturePath], '' ),
-    '$texture2':        ('TextureColorB' if NEW_SH else 'TextureLayer1Color',   '_color',  [formatNewTexturePath], '' ), # UnlitTwoTexture
+    '$texture2':        ('TextureColorB' if NEW_SH else 'TextureLayer1Color',   '_color',  [formatNewTexturePath], '' ),  # UnlitTwoTexture
     '$bumpmap2':        ('TextureNormalB' if NEW_SH else 'TextureLayer1Normal', '_normal', [formatNewTexturePath], '' if NEW_SH else 'F_BLEND_NORMALS 1' ),
 
     ## Layer 2-3
     '$basetexture3':    ('TextureLayer2Color',  '_color',  [formatNewTexturePath],     ''),
     '$basetexture4':    ('TextureLayer3Color',  '_color',  [formatNewTexturePath],     ''),
 
-    '$normalmap2':      ('TextureNormal2',      '_normal', [formatNewTexturePath],     'F_SECONDARY_NORMAL 1'), # used with refract shader
+    '$normalmap2':      ('TextureNormal2',      '_normal', [formatNewTexturePath],     'F_SECONDARY_NORMAL 1'),  # used with refract shader
     '$flowmap':         ('TextureFlow',         '',        [formatNewTexturePath],     'F_FLOW_NORMALS 1\n\tF_FLOW_DEBUG 1'),
     '$flow_noise_texture':('TextureNoise',      '_noise',  [formatNewTexturePath],     'F_FLOW_NORMALS 1\n\tF_FLOW_DEBUG 2'),
-    '$detail':          ('TextureDetail',       '_detail', [formatNewTexturePath],     'F_DETAIL_TEXTURE 1\n'), # $detail2
+    '$detail':          ('TextureDetail',       '_detail', [formatNewTexturePath],     'F_DETAIL_TEXTURE 1\n'),  # $detail2
     '$decaltexture':    ('TextureDetail',       '_detail', [formatNewTexturePath],     'F_DETAIL_TEXTURE 1\n\tF_SECONDARY_UV 1\n\tg_bUseSecondaryUvForDetailTexture "1"'),
 
     '$selfillummask':   ('TextureSelfIllumMask','_selfillummask', [formatNewTexturePath],  ''),
     '$tintmasktexture': ('TextureTintMask',     '_mask',   [createMask, 'G', False],   'F_TINT_MASK 1'), #('TextureTintTexture',)
-    '$_vmat_metalmask': ('TextureMetalness',    '_metal',  [formatNewTexturePath],     'F_METALNESS_TEXTURE 1'), # F_SPECULAR too
+    '$_vmat_metalmask': ('TextureMetalness',    '_metal',  [formatNewTexturePath],     'F_METALNESS_TEXTURE 1'),  # F_SPECULAR too
     '$_vmat_transmask': ('TextureTranslucency', '_trans',  [formatNewTexturePath],     ''),
     '$_vmat_rimmask':   ('TextureRimMask',      '_rimmask',[formatNewTexturePath],     ''),
 
     # only the G channel ## $ambientoccltexture': '$ambientocclusiontexture':
-    '$ao':          ('TextureAmbientOcclusion', '_ao',     [createMask, 'G', False],    'F_AMBIENT_OCCLUSION_TEXTURE 1'), # g_flAmbientOcclusionDirectSpecular "1.000"
-    '$aotexture':   ('TextureAmbientOcclusion', '_ao',     [createMask, 'G', False],    'F_AMBIENT_OCCLUSION_TEXTURE 1'), # g_flAmbientOcclusionDirectSpecular "1.000"
+    '$ao':          ('TextureAmbientOcclusion', '_ao',     [createMask, 'G', False],    'F_AMBIENT_OCCLUSION_TEXTURE 1'),  # g_flAmbientOcclusionDirectSpecular "1.000"
+    '$aotexture':   ('TextureAmbientOcclusion', '_ao',     [createMask, 'G', False],    'F_AMBIENT_OCCLUSION_TEXTURE 1'),  # g_flAmbientOcclusionDirectSpecular "1.000"
 
     '$phongexponenttexture': ('TextureSpecularExponent', '_specexp', [formatNewTexturePath], ''),
     #'$phongexponent2' $phongmaskcontrastbrightness2, $phongbasetint2, $phongamount2
@@ -517,8 +517,8 @@ vmt_to_vmat = {
 },
 
 'transform': {
-    '$basetexturetransform':    ('g_vTex'), # g_vTexCoordScale "[1.000 1.000]"g_vTexCoordOffset "[0.000 0.000]"
-    '$detailtexturetransform':  ('g_vDetailTex'), # g_flDetailTexCoordRotation g_vDetailTexCoordOffset g_vDetailTexCoordScale g_vDetailTexCoordXform
+    '$basetexturetransform':    ('g_vTex'),  # g_vTexCoordScale "[1.000 1.000]"g_vTexCoordOffset "[0.000 0.000]"
+    '$detailtexturetransform':  ('g_vDetailTex'),  # g_flDetailTexCoordRotation g_vDetailTexCoordOffset g_vDetailTexCoordScale g_vDetailTexCoordXform
     '$bumptransform':           ('g_vNormalTex'),
     #'$bumptransform2':         (''),
     #'$basetexturetransform2':  (''),   #
@@ -546,15 +546,15 @@ vmt_to_vmat = {
 
     '$alpha':               ('g_flOpacityScale',        '1.000',    [float_val], ''),
     '$alphatestreference':  ('g_flAlphaTestReference',  '0.500',    [float_val], 'g_flAntiAliasedEdgeStrength "1.000"'),
-    '$blendtintcoloroverbase':('g_flModelTintAmount',   '1.000',    [float_val], ''), # $layertint1
+    '$blendtintcoloroverbase':('g_flModelTintAmount',   '1.000',    [float_val], ''),  # $layertint1
     '$selfillumscale':      ('g_flSelfIllumScale',      '1.000',    [float_val], ''),
     '$phongexponent':       ('g_flSpecularExponent',    '32.000',   [float_val], ''),
-    '$phongboost':          ('g_flPhongBoost',          '1.000',    [float_val], ''), # 
+    '$phongboost':          ('g_flPhongBoost',          '1.000',    [float_val], ''),  # 
     '$metalness':           ('g_flMetalness',           '0.000',    [float_val], ''),
     '$_metalness2':         ('g_flMetalnessB',          '0.000',    [float_val], ''),
     '$refractamount':       ('g_flRefractScale',        '0.200',    [float_val], ''),
     '$flow_worlduvscale':   ('g_flWorldUvScale',        '1.000',    [float_val], ''),
-    '$flow_noise_scale':    ('g_flNoiseUvScale',        '0.010',    [float_val], ''), # g_flNoiseStrength?
+    '$flow_noise_scale':    ('g_flNoiseUvScale',        '0.010',    [float_val], ''),  # g_flNoiseStrength?
     '$flow_bumpstrength':   ('g_flnormalmap_listtrength',   '1.000',    [float_val], ''),
 
     '$nofog':   ('g_bFogEnabled',       '0',        [int_val, True], ''),
@@ -562,7 +562,7 @@ vmt_to_vmat = {
 
     # rimlight
     '$rimlightexponent':    ('g_flRimLightScale',   '1.000',    [int_val],  ''),
-    #'$warpindex':           ('g_flDiffuseWrap',         '1.000',    [float_var], ''), # requires F_DIFFUSE_WRAP 1. "?
+    #'$warpindex':           ('g_flDiffuseWrap',         '1.000',    [float_var], ''),  # requires F_DIFFUSE_WRAP 1. "?
     #'$diffuseexp':          ('g_flDiffuseExponent',     '2.000',    [float_var], 'g_vDiffuseWrapColor "[1.000000 1.000000 1.000000 0.000000]'),
 
     # shader.blend and shader.vr_standard(SteamVR) -- $NEWLAYERBLENDING
@@ -573,7 +573,7 @@ vmt_to_vmat = {
     '$layerbordertint':     ('g_vLayer1BorderColor',    '[1.000000 1.000000 1.000000 0.000000]', [fixVector, True], ''),
 },
 
-'channeled_masks': { # 1-X will extract and invert channel X // M_1-X to only invert on models
+'channeled_masks': {  # 1-X will extract and invert channel X // M_1-X to only invert on models
    #'$vmtKey':                      (extract_from,       extract_as,       channel to extract)
     '$normalmapalphaenvmapmask':    ('$normalmap',    '$envmapmask',      '1-A'),
     '$basealphaenvmapmask':         ('$basetexture',    '$envmapmask',      'M_1-A'),
@@ -611,9 +611,9 @@ vmt_to_vmat = {
 },
 
 'texture_settings': {
-    '$noenvmapmip':             None, # Lock specular cubemap to mip 0
-    '$phongexponentfactor':     None, # Multiply $phongexponenttexture by this amount
-    '$invertphongmask':         None, # Invert $phongmask specmask
+    '$noenvmapmip':             None,  # Lock specular cubemap to mip 0
+    '$phongexponentfactor':     None,  # Multiply $phongexponenttexture by this amount
+    '$invertphongmask':         None,  # Invert $phongmask specmask
 },
 
 # no direct replacement, etc
@@ -621,7 +621,7 @@ vmt_to_vmat = {
     # ssbump dose not work?
     #'$ssbump':               ('TextureBentNormal',    '_bentnormal.tga', 'F_ENABLE_NORMAL_SELF_SHADOW 1\n\tF_USE_BENT_NORMALS 1\n'),
 
-    #'$iris': ('',    '',     ''), # paste iris into basetexture
+    #'$iris': ('',    '',     ''),  # paste iris into basetexture
 
     # fRimMask = vMasks1Params.r;
     # fPhongAlbedoMask = vMasks1Params.g;
@@ -671,10 +671,10 @@ def convertVmtToVmat():
             outAddLines = None
 
             try:
-                vmatReplacement = vmatTranslation [ VMAT_REPLACEMENT  ]
-                vmatDefaultVal  = vmatTranslation [ VMAT_DEFAULTVAL   ]
-                vmatTranslFunc  = vmatTranslation [ VMAT_TRANSLFUNC   ]
-                outAddLines     = vmatTranslation [ VMAT_EXTRALINES   ]
+                vmatReplacement = vmatTranslation [ VMAT_REPLACEMENT ]
+                vmatDefaultVal  = vmatTranslation [ VMAT_DEFAULTVAL  ]
+                vmatTranslFunc  = vmatTranslation [ VMAT_TRANSLFUNC  ]
+                outAddLines     = vmatTranslation [ VMAT_EXTRALINES  ]
             except: pass
 
             if ( vmatReplacement and vmatDefaultVal ):
@@ -712,7 +712,7 @@ def convertVmtToVmat():
             # no equivalent key-value for this key, only exists
             # add comment or ignore completely
             elif (outAddLines):
-                if keyType in ('transform'): # exceptions
+                if keyType in ('transform'):  # exceptions
                     pass
                 else:
                     vmatContent += outAddLines
@@ -721,7 +721,7 @@ def convertVmtToVmat():
                 continue
 
             # F_RENDER_BACKFACES 1 etc
-            if keyType == 'f_properties':
+            if keyType == 'f_keys':
                 if vmat.shader == "vr_projected_decals" and vmtKey == "$translucent":
                     outKey, outVal = "F_BLEND_MODE", "0"
 
@@ -729,7 +729,7 @@ def convertVmtToVmat():
                     msg(outKey + ' is already in.')
                     vmatContent = re.sub(r'%s.+' % outKey, outKey + ' ' + outVal, vmatContent)
                 else:
-                    vmatContent = f_KeyVal.format(outKey, outVal) + vmatContent # add these keys to the top
+                    vmatContent = f_KeyVal.format(outKey, outVal) + vmatContent  # add these keys to the top
                 continue ### Skip default content write
 
             elif(keyType == 'textures'):
@@ -742,12 +742,12 @@ def convertVmtToVmat():
 
                     if vmtVal == 'dev/flat_normal': outVal = default(vmatDefaultVal)
 
-                    outVal = Path(outVal) # not wise
+                    outVal = Path(outVal)  # not wise
                     #if not str(VMAT_DEFAULT_PATH) in outVal:
                     if not outVal.is_relative_to(VMAT_DEFAULT_PATH):
                         flipNormalMap(outVal)
 
-            elif(keyType == 'transform'): # here one key can add multiple keys
+            elif(keyType == 'transform'):  # here one key can add multiple keys
                 if not vmatReplacement:
                     continue
 
@@ -779,12 +779,12 @@ def convertVmtToVmat():
             # ... why reversE???
 
             elif(keyType == 'channeled_masks'):
-                outVmtTexture = vmt_to_vmat['channeled_masks'][vmtKey][1] # extract as
+                outVmtTexture = vmt_to_vmat['channeled_masks'][vmtKey][1]  # extract as
 
                 if not vmt_to_vmat['textures'].get(outVmtTexture): break
 
-                sourceTexture   = vmt_to_vmat['channeled_masks'][vmtKey][0] # extract from
-                sourceChannel   = vmt_to_vmat['channeled_masks'][vmtKey][2] # channel to extract
+                sourceTexture   = vmt_to_vmat['channeled_masks'][vmtKey][0]  # extract from
+                sourceChannel   = vmt_to_vmat['channeled_masks'][vmtKey][2]  # channel to extract
 
                 outKey          = vmt_to_vmat['textures'][outVmtTexture][VMAT_REPLACEMENT]
                 outAddLines     = vmt_to_vmat['textures'][outVmtTexture][VMAT_EXTRALINES]
@@ -829,7 +829,7 @@ def convertVmtToVmat():
         if not vmat.shader == "vr_simple_2way_blend":
             if "TextureRoughness" not in vmatContent:
                  vmatContent += f_KeyValQuoted.format("TextureRoughness", "materials/default/default_rough_s1import.tga")
-        else: # stupid
+        else:  # stupid
             if "TextureRoughnessA" not in vmatContent:
                 vmatContent += f_KeyValQuoted.format("TextureRoughnessA", "materials/default/default_rough_s1import.tga")
             if "TextureRoughnessB" not in vmatContent:
@@ -860,7 +860,7 @@ def convertSpecials():
                 break
         if fs.LocalDir(vmt.path).is_relative_to(materials/Path("models/weapons/shared/scope")):
             bHasPhongMask = False
-        if not bHasPhongMask: # normal map Alpha acts as a phong mask by default
+        if not bHasPhongMask:  # normal map Alpha acts as a phong mask by default
             vmt.KeyValues['$normalmapalphaphongmask'] = '1'
 
     # fix additive logic - Source 2 needs Translucency to be enabled for additive to work
@@ -900,7 +900,7 @@ def convertSpecials():
                 except FileNotFoundError:
                     failureList.add(f"Somehow FileNotFoundError on {ao_path_new.name}, {fs.LocalDir(ao_path)}")
 
-        #vmt.KeyValues.setdefault("$envmap", "0") # specular looks ugly on viewmodels so disable it. does not affect scope lens
+        #vmt.KeyValues.setdefault("$envmap", "0")  # specular looks ugly on viewmodels so disable it. does not affect scope lens
         if vmt.KeyValues["$envmap"]: del vmt.KeyValues["$envmap"]
         #"$envmap"                 "environment maps/metal_generic_001" --> metalness
         #"$envmaplightscale"       "1"
@@ -924,7 +924,7 @@ def ImportVMTtoVMAT(vmtFilePath: Path) -> Path:
 
     if vmt.shader == 'patch':
         includePath = vmt.KeyValues["include"]
-        if vmt.KeyValues["#include"]: failureList.add(includePath + " -- HASHED.") # temp
+        if vmt.KeyValues["#include"]: failureList.add(includePath + " -- HASHED.")  # temp
         if includePath:
             if includePath == r'materials\models\weapons\customization\paints\master.vmt':
                 return
@@ -993,7 +993,8 @@ def ImportVMTtoVMAT(vmtFilePath: Path) -> Path:
         vmatFile.write('// Converted with vmt_to_vmat.py\n')
         vmatFile.write('// From: ' + str(vmt.path) + '\n\n')
         msg(vmt.shader + " => " + vmat.shader, "\n", vmt.KeyValues)
-        vmatFile.write('Layer0\n{\n\tshader "' + vmat.shader + '.vfx"\n\n')
+        #vmatFile.write('Layer0\n{\n\tshader "' + vmat.shader + '.vfx"\n\n')
+        vmatFile.write(vmat.KeyValues.ToStr())
 
         convertSpecials()
 
