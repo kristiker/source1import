@@ -2,6 +2,7 @@ import re
 from pathlib import Path
 from shutil import copyfile
 from difflib import get_close_matches
+from typing import Optional
 from shared.keyvalue_simple import getKV_tailored as getKeyValues
 from PIL import Image, ImageOps
 from shared import base_utils as sh
@@ -62,12 +63,16 @@ class ValveMaterial:
 class VMT(ValveMaterial):
 
     ver = 1  # materialsystem1
-    __defaultkv = kv1.KV('error', {})  # unescaped, supports duplicates, keys case insensitive
+    __defaultkv = kv1.KV('', {})  # unescaped, supports duplicates, keys case insensitive
 
     shader = ValveMaterial.shader
     KeyValues = ValveMaterial._KV
 
     def __init__(self, kv=__defaultkv):
+
+        if kv.keyName == '':
+            kv.keyName = 'Wireframe_DX9'
+
         super().__init__(kv.keyName, kv)
 
     @KeyValues.setter
@@ -143,6 +148,7 @@ shaderDict = {
     "splinerope":           "cables",
     "shatteredglass":       "vr_glass",
     "wireframe":            "tools_wireframe",
+    "wireframe_dx9":        "error",
     "spritecard":           "spritecard",  # "modulate",
     #"subrect":              "spritecard",  # should we just cut? $Pos "256 0" $Size "256 256" $decalscale 0.25 decals\blood1_subrect.vmt
     #"weapondecal": weapon sticker
@@ -908,7 +914,7 @@ from materials_import_skybox import (
     skyboxFaces, collectSkybox, collect_files_skycollections, ImportSkyVMTtoVMAT)
 from shared.materials.proxies import ProxiesToDynamicParams
 
-def ImportVMTtoVMAT(vmtFilePath: Path) -> Path:
+def ImportVMTtoVMAT(vmtFilePath: Path) -> Optional[Path]:
 
     global vmt, vmat, jsonSkyCollection
     validMaterial = False
@@ -921,8 +927,15 @@ def ImportVMTtoVMAT(vmtFilePath: Path) -> Path:
         validMaterial = True
 
     if vmt.shader == 'patch':
+
         includePath = vmt.KeyValues["include"]
-        if vmt.KeyValues["#include"]: failureList.add(includePath + " -- HASHED.")  # temp
+
+        if hashInclude :=vmt.KeyValues["#include"]:
+            # FIXME KV reader shouldn't add macros as keys in the first place
+            failureList.add(hashInclude + " -- HASHED.")  # temp
+            if not includePath:
+                includePath = hashInclude
+
         if includePath:
             if includePath == r'materials\models\weapons\customization\paints\master.vmt':
                 return

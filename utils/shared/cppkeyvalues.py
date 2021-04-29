@@ -340,14 +340,18 @@ class KeyValues(object):
     "Key that holds a Value. Value can be a list holding other KeyValues"
 
 
-    def __init__(self, k: Optional[str] = None, v: Union[int, float, str, KVCollection] = None):
-        self.keyName =k.lower() if k else k
+    def __init__(self, k: Optional[str] = None, v: Union[int, float, str, KVCollection] = None, case_sensitive = False):
+        
+        self.KeyNameCaseSensitive2: bool = case_sensitive
+
+        if not self.KeyNameCaseSensitive2 and k is not None:
+            k = k.lower()
+        self.keyName = k# if k else k
         
         self.value = KVValue(v) # Iterator BUG
 
         self.DataType = KVType.TYPE_NONE
         self.HasEscapeSequences: bool
-        self.KeyNameCaseSensitive2: int
         
         # listlike pointery variables 
         self.Peer: KeyValues = None
@@ -429,14 +433,16 @@ class KeyValues(object):
         self.DataType = KVType.TYPE_NONE
 
     def SetName(self, name: str):
-        self.keyName = name.lower()
+        if not self.KeyNameCaseSensitive2:
+            name = name.lower()
+        self.keyName = name
 
-    def LoadFromFile(self, resourceName):
+    def LoadFromFile(self, resourceName, **params):
         with open(resourceName, 'r') as f:
             buf = CUtlBuffer(f.read())
-            self.LoadFromBuffer(resourceName, buf)
+            self.LoadFromBuffer(resourceName, buf, **params)
 
-    def LoadFromBuffer(self, resourceName, buf: CUtlBuffer) -> bool:
+    def LoadFromBuffer(self, resourceName, buf: CUtlBuffer, **params) -> bool:
         previousKey: KeyValues = None
         currentKey: KeyValues = self
         includedKeys: "list[KeyValues]" = []
@@ -472,7 +478,7 @@ class KeyValues(object):
                 continue
 
             if not currentKey:
-                currentKey = KeyValues(s)
+                currentKey = KeyValues(s, case_sensitive=self.KeyNameCaseSensitive2)
 
                 currentKey.HasEscapeSequences = self.HasEscapeSequences # same format has parent use
 
@@ -516,7 +522,7 @@ class KeyValues(object):
             
             #if name == ".filelist":
             #    breakpoint()
-            dat = KeyValues(str(name))
+            dat = KeyValues(str(name), case_sensitive=self.KeyNameCaseSensitive2)
             self.value.append(dat)
             del name
             value = tokenReader.ReadToken()

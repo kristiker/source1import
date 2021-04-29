@@ -1,7 +1,7 @@
 # keyvalues1.py
 
 from collections import Counter
-from typing import Generator, Sequence
+from typing import Any, Generator, Optional, Sequence
 try:
     from cppkeyvalues import KeyValues, _dec_subkeyvalue
 except:
@@ -28,10 +28,6 @@ class VDFDict(dict):
             self.update(data)
 
     def __repr__(self):
-        out = "%s(" % self.__class__.__name__
-        out += "%s)" % repr(list(self.iteritems()))
-        #return out
-
         return f"{self.__class__.__name__}({repr(list(self.iteritems()))})"
 
     def __len__(self):
@@ -154,8 +150,11 @@ class VDFDict(dict):
             raise TypeError("Expected data to be a list or dict, got %s" % type(data))
 
         for key, value in data:
-            #self.__setitem__(key, value)
-            self.add(key, value)
+            if isinstance(value, list):
+                #print(self.__class__)
+                self.add(key, VDFDict(value))
+            else:
+                self.add(key, value)
 
     def iterkeys(self):
         return (key[1] for key in self.__omap)
@@ -169,11 +168,11 @@ class VDFDict(dict):
     def values(self):
         return list(self.itervalues())
 
-    def iteritems(self):
-        return ((key[1], self[key]) for key in self.__omap)
+    def iteritems(self, indexed_keys = False):
+        return ((key if indexed_keys else key[1], self[key]) for key in self.__omap)
 
-    def items(self):
-        return list(self.iteritems())
+    def items(self, indexed_keys = False):
+        return list(self.iteritems(indexed_keys))
 
     def get_all_for(self, key):
         """ Returns all values of the given key """
@@ -214,16 +213,13 @@ class VDFDict(dict):
     def ToStr(self, level = 0):
         line_indent = '\t' * level
         s = ""
-        #if self.IsSub():
         s += "\n" + line_indent + '{\n'
         for item in self:
             if isinstance(self[item], VDFDict):
                 s += line_indent + f"\t{item}{self[item].ToStr(level+1)}"
             else:
-                s += line_indent + f'\t{item}\t"{self[item]}"\n' # and value...
+                s += line_indent + f'\t{item}\t"{self[item]}"\n'
         s += line_indent + "}\n"
-        #else:
-        #    s = f'\t"{self.data}"\n'
         return s
 
 def _NoneOnException(func):
@@ -232,73 +228,64 @@ def _NoneOnException(func):
         except: return
     return wrapper
 
-def _vdfdictify_tuple_list(tuple_list) -> VDFDict:
-    d = VDFDict()
-    for k, v in tuple_list:
-        if not isinstance(v, list):
-            d.add(k, v)
-        else:
-            d.add(k, _vdfdictify_tuple_list(v))
-    return d
-
-class KV(KeyValues):
+class KV(VDFDict):
 
     @classmethod
-    def FromFile(cls, file):
-        cppkv = KeyValues()
+    def FromFile(cls, file, case_sensitive=False):
+        cppkv = KeyValues(case_sensitive = case_sensitive)
         cppkv.LoadFromFile(file)
-        return cls(cppkv.keyName, cppkv.value)
+        return cls(cppkv.keyName, cppkv.value.ToBuiltin())
+    open = FromFile
+
+    def __init__(self, keyName, value) -> None:
+        self.keyName = keyName
+        super().__init__(value)
     
-    def __init__(self, k, v) -> None:
-        super().__init__(k, v)
+    def __getitem__(self, key) -> Optional[Any]:
+        'If key exists, value of key. Otherwise None'
+        try:
+            return super().__getitem__(key)
+        except KeyError:
+            return
 
-        #self.isSingle = True
-        self.value = self.value.ToBuiltin()
-        if isinstance(self.value, list):
-            self.value = _vdfdictify_tuple_list(self.value)#VDFDict(self.value)
-        elif isinstance(self.value, dict): # silly workaround
-            self.value = VDFDict(self.value)
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.keyName!r}, {list(self.iteritems())!r})"
 
-    def items(self) -> Generator:
-        yield from self.value.iteritems()
+    def __str__(self):
+        return self.ToStr()
 
-    def __getitem__(self, key):
-        try: return self.value[key]#store[self._keytransform(key)]
-        except: return
-    @_NoneOnException
-    def __setitem__(self, key, value):
-        self.value[key] = value
+    def ToStr(self, level=0): 
+        line_indent = "\t" * level
+        return line_indent + f'"{self.keyName}"{super().ToStr(level)}'
 
-    @_NoneOnException
-    def __delitem__(self, key):
-        del self.value[key]
+    def save(self, path):
+        with open(path, 'w') as fp:
+            fp.write(self.ToStr())
 
-    def __iter__(self): return self.value.__iter__()
+    def ToKeyValues(self):
+        raise NotImplemented
+        kv = KeyValues(self.keyName)
+        kv.Sub = []
+        for k, v in self.items():
+            if isinstance(v, VDFDict):
+                kv.value.append(v.ToKeyValues())
+            else:
+                kv.value.append(KeyValues(k, v))
+        return kv
 
-    def __len__(self): return len(self.value)
 
-    #def _keytransform(self, key):
-    #    return key
-
-#class DatadVDF(VDFDict):
-#    @property
-#    def data(self): return self #return getattr(self, "_VDFDict__omap")#self.__omap
 if __name__ == "__main__":
-    vmt = KV.FromFile(r"D:\Users\kristi\Desktop\WORK\test\materials\test_proxy.vmt")
+    vmt = KV.FromFile(r'D:\Users\kristi\Desktop\WORK\test\materials\test_proxy.vmt', case_sensitive=True)
+    #vmt['proxies'] = "kar"
+    #vmt['proxies'] = "kar2"
+    vmt.add('kar', "pidh")
+    vmt.add('Proxies', "kar")
 
-    print(vmt.keyName)
     for k, v in vmt.items():
-        if k == "proxies":
-            for proxy, proxyitems in v.items():
-                #v[proxy] = "5"
-                #v[proxy] = "5"
-                #v[proxy] = "5"
+        print(k)
+        if isinstance(v, VDFDict):
+            print("^^ was kv")
 
-                #v.setdefault((2, proxy), "255555")
-
-                #print(v.get((2, proxy)))#, proxyitems)
-                print(proxy)
-                #for sett, val in proxyitems.items():
-                #    print(sett, val)
-
-    #print(vmt)
+    z = zip(((k, v) for ((_, k), v) in vmt.items(True)), ((k, v) for (k, v) in vmt.items()))
+    for r1, r2 in z:
+        assert r1 == r2
