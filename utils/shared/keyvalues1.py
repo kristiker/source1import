@@ -1,11 +1,15 @@
 # keyvalues1.py
 
+# cppkeyvalues is nice for parsing, but we need an actual python object to work efficiently
+
 from collections import Counter
 from typing import Any, Generator, Optional, Sequence
 try:
     from cppkeyvalues import KeyValues, _dec_subkeyvalue
 except:
     from shared.cppkeyvalues import KeyValues, _dec_subkeyvalue
+
+
 class VDFDict(dict):
     def __init__(self, data=None):
         """
@@ -214,11 +218,11 @@ class VDFDict(dict):
         line_indent = '\t' * level
         s = ""
         s += "\n" + line_indent + '{\n'
-        for item in self:
-            if isinstance(self[item], VDFDict):
-                s += line_indent + f"\t{item}{self[item].ToStr(level+1)}"
+        for key, value in self.items():
+            if isinstance(value, VDFDict):
+                s += line_indent + f"\t{key}{value.ToStr(level+1)}"
             else:
-                s += line_indent + f'\t{item}\t"{self[item]}"\n'
+                s += line_indent + f'\t{key}\t"{value}"\n'
         s += line_indent + "}\n"
         return s
 
@@ -231,8 +235,9 @@ def _NoneOnException(func):
 class KV(VDFDict):
 
     @classmethod
-    def FromFile(cls, file, case_sensitive=False):
-        cppkv = KeyValues(case_sensitive = case_sensitive)
+    def FromFile(cls, file, case_sensitive=False, escape=False):
+        #breakpoint()
+        cppkv = KeyValues(case_sensitive = case_sensitive, escape = escape)
         cppkv.LoadFromFile(file)
         return cls(cppkv.keyName, cppkv.value.ToBuiltin())
     open = FromFile
@@ -240,7 +245,7 @@ class KV(VDFDict):
     def __init__(self, keyName, value) -> None:
         self.keyName = keyName
         super().__init__(value)
-    
+
     def __getitem__(self, key) -> Optional[Any]:
         'If key exists, value of key. Otherwise None'
         try:
@@ -254,7 +259,7 @@ class KV(VDFDict):
     def __str__(self):
         return self.ToStr()
 
-    def ToStr(self, level=0): 
+    def ToStr(self, level=0):
         line_indent = "\t" * level
         return line_indent + f'"{self.keyName}"{super().ToStr(level)}'
 
@@ -273,8 +278,8 @@ class KV(VDFDict):
                 kv.value.append(KeyValues(k, v))
         return kv
 
+if __name__ == "__main__": # tests
 
-if __name__ == "__main__":
     vmt = KV.FromFile(r'D:\Users\kristi\Desktop\WORK\test\materials\test_proxy.vmt', case_sensitive=True)
     #vmt['proxies'] = "kar"
     #vmt['proxies'] = "kar2"

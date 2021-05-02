@@ -183,7 +183,7 @@ def chooseShader():
 ignoreList = [ "dx9", "dx8", "dx7", "dx6", "proxies"]
 
 def default(defaulttype):
-    return VMAT_DEFAULT_PATH / Path("default" + defaulttype).with_suffix(".tga")
+    return VMAT_DEFAULT_PATH.as_posix() + "/default" + defaulttype + ".tga"
 
 def OutName(path: Path) -> Path:
     #if fs.LocalDir(path).is_relative_to(materials/skybox/) and path.stem[-2:] in skyboxFaces:
@@ -295,7 +295,7 @@ def flipNormalMap(localPath):
             settings["legacy_source1_inverted_normal"] = 1
             kv["settings"] = settings
             vdf.dump(kv, settingsFile, pretty=True)
-            
+
             #settingsFile.write('"settings"\n{\t"legacy_source1_inverted_normal" "1"\n}')
     else:
         # Open the image and convert it to RGBA, just in case it was indexed
@@ -347,7 +347,7 @@ surfprop_force = {
 }
 
 surfprop_list = sh.GetJson(Path(__file__).parent / Path("surfproperties.json"))['hlvr']
-# TODO: ideally, we want to import our legacy surfaceprops and use those instead of whatever is closest 
+# TODO: ideally, we want to import our legacy surfaceprops and use those instead of whatever is closest
 def fixSurfaceProp(vmtVal):
 
     if SURFACEPROP_AS_IS or (vmtVal in ('default', 'default_silent', 'no_decal', 'player', 'roller', 'weapon')):
@@ -383,7 +383,7 @@ def vmat_layered_param(vmatKey, layer = 'A', force = False):
 
 class TexTransform:
     def __init__(self, legacyMatrix):
-        
+
         self.center     = 0.5, 0.5  # defines the point of rotation. Only useful if rotate is being used.
         self.scale      = 1, 1      # fits the texture into the material the given number of times. '2 1' is a 50% scale in the X axis.
         self.rotate     = 0         # rotates the texture counter-clockwise in degrees. Accepts any number, including negatives.
@@ -454,8 +454,8 @@ vmt_to_vmat = {
 
     '$selfillum_envmapmask_alpha': ('F_SELF_ILLUM', '1', None),
 
-    "$masks1": ('F_MASKS_1',    '1', None) if EXPORT_MOD == "dota" else None,  # 
-    "$masks2": ('F_MASKS_2',    '1', None) if EXPORT_MOD == "dota" else None,  # 
+    "$masks1": ('F_MASKS_1',    '1', None) if EXPORT_MOD == "dota" else None,  #
+    "$masks2": ('F_MASKS_2',    '1', None) if EXPORT_MOD == "dota" else None,  #
 
     #'$phong':           ('F_PHONG',                 '1'),
     #'$vertexcolor:      ('F_VERTEX_COLOR',          '1'),
@@ -558,7 +558,7 @@ vmt_to_vmat = {
     '$blendtintcoloroverbase':('g_flModelTintAmount',   '1.000',    [float_val]),  # $layertint1
     '$selfillumscale':      ('g_flSelfIllumScale',      '1.000',    [float_val]),
     '$phongexponent':       ('g_flSpecularExponent',    '32.000',   [float_val]),
-    '$phongboost':          ('g_flPhongBoost',          '1.000',    [float_val]),  # 
+    '$phongboost':          ('g_flPhongBoost',          '1.000',    [float_val]),  #
     '$metalness':           ('g_flMetalness',           '0.000',    [float_val]),
     '$_metalness2':         ('g_flMetalnessB',          '0.000',    [float_val]),
     '$refractamount':       ('g_flRefractScale',        '0.200',    [float_val]),
@@ -824,7 +824,7 @@ def convertVmtToVmat():
             elif keyType == 'SystemAttributes':
                 if not vmat.KeyValues['SystemAttributes']:
                     vmat.KeyValues['SystemAttributes'] = {}
-                
+
                 vmat.KeyValues['SystemAttributes'][outKey] = outVal
                 continue
 
@@ -922,7 +922,7 @@ def ImportVMTtoVMAT(vmtFilePath: Path) -> Optional[Path]:
 
     vmt = VMT(kv1.KV.FromFile(vmtFilePath))
     vmt.path = vmtFilePath
- 
+
     if any(wd in vmt.shader for wd in shaderDict):
         validMaterial = True
 
@@ -971,7 +971,7 @@ def ImportVMTtoVMAT(vmtFilePath: Path) -> Optional[Path]:
             #    jsonSkyCollection.append(faceCollection)
             validMaterial = False
 
-    if not validMaterial: 
+    if not validMaterial:
         return
 
     vmat = VMAT()
@@ -1001,12 +1001,14 @@ def ImportVMTtoVMAT(vmtFilePath: Path) -> Optional[Path]:
         msg(vmt.shader + " => " + vmat.shader, "\n", vmt.KeyValues)
         #vmatFile.write('Layer0\n{\n\tshader "' + vmat.shader + '.vfx"\n\n')
         vmatFile.write(vmat.KeyValues.ToStr()) ###############################
-    
+
     f_KeyVal = '\t{}\t{}\n'
     f_KeyValQuoted = '\t{}\t"{}"\n'
     f_KeyQuotedValQuoted = '\t"{}"\t"{}"\n'
     if DEBUG: print("+ Saved", vmat.path)
     else: print("+ Saved", fs.LocalDir(vmat.path))
+
+    return vmat.path
 
  #   else: import_invalid += 1
 
@@ -1023,10 +1025,13 @@ def main():
 
     for vmtFilePath in vmtFileList:
         total += 1
-        ImportVMTtoVMAT(vmtFilePath)
+        if ImportVMTtoVMAT(vmtFilePath):
+            import_total += 1
+        else:
+            import_invalid += 1
 
     print("\nSkybox materials...")
-    
+
     #skyCollections = collect_files_skycollections(r"D:\Games\steamapps\common\Half-Life Alyx\content\hlvr_addons\csgo\materials") #OVERWRITE_SKYBOX_MATS
     #for jsonCollection in skyCollections:
     #    #print(f"Attempting to import {jsonCollection}")
@@ -1037,17 +1042,17 @@ def main():
         for failure in failureList:
             print(failure)
         print("\t^^^^ THESE MATERIALS HAVE ERRORS ^^^^")
-    
-    try: 
+
+    try:
         print(f"\nTotal imports:\t{import_total} / {total}\t| " + "{:.2f}".format((import_total/total) * 100) + f" % Imported")
         print(f"Total skipped:\t{import_invalid} / {total}\t| " + "{:.2f}".format((import_invalid/total) * 100) + f" % Skipped")
         print(f"Total errors :\t{len(failureList)} / {total}\t| " + "{:.2f}".format((len(failureList)/total) * 100) + f" % Had Errors")
-    
+
     except: pass
     # csgo -> 206 / 14792 | 1.39 % Error rate -- 4637 / 14792 | 31.35 % Skip rate
     # l4d2 -> 504 / 3675 | 13.71 % Error rate -- 374 / 3675 | 10.18 % Skip rate
     print("\nFinished! Your materials are now ready.")
-    
+
     # D:\Games\steamapps\common\Half-Life Alyx\game\bin\win64>resourcecompiler.exe -game hlvr -r -i "D:\Games\steamapps\common\Half-Life Alyx\content\csgo_imported\materials"
 
 if __name__ == "__main__":

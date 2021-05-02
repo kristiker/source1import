@@ -70,7 +70,7 @@ class CUtlBuffer(collections.UserString):
         return self.data != ""
 
     def GetDelimitedString(self, conv: Conv, nMaxChars: int) -> str:
-        
+
         string = CUtlBuffer(self.data)
 
         if not string.IsValid():
@@ -79,7 +79,7 @@ class CUtlBuffer(collections.UserString):
             nMaxChars = 2147483647
         # skippp
         return string.split('"')[1][:nMaxChars]
-        
+
         # just in case 1
         string.EatWhiteSpace()
         # Does the next bytes of the buffer match a pattern?
@@ -94,7 +94,7 @@ class CUtlBuffer(collections.UserString):
         while string.IsValid():
             if string[0] == '"':
                 break
-            
+
             c = getcharinternalwitffafsa()
             if nRead < nMaxChars:
                 string[nRead] = c
@@ -102,11 +102,11 @@ class CUtlBuffer(collections.UserString):
 
         if nRead >= nMaxChars:
             nRead = nMaxChars - 1
-        
+
     def lcut(self, n): self.data = self.data[n:]
     def rcut(self, n): self.data = self.data[:n]
 
-    def PeekGet(self, i) -> list: # from start get i chars
+    def PeekGet(self, i) -> str: # from start get i chars
 
         return self.data[:i]
         peek = []
@@ -115,7 +115,7 @@ class CUtlBuffer(collections.UserString):
             except IndexError: char = 0
             peek.append(char)
         return peek
-    
+
     def EatWhiteSpace(self):
         self.data = self.data.lstrip()
 
@@ -162,9 +162,9 @@ class CKeyValuesTokenReader:
         self.m_nTokensRead: int = 0
 
         self.lastToken = Token()
-    
+
     def ReadToken(self):
-        nullToken = NullToken(self.lastToken.wasQuoted, self.lastToken.wasConditional) # 
+        nullToken = NullToken(self.lastToken.wasQuoted, self.lastToken.wasConditional) #
         token = Token()
         self.lastToken = token
 
@@ -181,7 +181,7 @@ class CKeyValuesTokenReader:
 
         if c == 0:
             return nullToken
-        
+
         # read quoted strings specially
         if c == '\"':
             token.wasQuoted = True
@@ -190,7 +190,7 @@ class CKeyValuesTokenReader:
             self.m_nTokensRead += 1
             self.m_Buffer.lcut(len(token)+2) # buffer workaround
             return token
-        
+
         if c == '{' or c == '}' or c == '=':
             token.data = c
             self.m_nTokensRead += 1
@@ -264,7 +264,7 @@ class KVValue:#(KVCollection):
         if cls is KVValue:
             # Iterator BUG here as every KV is considered Iterable simply becaue it has a __iter__
             # KV("", KV("", 2).value) -> KV("", []) instead of  KV("", 2)
-            # KVValue(KVValue()) forces into KVCollection instead of preserving data type 
+            # KVValue(KVValue()) forces into KVCollection instead of preserving data type
             if isinstance(val, Sequence) and not isinstance(val, str):
                 cls = KVCollection
             else:
@@ -282,7 +282,7 @@ class KVValue:#(KVCollection):
         if self.IsSub():
             return super().__iter__()
         return iter(()) # is this the behavior of cpp? i think so
-    
+
     def append(self, item: KeyValues) -> None:
         print('Appending item', item)
         if not isinstance(item, KeyValues):
@@ -297,7 +297,7 @@ class KVValue:#(KVCollection):
     @KVSingle
     def GetFloat(self) -> int: return float(self.data) # atof, float cast
 
-    
+
     #@KVCollect
     def GetValues(self) -> Generator[KeyValues, None, None]:
         yield from self
@@ -316,7 +316,7 @@ class KVValue:#(KVCollection):
         else:
             s = f'\t"{self.data}"\n'
         return s
-    
+
     def ToBuiltin(self):
         if self.IsSub():
             return [*(kv.ToTuple() for kv in self.data)]
@@ -324,7 +324,7 @@ class KVValue:#(KVCollection):
 
 class KVCollection(collections.UserList, KVValue): ...
 class ColorValue(collections.UserList, KVValue): ... # unsigned char [4]
-class GenericValue(KVValue): ... # int, float, char*, wchar*, ptr, 
+class GenericValue(KVValue): ... # int, float, char*, wchar*, ptr,
 
 class KVType(IntEnum):
     TYPE_NONE = 0, # hasChild
@@ -334,26 +334,25 @@ class KVType(IntEnum):
     TYPE_PTR = 4,
     TYPE_WSTRING = 5,
     TYPE_COLOR = 6,
-    TYPE_UINT64 = 7,    
+    TYPE_UINT64 = 7,
 
-class KeyValues(object):
+class KeyValues:
     "Key that holds a Value. Value can be a list holding other KeyValues"
 
 
-    def __init__(self, k: Optional[str] = None, v: Union[int, float, str, KVCollection] = None, case_sensitive = False):
-        
+    def __init__(self, k: Optional[str] = None, v: Union[int, float, str, KVCollection] = None, case_sensitive = False, escape = False):
+
+        self.DataType: KVType = KVType.TYPE_NONE
         self.KeyNameCaseSensitive2: bool = case_sensitive
+        self.HasEscapeSequences: bool = escape
 
         if not self.KeyNameCaseSensitive2 and k is not None:
             k = k.lower()
-        self.keyName = k# if k else k
-        
-        self.value = KVValue(v) # Iterator BUG
+        self.keyName = k
 
-        self.DataType = KVType.TYPE_NONE
-        self.HasEscapeSequences: bool
-        
-        # listlike pointery variables 
+        self.value = KVValue(v)
+
+        # listlike pointery variables
         self.Peer: KeyValues = None
         #self.Sub: KeyValues = None
         self.Chain: KeyValues = None
@@ -398,7 +397,7 @@ class KeyValues(object):
     @m_iValue.deleter
     def m_iValue(self):
         self._iValue = None
-    
+
     @property ##### m_flValue
     def m_flValue(self):
         return self._flValue
@@ -413,20 +412,22 @@ class KeyValues(object):
     def FindKey(self, keyName, bCreate):
         if keyName is None:
             return self
-        
+
         lastItem = None
+        dat = None
         for dat in self.value:
             lastItem = dat
             if dat.keyName == keyName:
                 break
-        
+
         if not dat:
             if bCreate:
                 ...
             else:
                 return None
+        return lastItem
 
-    
+
     def Clear(self):
         del self.Sub
         self.Sub = None
@@ -451,7 +452,7 @@ class KeyValues(object):
         #wasConditional: bool
         tokenReader = CKeyValuesTokenReader(buf) # (self, buf)
         #print(tokenReader, tokenReader.__dict__)
-        
+
         g_KeyValuesErrorStack.SetFilename( resourceName )
         while True: # do while
             # the first thing must be a key
@@ -474,13 +475,13 @@ class KeyValues(object):
                 else:
                     ...
                     #ParseIncludedKeys(resourceName, s, "baseKeys if #base else includedKeys") #TODO
-            
+
                 continue
 
+            # I think this just means: did you invoke this function as a classmethod -- which cannot happen here
             if not currentKey:
-                currentKey = KeyValues(s, case_sensitive=self.KeyNameCaseSensitive2)
-
-                currentKey.HasEscapeSequences = self.HasEscapeSequences # same format has parent use
+                currentKey = KeyValues(s, case_sensitive=self.KeyNameCaseSensitive2, escape=self.HasEscapeSequences)
+                #currentKey.HasEscapeSequences = self.HasEscapeSequences # same format has parent use
 
                 if previousKey:
                     previousKey.SetNextKey(currentKey)
@@ -494,11 +495,10 @@ class KeyValues(object):
 
             if s and s[0] == '{' and not s.wasQuoted:
                 # header is valid so load the file
-                currentKey.Sub = []
                 currentKey.RecursiveLoadFromBuffer(resourceName, tokenReader)
             else:
                 g_KeyValuesErrorStack.ReportError("LoadFromBuffer: missing {")
-            
+
             if False:
                 if previousKey:
                     previousKey.SetNextKey(None)
@@ -507,6 +507,7 @@ class KeyValues(object):
                 break
 
     def RecursiveLoadFromBuffer(self, resourceName, tokenReader: CKeyValuesTokenReader):
+        self.Sub = [] # change value type to collection so you can append other KVs - aka sub-keyvalues
         while True:
             bAccepted = True
             # get the key name
@@ -519,14 +520,12 @@ class KeyValues(object):
                 break
             if name[0] == '}' and not name.wasQuoted: # top level closed, stop reading
                 break
-            
-            #if name == ".filelist":
-            #    breakpoint()
+
             dat = KeyValues(str(name), case_sensitive=self.KeyNameCaseSensitive2)
             self.value.append(dat)
             del name
             value = tokenReader.ReadToken()
-            
+
             vne = (value != "") # value not empty -> True
 
             foundConditional = value.wasConditional
@@ -537,7 +536,7 @@ class KeyValues(object):
                 g_KeyValuesErrorStack.ReportError("RecursiveLoadFromBuffer:  got NULL key")
                 break
 
-            
+
             # support the '=' as an assignment, makes multiple-keys-on-one-line easier to read in a keyvalues file
             if vne and value[0] == '=' and not value.wasQuoted: #value[0] == '=' value is sometimes empty giving IndexError
                 # just skip over it
@@ -557,7 +556,6 @@ class KeyValues(object):
                 break
             if vne and value[0] == '{' and not value.wasQuoted:
                 # sub value list
-                dat.Sub = []
                 dat.RecursiveLoadFromBuffer(resourceName, tokenReader)
             else:
                 if value.wasConditional:
@@ -587,7 +585,7 @@ class KeyValues(object):
                 elif (pFEnd > pIEnd) and (pFEnd == pSEnd):#len(str(fval).rstrip('0').rstrip('.')) > len(str(lval)): # TODO support this '1.511111111fafsadasd'
                     dat.m_flValue = fval
                     dat.DataType = KVType.TYPE_FLOAT
-                elif (pIEnd == pSEnd) and not overflow: # len(str(lval)) == length 
+                elif (pIEnd == pSEnd) and not overflow: # len(str(lval)) == length
                     dat.m_iValue = lval
                     dat.DataType = KVType.TYPE_INT
                 else:
@@ -595,7 +593,7 @@ class KeyValues(object):
 
                 if dat.DataType == KVType.TYPE_STRING:
                     dat.m_sValue = str(value)
-                
+
                 # Look ahead one token for a conditional tag
                 #peek = tokenReader.ReadToken()
                 #if peek.wasConditional:
@@ -603,13 +601,13 @@ class KeyValues(object):
                 #else:
                 #    tokenReader.SeekBackOneToken()
 
-                if bAccepted:
-                    ...
-                    #self.value.append(dat)
-                else:
-                    # remove key from list
-                    del self.value[dat]
-                    del dat
+                #if bAccepted:
+                #    ...
+                #    #self.value.append(dat)
+                #else:
+                #    # remove key from list
+                #    del self.value[dat]
+                #    del dat
 
     def EvaluateConditional(self, **args):
         return True
