@@ -31,8 +31,10 @@ MISSING_TEXTURE_SET_DEFAULT = True
 USE_SUGESTED_DEFAULT_ROUGHNESS = True
 SURFACEPROP_AS_IS = False
 
-from shared.base_utils import msg, DEBUG
 DEBUG = False
+#from shared.base_utils import msg, DEBUG
+sh.DEBUG = False
+msg = sh.msg
 # File format of the textures. Needs to be lowercase
 # source 2 supports all kinds: tga jpeg png gif psd exr tiff pfm...
 TEXTURE_FILEEXT = '.tga'
@@ -63,13 +65,15 @@ class ValveMaterial:
 class VMT(ValveMaterial):
 
     ver = 1  # materialsystem1
-    __defaultkv = kv1.KV('', {})  # unescaped, supports duplicates, keys case insensitive
+    __defaultkv = ('', {})  # unescaped, supports duplicates, keys case insensitive
 
     shader = ValveMaterial.shader
     KeyValues = ValveMaterial._KV
 
-    def __init__(self, kv=__defaultkv):
+    def __init__(self, kv=None):
 
+        if kv is None:
+            kv = kv1.KV(*self.__defaultkv)
         if kv.keyName == '':
             kv.keyName = 'Wireframe_DX9'
 
@@ -107,13 +111,15 @@ class VMT(ValveMaterial):
 class VMAT(ValveMaterial):
 
     ver = 2   # materialsystem2
-    __defaultkv = kv1.KV('Layer0', {'shader': 'error.vfx'})  # unescaped, keys case sensitive
+    __defaultkv = ('Layer0', {'shader': 'error.vfx'})  # unescaped, keys case sensitive
 
     shader = ValveMaterial.shader
     KeyValues = ValveMaterial._KV
 
-    def __init__(self, kv=__defaultkv):
-        super().__init__(kv['shader'] or 'error.vfx', kv)
+    def __init__(self, kv=None):
+        if kv is None:
+            kv = kv1.KV(*self.__defaultkv)
+        super().__init__(kv.get('shader') or 'error.vfx', kv)
 
     @shader.getter
     def shader(self):
@@ -160,7 +166,7 @@ def chooseShader():
 
     if vmt.shader not in shaderDict:
         if DEBUG:
-            failureList.append("At least 1 material: unmatched shader " + vmt.shader)
+            failureList.add("At least 1 material: unmatched shader " + vmt.shader)
         return "vr_black_unlit"
 
     if LEGACY_SHADER:   sh["generic"] += 1
@@ -286,17 +292,20 @@ def createMask(vmtTexture, copySub = '_mask', channel = 'A', invert = False, que
 def flipNormalMap(localPath):
 
     image_path = fs.Output(localPath)
-    if not image_path.exists(): return
+    if not image_path.exists(): return False
 
     if NORMALMAP_G_VTEX_INVERT:
-        with open(image_path.with_suffix(".txt"), 'w') as settingsFile:
-            kv = vdf.parse(settingsFile)
-            settings = kv.get("settings", {})
-            settings["legacy_source1_inverted_normal"] = 1
-            kv["settings"] = settings
-            vdf.dump(kv, settingsFile, pretty=True)
-
-            #settingsFile.write('"settings"\n{\t"legacy_source1_inverted_normal" "1"\n}')
+        if (settings_file := image_path.with_suffix(".txt")).exists():
+            if sh.get_crc(settings_file) != '69D57F2B':
+                settKV = kv1.KV.FromFile(settings_file)
+                if settKV.keyName != 'settings':
+                    settKV.keyName = 'settings'
+                settKV["legacy_source1_inverted_normal"] = 1
+                settKV.save(settings_file)
+        else:
+            with open(settings_file, 'w') as settingsFile:
+                #settingsFile.write('"settings"\n{\t"legacy_source1_inverted_normal"\t"1"\n}')
+                settingsFile.write('"settings"\n{\n\tlegacy_source1_inverted_normal\t"1"\n}\n')
     else:
         # Open the image and convert it to RGBA, just in case it was indexed
         image = Image.open(image_path).convert('RGB')
@@ -306,7 +315,7 @@ def flipNormalMap(localPath):
         final_transparent_image = Image.merge('RGB', (r,g,b,a))
         final_transparent_image.save(image_path)
 
-    return localPath
+    return True
 
 def fixVector(s, addAlpha = 1, returnList = False):
 
@@ -361,16 +370,26 @@ def fixSurfaceProp(vmtVal):
 
     return match[0] if match else vmtVal
 
+def presence(_, rv=1):
+    return rv
+
+def fix_envmap(vmtVal):
+    if 'environment maps/metal' in vmtVal:
+        vmt.KeyValues['$metalness'] = 0.888
+    elif 'env_cubemap' == vmtVal:
+        vmat.KeyValues['F_SPECULAR_CUBE_MAP'] =  1
+    return 1  # presence()
+
 
 def int_val(vmtVal, bInvert = False):
     if bInvert: vmtVal = not int(vmtVal)
         #return str(int(not int(vmtVal)))
-    return str(int(vmtVal))
+    return int(vmtVal)
 
 def mapped_val(vmtVal, dMap):
     if not vmtVal or vmtVal not in dMap:
         return None  # use default value
-    return str(int(dMap[vmtVal]))
+    return int(dMap[vmtVal])
 
 def float_val(vmtVal):
     return "{:.6f}".format(float(vmtVal.strip(' \t"')))
@@ -433,29 +452,29 @@ vmt_to_vmat = {
 #'shader': { '$_vmat_shader':    ('shader',  'generic.vfx', [ext, SOURCE2_SHADER_EXT]),},
 
 'f_keys': {
-    '$_vmat_unlit':     ('F_UNLIT',                 '1', None),
-    '$_vmat_lit':       ('F_LIT',                   '1', None),
-    '$_vmat_samplightm':('F_SAMPLE_LIGHTMAP',       '1', None),
-    '$_vmat_blendmode': ('F_BLEND_MODE',            '0', None),
+    '$_vmat_unlit':     ('F_UNLIT',                 '1'),
+    '$_vmat_lit':       ('F_LIT',                   '1'),
+    '$_vmat_samplightm':('F_SAMPLE_LIGHTMAP',       '1'),
+    '$_vmat_blendmode': ('F_BLEND_MODE',            '0'),
 
-    '$translucent':     ('F_TRANSLUCENT',           '1', None),  # "F_BLEND_MODE 0" for "vr_projected_decals"
-    '$alphatest':       ('F_ALPHA_TEST',            '1', None),
-    '$envmap':          ('F_SPECULAR',              '1', None),  # in "environment maps/metal" | "env_cubemap" F_SPECULAR_CUBE_MAP 1 // In-game Cube Map
-    '$envmapanisotropy':('F_ANISOTROPIC_GLOSS',     '1', None),
-    '$selfillum':       ('F_SELF_ILLUM',            '1', None),
-    '$additive':        ('F_ADDITIVE_BLEND',        '1', None),
-    '$ignorez':         ('F_DISABLE_Z_BUFFERING',   '1', None),
-    '$nocull':          ('F_RENDER_BACKFACES',      '1', None),  # F_NO_CULLING 1
-    '$decal':           ('F_OVERLAY',               '1', None),
-    '$flow_debug':      ('F_FLOW_DEBUG',            '0', None),
+    '$translucent':     ('F_TRANSLUCENT',           '1'),  # "F_BLEND_MODE 0" for "vr_projected_decals"
+    '$alphatest':       ('F_ALPHA_TEST',            '1'),
+    '$envmap':          ('F_SPECULAR',              '1', [fix_envmap]),  # in "environment maps/metal" | "env_cubemap" F_SPECULAR_CUBE_MAP 1 // In-game Cube Map
+    '$envmapanisotropy':('F_ANISOTROPIC_GLOSS',     '1'),
+    '$selfillum':       ('F_SELF_ILLUM',            '1'),
+    '$additive':        ('F_ADDITIVE_BLEND',        '1'),
+    '$ignorez':         ('F_DISABLE_Z_BUFFERING',   '1'),
+    '$nocull':          ('F_RENDER_BACKFACES',      '1'),  # F_NO_CULLING 1
+    '$decal':           ('F_OVERLAY',               '1'),
+    '$flow_debug':      ('F_FLOW_DEBUG',            '0'),
     '$detailblendmode': ('F_DETAIL_TEXTURE',        '1', [mapped_val, {'0':'1', '1':'2', '12':'0'} ]),  # https://developer.valvesoftware.com/wiki/$detail#Parameters_and_Effects
     '$decalblendmode':  ('F_DETAIL_TEXTURE',        '1', [mapped_val, {'0':'1', '1':'2', '12':'0'} ]),  # materialsystem\stdshaders\BaseVSShader.h#L26
     '$sequence_blend_mode': ('F_FAST_SEQUENCE_BLEND_MODE', '1', [mapped_val, {'0':'1', '1':'2', '2':'3'}]),
 
-    '$selfillum_envmapmask_alpha': ('F_SELF_ILLUM', '1', None),
+    '$selfillum_envmapmask_alpha': ('F_SELF_ILLUM', '1'),
 
-    "$masks1": ('F_MASKS_1',    '1', None) if EXPORT_MOD == "dota" else None,  #
-    "$masks2": ('F_MASKS_2',    '1', None) if EXPORT_MOD == "dota" else None,  #
+    "$masks1": ('F_MASKS_1',    '1') if EXPORT_MOD == "dota" else None,  #
+    "$masks2": ('F_MASKS_2',    '1') if EXPORT_MOD == "dota" else None,  #
 
     #'$phong':           ('F_PHONG',                 '1'),
     #'$vertexcolor:      ('F_VERTEX_COLOR',          '1'),
@@ -484,7 +503,7 @@ vmt_to_vmat = {
     ## Layer 1
     '$basetexture2':    ('TextureColorB' if NEW_SH else 'TextureLayer1Color',  '_color',  [formatNewTexturePath]),
     '$texture2':        ('TextureColorB' if NEW_SH else 'TextureLayer1Color',   '_color',  [formatNewTexturePath]),  # UnlitTwoTexture
-    '$bumpmap2':        ('TextureNormalB' if NEW_SH else 'TextureLayer1Normal', '_normal', [formatNewTexturePath], () if NEW_SH else ('F_BLEND_NORMALS',  1)),
+    '$bumpmap2':        ('TextureNormalB' if NEW_SH else 'TextureLayer1Normal', '_normal', [formatNewTexturePath], None if NEW_SH else ('F_BLEND_NORMALS',  1)),
 
     ## Layer 2-3
     '$basetexture3':    ('TextureLayer2Color',  '_color',  [formatNewTexturePath]),
@@ -570,7 +589,7 @@ vmt_to_vmat = {
     "$notint":  ('g_flModelTintAmount', '1.000',    [int_val, True]),
 
     # rimlight
-    '$rimlightexponent':    ('g_flRimLightScale',   '1.000',    [int_val]),
+    '$rimlightexponent':    ('g_flRimLightScale',   '1.000',    [float_val]),
     #'$warpindex':           ('g_flDiffuseWrap',         '1.000',    [float_var]),  # requires F_DIFFUSE_WRAP 1. "?
     #'$diffuseexp':          ('g_flDiffuseExponent',     '2.000',    [float_var], 'g_vDiffuseWrapColor "[1.000000 1.000000 1.000000 0.000000]'),
 
@@ -660,9 +679,9 @@ for d in vmt_to_vmat.values():
 def convertVmtToVmat():
 
     # For each key-value in the vmt file...
-    for vmtKey, vmtVal in vmt.KeyValues.items():
+    for vmtKey, vmtVal in vmt.KeyValues.iteritems():
 
-        outKey = outVal = outAddLines = ''
+        outKey = outVal  = ''
 
         vmtKey = vmtKey.lower()
         vmtVal = str(vmtVal).strip().strip('"' + "'").strip(' \n\t"') # FIXME temp str
@@ -678,13 +697,13 @@ def convertVmtToVmat():
             vmatReplacement = None
             vmatDefaultVal = None
             vmatTranslFunc = None
-            outAddLines = None
+            outAddLines = []
 
             try:
                 vmatReplacement = vmatTranslation [ VMAT_REPLACEMENT ]
                 vmatDefaultVal  = vmatTranslation [ VMAT_DEFAULTVAL  ]
                 vmatTranslFunc  = vmatTranslation [ VMAT_TRANSLFUNC  ]
-                outAddLines     = vmatTranslation [ VMAT_EXTRALINES : ]
+                outAddLines     = list( vmatTranslation [ VMAT_EXTRALINES : ] )
             except IndexError:
                 pass
 
@@ -702,7 +721,7 @@ def convertVmtToVmat():
 
                 if vmatTranslFunc:
                     if not hasattr(vmatTranslFunc[0], '__call__'):
-                        outAddLines = vmatTranslation [ VMAT_TRANSLFUNC :  ]
+                        outAddLines = list( vmatTranslation [ VMAT_TRANSLFUNC : ] )
                     else:
                         func_ = vmatTranslFunc[0]
                         args_ = []
@@ -715,10 +734,16 @@ def convertVmtToVmat():
                             #print(vmatTranslFunc)
 
                         msg(vmtKey, "->\t" + func_.__name__, args_, end=" -> ")
-                        if (returnValue:= func_(*args_)):
-                            outVal = returnValue
-                        #args_.clear()
-                        msg(outKey, returnValue)
+                        try:
+                            if (returnValue:= func_(*args_)):
+                                outVal = returnValue
+                            #args_.clear()
+                            msg(outKey, returnValue)
+                        except ValueError as errrrr:
+                            print("Got ValueError:", errrrr, "on", f'{vmtKey}: {vmtVal} with {func_.__name__}')
+                            failureList.add(f"{vmt.path} @ {vmtKey}: {vmtVal} -- couldnt parse with {func_.__name__}")
+                            outVal = vmatDefaultVal
+                        
 
             # no equivalent key-value for this key, only exists
             # add comment or ignore completely
@@ -776,13 +801,13 @@ def convertVmtToVmat():
                 if(transform.scale != (1.000, 1.000)):
                     outKey = vmatReplacement + 'CoordScale'
                     outVal = fixVector(transform.scale, False)
-                    vmatContent += f_KeyValQuoted.format(outKey, outVal)
+                    vmat.KeyValues[outKey] = outVal
 
                 # translate .5 2 -> g_vTexCoordOffset "[0.500 2.000]"
                 if(transform.translate != (0.000, 0.000)):
                     outKey = vmatReplacement + 'CoordOffset'
                     outVal = fixVector(transform.translate, False)
-                    vmatContent += f_KeyValQuoted.format(outKey, outVal)
+                    vmat.KeyValues[outKey] = outVal
 
                 continue ## Skip default content write
 
@@ -798,7 +823,7 @@ def convertVmtToVmat():
                 sourceChannel   = vmt_to_vmat['channeled_masks'][vmtKey][2]  # channel to extract
 
                 outKey          = vmt_to_vmat['textures'][outVmtTexture][VMAT_REPLACEMENT]
-                outAddLines     = vmt_to_vmat['textures'][outVmtTexture][VMAT_EXTRALINES]
+                outAddLines     = list(vmt_to_vmat['textures'][outVmtTexture][ VMAT_EXTRALINES : ] )
                 sourceSubString = vmt_to_vmat['textures'][outVmtTexture][VMAT_DEFAULTVAL]
 
                 if vmt.KeyValues[outVmtTexture]:
@@ -827,6 +852,12 @@ def convertVmtToVmat():
 
                 vmat.KeyValues['SystemAttributes'][outKey] = outVal
                 continue
+
+            try:
+                if outAddLines[0] == None:
+                    outAddLines = []
+            except IndexError: pass
+            #print(outAddLines, keyType, vmtKey)
 
             for key, value in outAddLines:
                 vmat.KeyValues[key] = value
@@ -892,7 +923,7 @@ def convertSpecials():
         wpn_name = vmt.path.parent.name
         if (vmt.path.stem == wpn_name or vmt.path.stem == wpn_name.split('_')[-1]):
             vm_customization = viewmodels.parent / "customization"
-            ao_path = fs.Output(vm_customization/wpn_name/ str(wpn_name) + "_ao"+ TEXTURE_FILEEXT)
+            ao_path = fs.Output(vm_customization/wpn_name/ (str(wpn_name) + "_ao"+ TEXTURE_FILEEXT))
             if ao_path.exists():
                 ao_path_new = fs.Output(materials/viewmodels/wpn_name/ao_path.name)
                 try:
@@ -994,11 +1025,10 @@ def ImportVMTtoVMAT(vmtFilePath: Path) -> Optional[Path]:
             for key, val in dynamicParams.items():
                 vmat.KeyValues['DynamicParams'][key] = val
 
-    print(vmat.shader)
     with open(vmat.path, 'w') as vmatFile:
         vmatFile.write('// Converted with vmt_to_vmat.py\n')
         vmatFile.write('// From: ' + str(vmt.path) + '\n\n')
-        msg(vmt.shader + " => " + vmat.shader, "\n", vmt.KeyValues)
+        msg(vmt.shader + " => " + vmat.shader, "\n")#, vmt.KeyValues)
         #vmatFile.write('Layer0\n{\n\tshader "' + vmat.shader + '.vfx"\n\n')
         vmatFile.write(vmat.KeyValues.ToStr()) ###############################
 

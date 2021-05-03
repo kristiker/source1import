@@ -1,6 +1,7 @@
 import argparse, os, json # pylint: disable=unused-import
 from pathlib import Path
 import types
+import zlib
 
 DEBUG = False
 def msg(*args, **kwargs):
@@ -210,6 +211,13 @@ class Source(IO):
 
             #if not existing: print(f"  Skipped: {skipCountExists} already existing | {skipCountBlacklist} found in blacklist")
             #else: print(f"  Skipped: {skipCountBlacklist} found in blacklist")
+
+def get_crc(fpath: Path):
+    crc = 0
+    with open(fpath, 'rb', 65536) as ins:
+        for _ in range(int((os.stat(fpath).st_size / 65536)) + 1):
+            crc = zlib.crc32(ins.read(65536), crc)
+    return '%08X' % (crc & 0xFFFFFFFF)
 
 def combine_files(*items):
      for lst in items:
