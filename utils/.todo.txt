@@ -1,0 +1,257 @@
+finish ('$phong', 1) key structure
+
+fix includes
+
+models/player/custom_player/animset_t.vagrp
+models/player/custom_player/animset_ct.vagrp
+
+I had these compile before, maybe missing dependencies? caused by different s1import method?
+
+----
+modeldoc import from old vmdl?? looks like it fixes things, & maybe gives you proper 'content' modifyable assets
+----
+add vr_static_overlay alongside vr_projected_decals
+----
+vr_projected_decals is close to generic with glossiness and stuff, also sheets
+
+g_flGlossiness "0.000" is inverse of roughness (=255)
+you also got specular toggle
+
+phong is specular -- compared to envmap its positionally accurate, but limited to light sources
+
+---
+one materials detail is anothers normal (for some reason)
+they shouldnt share it as the detail cannot have inverted green
+split shared maps after all??
+---
+use hl2_water as water shader??
+---
+base_utils refactor
+
+[ W Source1Import ]: WARNING: Failed to find source 2 file for particle system ambient_smokestack
+[ W Source1Import ]: WARNING: Failed to find source 2 file for particle system water_splash_leakypipe_vertical
+[ W Source1Import ]: WARNING: Failed to find source 2 file for particle system water_splash_leakypipe_vertical
+[ W Source1Import ]: WARNING: Failed to find source 2 file for particle system water_splash_leakypipe_vertical
+[ W Source1Import ]: WARNING: Failed to find source 2 file for particle system inferno_fountain_master
+[ W Source1Import ]: WARNING: Failed to find source 2 file for particle system ambient_smokestack
+[ W Source1Import ]: WARNING: Failed to find source 2 file for particle system ambient_smokestack
+[ W Source1Import ]: WARNING: Failed to find source 2 file for particle system ambient_smokestack
+[ W Source1Import ]: WARNING: Failed to find source 2 file for particle system ambient_smokestack
+[ W Source1Import ]: WARNING: Failed to find source 2 file for particle system impact_physics_dust
+[ W Source1Import ]: WARNING: Failed to find source 2 file for particle system impact_physics_dust
+[ W Source1Import ]: WARNING: Failed to find source 2 file for particle system impact_physics_dust
+
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/WALL_PAPER/HR_WP/HR_WALL_PAPER_D.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/TOOLS/TOOLSNODRAW.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/TOOLS/TOOLSCLIP.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/WOOD/HR_W/WOOD_PLANK_A.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/PLASTER/HR_P/INFERNO/PLASTER_I.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/GLASS/GLASSWINDOW010B.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/TOOLS/TOOLSSKYBOX.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/CONCRETE/HR_C/HR_CONC_D.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/BRICK/HR_BRICK/INFERNO/BRICK_D.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/WOOD/HR_W/INFERNO/INFERNO_WOODSTEPS001.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/BRICK/HR_BRICK/INFERNO/FLAGSTONE_A_CHEAP.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/COBBLESTONE/HR_C/INFERNO/COBBLESTONE_A_BLEND3.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/BRICK/HR_BRICK/INFERNO/FLAGSTONE_A.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/COBBLESTONE/HR_C/INFERNO/COBBLESTONE_C.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/BRICK/HR_BRICK/INFERNO/BRICK_G1.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/BRICK/HR_BRICK/INFERNO/FLAGSTONE_D_BLEND.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/BRICK/HR_BRICK/INFERNO/BRICK_C_CHEAP.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/BRICK/HR_BRICK/INFERNO/BRICK_F1.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/TILE/HR_T/INFERNO/TILE_C.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/WOOD/WOOD_INT_02.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/TILE/HR_T/INFERNO/TILE_C_NOSPEC.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/METAL/HR_METAL/INFERNO/METAL_GROUND_TRIM_A.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/BRICK/HR_BRICK/INFERNO/FLAGSTONE_D.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/WOOD/HR_W/INFERNO/HR_WOOD_PLANKS_A.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/BRICK/HR_BRICK/INFERNO/BRICK_G2.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/TOOLS/TOOLSBLACK.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/WOOD/HOUSESIDING02.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/TOOLS/TOOLSPLAYERCLIP.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/TILE/HR_T/INFERNO/TILE_B.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/TILE/INFERNO_TILES_BLUE_01.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/TILE/HR_T/INFERNO/TILE_A.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/BRICK/HR_BRICK/INFERNO/BRICK_F.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/TOOLS/TOOLSSKIP.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/LIQUIDS/AZTECWATER.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/WOOD/WOODSIDING_EXT_05.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/WOOD/HR_W/INFERNO/HR_INFDOOR_A_COLOR.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/BRICK/HR_BRICK/INFERNO/BRICK_D1.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/PLASTER/HR_P/INFERNO/PLASTER_B.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/TILE/HR_T/INFERNO/ROOFING_TILE_B.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/TILE/HR_T/INFERNO/ROOFING_TILE_A.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/WINDOWS/HR_W/INFERNO/STAINED_GLASS_A.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/CONCRETE/HR_C/HR_CONCRETE_STAIRS_03_COLOR.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/CONCRETE/HR_C/INFERNO/CONCRETE_A.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/WINDOWS/HR_W/INFERNO/STAINED_GLASS_A_SELFILLUM.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/LIGHTS/HR_SINGLE_PANE_ILLUM_AMBIENT.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/BRICK/HR_BRICK/INFERNO/BRICK_I.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/PLASTER/HR_P/INFERNO/PLASTER_G.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/BRICK/HR_BRICK/INFERNO/BRICK_G1_CHEAP.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/BRICK/HR_BRICK/INFERNO/BRICK_M.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/LIGHTS/HR_SINGLE_PANE_ILLUM_SUN.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/PLASTER/HR_P/INFERNO/PLASTER_A.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/TILE/HR_T/TILES_B_INFERNO.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/PLASTER/HR_P/INFERNO/PLASTER_E.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/PLASTER/HR_P/INFERNO/PLASTER_C.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/LIQUIDS/INFERNO_FOUNTAIN.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/PLASTER/HR_P/INFERNO/PLASTER_I_CEILING_BLEND02.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/PLASTER/HR_P/INFERNO/PLASTER_E_BLEND.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/PLASTER/HR_P/INFERNO/PLASTER_B_BLEND.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/BRICK/HR_BRICK/INFERNO/BRICK_D_BLEND.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/PLASTER/HR_P/INFERNO/PLASTER_I_BLEND.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/PLASTER/HR_P/INFERNO/PLASTER_G_BLEND.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/PLASTER/HR_P/INFERNO/PLASTER_A_BLEND.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/PLASTER/HR_P/INFERNO/PLASTER_E_BLEND_02.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/PLASTER/HR_P/INFERNO/PLASTER_G_BLEND_02.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/PLASTER/HR_P/INFERNO/PLASTER_A_BLEND_02.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/CONCRETE/HR_C/HR_CONCRETE_STAIRS_04_COLOR.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/NATURE/HR_C/HR_GRASS_DIRT_BLEND_001.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/COBBLESTONE/HR_C/INFERNO/COBBLESTONE_B_BLEND.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/NATURE/HR_C/HR_DIRT_001.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/CONCRETE/HR_C/HR_CONC_D_BLEND.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/BRICK/HR_BRICK/INFERNO/BRICK_M_BLEND.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/BRICK/HR_BRICK/INFERNO/BRICK_G1_BLEND.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/BRICK/HR_BRICK/INFERNO/BRICK_I_BLEND2.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/NATURE/HR_C/HR_GRASS_DIRT_BLEND_001B_SKYBOX.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/WOOD/PLYWOOD02.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/BRICK/HR_BRICK/INFERNO/BRICK_G.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/CONCRETE/HR_C/HR_SIDEWALK_A.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/STONE/STONETRIM001A.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/TILE/HR_T/INFERNO/HERRINGBONE_B.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/TILE/HR_T/INFERNO/TRIM_SET_B.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/METAL/HR_METAL/HR_METAL_SHUTTERS_01.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/TILE/INFERNO_TILES_RED_01.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/TILE/HR_T/TILES_A2.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/TOOLS/TOOLSTRIGGER.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/METAL/FAKECOLLISION_METALVENT.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/GLASS/GLASS01.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/GLASS/GLASS01_INFERNO.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/TOOLS/WRONGWAY.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/OVERLAYS/CSMENUSCREEN.vmt"
+[ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/TOOLS/TOOLSINVISIBLE.vmt"
+
+
+---
+remove keyvalues tests honestly .gitignore
+
+
+
+
+    sine
+    {
+            resultvar       "$color[0]"
+            sineperiod      "0.2"
+            sinemin "0.99"
+            sinemax "1"
+    }
+    sine
+    {
+            resultvar       "$color[1]"
+            sineperiod      "0.1"
+            sinemin "0.98"
+            sinemax "1"
+    }
+    sine
+    {
+            resultvar       "$color[2]"
+            sineperiod      "0.1"
+            sinemin "0.99"
+            sinemax "1"
+    }
+    texturescroll
+    {
+            texturescrollvar        "$texture2transform"
+            texturescrollrate       "1"
+            texturescrollangle      "-90"
+    }
+-----
+    animatedtexture
+    {
+            animatedtexturevar      "$normalmap"
+            animatedtextureframenumvar      "$bumpframe"
+            animatedtextureframerate        "30.0"
+    }
+    texturescroll
+    {
+            texturescrollvar        "$bumptransform"
+            texturescrollrate       "0.05"
+            texturescrollangle      "45.0"
+    }
+    waterlod
+    {
+    }
+
+-----
+music
+
+    linearramp
+    {
+            rate    "0.08"
+            initialvalue    "0"
+            resultvar       "$x1"
+    }
+    frac
+    {
+            srcvar1 "$x1"
+            resultvar       "$x2"
+    }
+    lessorequal
+    {
+            srcvar1 "$x2"
+            srcvar2 "$offset2"
+            lessequalvar    "$offset1"
+            greatervar      "$offset2"
+            resultvar       "$offset_temp"
+    }
+    lessorequal
+    {
+            srcvar1 "$x2"
+            srcvar2 "$offset3"
+            lessequalvar    "$offset_temp"
+            greatervar      "$offset3"
+            resultvar       "$offset"
+    }
+    multiply
+    {
+            srcvar1 "$x2"
+            srcvar2 "$div"
+            resultvar       "$x1"
+    }
+    frac
+    {
+            srcvar1 "$x1"
+            resultvar       "$x3"
+    }
+    subtract
+    {
+            srcvar1 "$x3"
+            srcvar2 "$half"
+            resultvar       "$x2"
+    }
+    lessorequal
+    {
+            srcvar1 "$x3"
+            srcvar2 "$half"
+            lessequalvar    "$zero"
+            greatervar      "$x2"
+            resultvar       "$x1"
+    }
+    multiply
+    {
+            srcvar1 "$x1"
+            srcvar2 "$rescale"
+            resultvar       "$x2"
+    }
+    add
+    {
+            srcvar1 "$x2"
+            srcvar2 "$offset"
+            resultvar       "$scrollpos[0]"
+    }
+    texturetransform
+    {
+            translatevar    "$scrollpos"
+            resultvar       "$basetexturetransform"
+    }

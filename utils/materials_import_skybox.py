@@ -5,7 +5,6 @@ from pathlib import Path
 import time
 from PIL import Image
 import numpy as np
-from pprint import pprint
 
 COLLECTION_EXT = ".json"
 skyboxFaces = ['up', 'dn', 'lf', 'rt', 'bk', 'ft']
@@ -183,11 +182,11 @@ def createSkyCubemap(skyName: str, faceP: dict, maxFaceRes: int = 0) -> Path:
         # for hdr compressed: uncompress the whole tga map we just created and paste to pfm
         if (hdrType == 'compressed'):
 
-            print("UNCOMPRESSING... NOT!! -- saving your precious time..")
-            return sky_cubemap_path
+            #print("UNCOMPRESSING... NOT!! -- saving your precious time..")
+            #return sky_cubemap_path
             compressedPixels = SkyCubemapImage.load()
             stamp = time.time()
-            hdrImageData = [0] * (cube_w * cube_h * 3)
+            hdrImageData = [0] * (cube_w * cube_h * 3) # TODO: numpy array
             cell = 0
             for x in range(cube_w):
                 for y in range(cube_h):

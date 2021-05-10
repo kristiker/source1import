@@ -535,7 +535,7 @@ vmt_to_vmat = {
                     ('TextureRoughness',    '_rough',      [formatNewTexturePath]) if not LEGACY_SHADER else \
                     ('TextureGlossiness',   '_gloss',      [formatNewTexturePath]),
 
-                    #if out dota2 'TextureCubeMapSeparateMask' '_mask' 'F_MASK_CUBE_MAP_BY_SEPARATE_MASK 1'
+                    #if out dota2 ('TextureCubeMapSeparateMask', '_mask', ('F_MASK_CUBE_MAP_BY_SEPARATE_MASK' 1))
 
     ('$phong', 1): {
         '$phongmask':   ('$phongmask',          '_phong_mask', [formatNewTexturePath]) if not BASIC_PBR else \
@@ -793,11 +793,10 @@ def convertVmtToVmat():
                 #if(matrixList[MATRIX_ROTATE] != '0.000'):
                 #    if(matrixList[MATRIX_ROTATIONCENTER] != '[0.500 0.500]')
 
-                # scale 5 5 -> g_vTexCoordScale "[5.000 5.000]"
-
                 if transform.rotate:
                     msg("HERE IT IS:", transform.rotate)
 
+                # scale 5 5 -> g_vTexCoordScale "[5.000 5.000]"
                 if(transform.scale != (1.000, 1.000)):
                     outKey = vmatReplacement + 'CoordScale'
                     outVal = fixVector(transform.scale, False)
@@ -857,32 +856,36 @@ def convertVmtToVmat():
                 if outAddLines[0] == None:
                     outAddLines = []
             except IndexError: pass
-            #print(outAddLines, keyType, vmtKey)
 
-            for key, value in outAddLines:
-                vmat.KeyValues[key] = value
+            for additional_key, value in outAddLines:
+                vmat.KeyValues[additional_key] = value
 
             vmat.KeyValues[outKey] = outVal
-
-            #msg( vmtKey, '"'+vmtVal+'"', "->", outKey, '"'+outVal.replace('\t').replace('\n')+'"', outAddLines.replace('\t').replace('\n'))
 
             # dont break some keys have more than 1 translation (e.g. $selfillum)
 
     if USE_SUGESTED_DEFAULT_ROUGHNESS:
+        ## if f_specular use this else use "[1.000000 1.000000 1.000000 0.000000]"
+        # 2way blend has specular force enabled so maxing the rough should minimize specularity TODO
         if not vmat.shader == "vr_simple_2way_blend":
             if "TextureRoughness" not in vmat.KeyValues:
                 vmat.KeyValues["TextureRoughness"] = "materials/default/default_rough_s1import.tga"
         else:
+            default_rough = "materials/default/default_rough_s1import.tga"
+            if vmat.KeyValues['F_SPECULAR'] == 1: # TODO: phong2 envmap2 and those sorts of stuff
+                default_rough = "[1.000000 1.000000 1.000000 0.000000]"
+
             if "TextureRoughnessA" not in vmat.KeyValues:
-                vmat.KeyValues["TextureRoughnessA"] = "materials/default/default_rough_s1import.tga"
+                vmat.KeyValues["TextureRoughnessA"] = default_rough
+
             if "TextureRoughnessB" not in vmat.KeyValues:
-                vmat.KeyValues["TextureRoughnessB"] = "materials/default/default_rough_s1import.tga"
+                vmat.KeyValues["TextureRoughnessB"] = default_rough
 
 def convertSpecials():
 
     if bumpmap := vmt.KeyValues["$bumpmap"]:
-        del vmt.KeyValues["$bumpmap"]
         vmt.KeyValues["$normalmap"] = bumpmap
+        del vmt.KeyValues["$bumpmap"]
 
     # fix phongmask logic
     if vmt.KeyValues["$phong"] == '1' and not vmt.KeyValues["$phongmask"]:

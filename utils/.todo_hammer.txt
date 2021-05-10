@@ -1,0 +1,19 @@
+
+see if you can do dmx with python
+start a new empty map and open it
+
+add an info_overlay and try to read it
+see if you can change its values
+see if you can add a new entity
+
+add a static overlay and try to read its
+...same as info_overlay
+see how they get cut -- if easy, make a formula derived from info_overlay
+
+ultimately: see if you can replace info_overlays with static overlays
+
+
+MAPS:
+
+light_environment:
+    specular: render to cubemaps
