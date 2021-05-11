@@ -1,4 +1,4 @@
-import argparse, os, json # pylint: disable=unused-import
+import argparse, os, json
 from pathlib import Path
 import types
 import zlib
@@ -7,7 +7,6 @@ DEBUG = False
 def msg(*args, **kwargs):
     if DEBUG:
         print("@ DBG:", *args, **kwargs)
-
 
 CORE = "core"
 MOD = "hlvr"
@@ -55,12 +54,8 @@ class IO:
         self.EXPORT_GAME = self.get_path_app(self.OUT_ROOT, App.GAME)
         self.EXPORT_CONTENT = self.get_path_app(self.OUT_ROOT, App.CONTENT)
 
-        #self.currentDir = Path().cwd() #TODO: fix this shit so that it's actually reliable
         self.currentDir = Path(__file__).parent
         self.blacklist = self._get_blacklist()
-
-        #print(f"\nIN_PATH  {self.IN_PATH}\nOUT_PATH {self.OUT_PATH}")
-        #print(f"SEARCH   {self.SCRIPT_SCOPE.name.capitalize()}\nOVERWRITE", ("Yes" if self.SHOULD_OVERWRITE else "No"))
 
     def get_path_app(self, path, get:App = App.CONTENT):
         path_components = path.parts
@@ -119,8 +114,6 @@ class IO:
         except: return []
 
 class Source(IO):
-    def __init__(self, scope = "", inPath = None, outPath = None):
-        IO.__init__(self, scope, inPath, outPath)
 
     def FullDir(self, relPath: Path):
         "materials/texture_color.tga -> C:/Users/User/Desktop/stuff/materials/texture_color.tga"

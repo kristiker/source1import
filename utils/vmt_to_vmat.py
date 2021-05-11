@@ -942,7 +942,21 @@ def convertSpecials():
 
 from shared.materials.proxies import ProxiesToDynamicParams
 
-def ImportVMTtoVMAT(vmtFilePath: Path) -> Optional[Path]:
+def _ImportVMTtoExtraVMAT(vmt_path: Path, shader = None, path = None):
+    global vmat, import_extra
+    old_vmat = vmat
+
+    assert path != old_vmat.path
+
+    vmat = VMAT()
+    vmat.shader = shader if shader else old_vmat.shader
+    vmat.path = path if path else old_vmat.path
+
+    rv = ImportVMTtoVMAT(vmt_path, preset_vmat = True)
+
+    if rv: import_extra+=1
+
+def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False) -> Optional[Path]:
 
     global vmt, vmat, jsonSkyCollection
     validMaterial = False
@@ -998,9 +1012,10 @@ def ImportVMTtoVMAT(vmtFilePath: Path) -> Optional[Path]:
     if not validMaterial:
         return
 
-    vmat = VMAT()
-    vmat.shader = chooseShader()
-    vmat.path = OutName(vmt.path)
+    if not preset_vmat:
+        vmat = VMAT()
+        vmat.shader = chooseShader()
+        vmat.path = OutName(vmt.path)
 
     vmat.path.parent.MakeDir()
 
@@ -1032,9 +1047,11 @@ def ImportVMTtoVMAT(vmtFilePath: Path) -> Optional[Path]:
     if sh.DEBUG: print("+ Saved", vmat.path)
     else: print("+ Saved", fs.LocalDir(vmat.path))
 
-    return vmat.path
+    if vmat.shader == "vr_projected_decals":
+        _ImportVMTtoExtraVMAT(vmt_path, shader="vr_static_overlay",
+            path=(vmat.path.parent / (vmat.path.stem + '-static' + vmat.path.suffix)))
 
- #   else: import_invalid += 1
+    return vmat.path
 
 vmt, vmat = None, None
 
@@ -1050,12 +1067,14 @@ class Failures(dict):
 failureList = Failures()
 jsonSkyCollection = set()
 
+total=import_total=import_invalid=import_extra = 0
+
 def main():
     print('\nSource 2 Material Converter!')
     print('----------------------------------------------------------------------------')
 
     vmtFileList = fs.collect_files(IN_EXT, OUT_EXT, existing=OVERWRITE_VMAT, outNameRule = OutName)
-    total, import_total, import_invalid = 0, 0, 0
+    global total, import_total, import_invalid
     for vmt_path in vmtFileList:
         total += 1
         if ImportVMTtoVMAT(vmt_path):
@@ -1082,13 +1101,14 @@ def main():
         print(f"\nTotal imports:\t{import_total} / {total}\t| " + "{:.2f}".format((import_total/total) * 100) + f" % Imported")
         print(f"Total skipped:\t{import_invalid} / {total}\t| " + "{:.2f}".format((import_invalid/total) * 100) + f" % Skipped")
         print(f"Total errors :\t{len(failureList)} / {total}\t| " + "{:.2f}".format((len(failureList)/total) * 100) + f" % Had Errors")
+        print(f"Total extra :\t{import_extra}")
 
     except: pass
     # csgo -> 206 / 14792 | 1.39 % Error rate -- 4637 / 14792 | 31.35 % Skip rate
     # l4d2 -> 504 / 3675 | 13.71 % Error rate -- 374 / 3675 | 10.18 % Skip rate
     print("\nFinished! Your materials are now ready.")
 
-    # D:\Games\steamapps\common\Half-Life Alyx\game\bin\win64>resourcecompiler.exe -game hlvr -r -i "D:\Games\steamapps\common\Half-Life Alyx\content\csgo_imported\materials"
+    # D:\Games\steamapps\common\Half-Life Alyx\game\bin\win64>resourcecompiler.exe -game hlvr -r -i "D:\Games\steamapps\common\Half-Life Alyx\content\csgo_imported\materials\*"
 
 if __name__ == "__main__":
     main()
