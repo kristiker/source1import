@@ -97,7 +97,7 @@ class SampleApp(Tk):
         self.sett_grid.grid_columnconfigure(0, weight=0, pad=2, minsize=12)
         self.sett_grid.grid_rowconfigure(0, weight=0, pad=1, minsize=15)
 
-        self.widgets[12] = Button(text="  Check all  ", command=self.checkbutton_toggle_all, bd = 2)
+        self.widgets[12] = Button(text="  Tick all  ", command=self.checkbutton_toggle_all, bd = 2)
         self.widgets[12].grid(pady= 5, row = 0, column = 0,in_=self.sett_grid, sticky="n")
         self.widgets[1] = Checkbutton(self, text="Force Overwrite", variable=self.Overwrite,selectcolor=bg1, bd = 0)#.grid(row=1, sticky=W)
         self.widgets[1].grid(pady= 5, row = 0, column = 1, columnspan = 2, in_=self.sett_grid, sticky="n")#.grid(row=0, sticky=W)
@@ -247,7 +247,7 @@ class SampleApp(Tk):
     def checkbutton_toggle_all(self):
         # .toggle, select, deselect
         self.allChecked = not self.allChecked
-        self.widgets[12].configure(text= "Uncheck all" if self.allChecked else " Check all  ")
+        self.widgets[12].configure(text= "Untick all" if self.allChecked else " Tick all  ")
         self.Textures.set(self.allChecked)
         self.Materials.set(self.allChecked)
         self.Models.set(self.allChecked)

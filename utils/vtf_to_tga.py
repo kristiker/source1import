@@ -47,7 +47,7 @@ OUT_NAME_ENDS = [
     #"up",   # CUBEMAP up face
 ]
 
-def OutputList(path: Path, with_suffix = False) -> list:
+def OutputList(path: Path, with_suffix = False):
     """ Return list with all the possible output names
     """ 
     for name in OUT_NAME_ENDS:
@@ -59,7 +59,7 @@ def OutputList(path: Path, with_suffix = False) -> list:
 # if there is one, force skybox vtfs to run on the 2nd row executable __very specific__ 
 FORCE_SKYBOX_2ND_VTF2TGA = True
 
-# Add your vtf2tga.exe here. Accepts full (C:/) and relative paths (../). Priority is top to bottom
+# Add your vtf2tga.exe here. Accepts full (C:/) and relative paths (./). Priority is top to bottom
 PATHS_VTF2TGA = [
     r"./vtf2tga/2013/vtf2tga.exe",
     r"./vtf2tga/csgo/vtf2tga.exe", # FORCE_SKYBOX_2ND_VTF2TGA
@@ -116,7 +116,7 @@ def ImportVTFtoTGA(vtfFile, force_2nd = False):
                 if not outPath.exists(): continue
                 bCreated = True
                 totalFiles +=1
-                outImages = []
+                outImages: list[Path] = []
 
                 for ttype in OUT_NAME_ENDS:
                     if not outPath.stem.endswith(ttype):
@@ -195,7 +195,7 @@ def txt_import(txtFile):
             key, value = re.split(r'\s', line, maxsplit=1)
             key, value = key.strip('"'), value.strip().strip('"')
             new_key = transl_table.get(key)
-            if not new_key:
+            if new_key is None:
                 fp.write(f"\t// \"{key}\"\t\t\"{value}\"\n") # comment it
             else:
                 fp.write(f"\t\"{new_key}\"\t\t\"{value}\"\n")
@@ -225,7 +225,7 @@ def main():
             force_2nd = True # 2nd exe outputs pfm files. use that for hdr skybox files
 
         if MULTITHREAD:
-            semaphore.acquire() # blocking=True
+            semaphore.acquire()
 
             threads.append(threading.Thread(target=ImportVTFtoTGA,  args=(vtfFile, force_2nd)))
             startThread = threads[-1]

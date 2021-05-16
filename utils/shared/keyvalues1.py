@@ -240,7 +240,13 @@ class KV(VDFDict):
         cppkv = KeyValues(case_sensitive = case_sensitive, escape = escape)
         cppkv.LoadFromFile(file)
         return cls(cppkv.keyName, cppkv.value.ToBuiltin())
-    open = FromFile
+
+    @classmethod
+    def CollectionFromFile(cls, file, case_sensitive=False, escape=False):
+        keyName = file.name
+        cppkv = KeyValues(keyName, case_sensitive = case_sensitive, escape = escape)
+        cppkv.RecursiveLoadFromFile(file)
+        return cls(keyName, cppkv.value.ToBuiltin())
 
     def __init__(self, keyName, value) -> None:
         self.keyName = keyName

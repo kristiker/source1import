@@ -4,7 +4,7 @@
 import collections
 from warnings import warn
 
-from ctypes import *
+#from ctypes import *
 NULL = 0
 
 MAX_ERROR_STACK = 64
@@ -443,6 +443,10 @@ class KeyValues:
             buf = CUtlBuffer(f.read())
             self.LoadFromBuffer(resourceName, buf, **params)
 
+    def RecursiveLoadFromFile(self, resourceName, **params):
+         with open(resourceName, 'r') as f:
+            self.RecursiveLoadFromBuffer(resourceName, CKeyValuesTokenReader(CUtlBuffer(f.read())), True)
+
     def LoadFromBuffer(self, resourceName, buf: CUtlBuffer, **params) -> bool:
         previousKey: KeyValues = None
         currentKey: KeyValues = self
@@ -506,14 +510,15 @@ class KeyValues:
             if not buf.IsValid():
                 break
 
-    def RecursiveLoadFromBuffer(self, resourceName, tokenReader: CKeyValuesTokenReader):
+    def RecursiveLoadFromBuffer(self, resourceName, tokenReader: CKeyValuesTokenReader, loadingCollectionFile = False):
         self.Sub = [] # change value type to collection so you can append other KVs - aka sub-keyvalues
         while True:
             bAccepted = True
             # get the key name
             name = tokenReader.ReadToken()
             if name == 0: # EOF stop reading
-                g_KeyValuesErrorStack.ReportError("RecursiveLoadFromBuffer:  got EOF instead of keyname")
+                if not loadingCollectionFile:
+                    g_KeyValuesErrorStack.ReportError("RecursiveLoadFromBuffer:  got EOF instead of keyname")
                 break
             if name == "": # empty token, maybe "" or EOF BUG this doesnt make sense for empty keys?
                 g_KeyValuesErrorStack.ReportError("RecursiveLoadFromBuffer:  got empty keyname")

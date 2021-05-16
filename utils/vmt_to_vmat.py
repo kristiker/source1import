@@ -2,12 +2,14 @@ from pathlib import Path
 from shutil import copyfile
 from difflib import get_close_matches
 from typing import Optional
-from shared.keyvalue_simple import getKV_tailored as getKeyValues
 from PIL import Image, ImageOps
-from shared import base_utils as sh
-import shared.keyvalues1 as kv1
 
+from shared import base_utils as sh
+from shared.keyvalue_simple import getKV_tailored as getKeyValues
+from shared.keyvalues1 import KV
+from shared.materials.proxies import ProxiesToDynamicParams
 import materials_import_skybox as sky
+
 # generic, blend instead of vr_complex, vr_simple_2wayblend etc...
 LEGACY_SHADER = False
 NEW_SH = not LEGACY_SHADER
@@ -30,8 +32,8 @@ MISSING_TEXTURE_SET_DEFAULT = True
 USE_SUGESTED_DEFAULT_ROUGHNESS = True
 SURFACEPROP_AS_IS = False
 
-DEBUG = False
 #from shared.base_utils import msg, DEBUG
+DEBUG = True
 sh.DEBUG = False
 msg = sh.msg
 # File format of the textures. Needs to be lowercase
@@ -72,7 +74,7 @@ class VMT(ValveMaterial):
     def __init__(self, kv=None):
 
         if kv is None:
-            kv = kv1.KV(*self.__defaultkv)
+            kv = KV(*self.__defaultkv)
         if kv.keyName == '':
             kv.keyName = 'Wireframe_DX9'
 
@@ -80,13 +82,13 @@ class VMT(ValveMaterial):
 
     @KeyValues.setter
     def KeyValues(self, n):
-        if isinstance(n, kv1.KV):  # change entire material
+        if isinstance(n, KV):  # change entire material
             self._kv = n
             self._shader = n.keyName
         elif isinstance(n, dict):  # change body, keep shader (VMT.KeyValues = { })
-            self._kv = kv1.KV(self._shader, n)
+            self._kv = KV(self._shader, n)
         else:
-            try: n = kv1.KV(*n)  # FIXME shit shit
+            try: n = KV(*n)  # FIXME shit shit
             except Exception as ex:
                 raise ValueError("Can only assign `kv1`, `dict` or similar to VMT KeyValues, not %s" % type(n))
 
@@ -102,7 +104,7 @@ class VMT(ValveMaterial):
 
     @classmethod
     def FromDict(cls, shader="error", dict={ }):
-        kv = kv1.KV(shader, dict)
+        kv = KV(shader, dict)
         return cls(kv)
     def WriteToFile(self, file):
         ...
@@ -117,7 +119,7 @@ class VMAT(ValveMaterial):
 
     def __init__(self, kv=None):
         if kv is None:
-            kv = kv1.KV(*self.__defaultkv)
+            kv = KV(*self.__defaultkv)
         super().__init__(kv.get('shader') or 'error.vfx', kv)
 
     @shader.getter
@@ -299,7 +301,7 @@ def flipNormalMap(localPath):
     if NORMALMAP_G_VTEX_INVERT:
         if (settings_file := image_path.with_suffix(".txt")).exists():
             if sh.get_crc(settings_file) != '69D57F2B':
-                settKV = kv1.KV.FromFile(settings_file)
+                settKV = KV.FromFile(settings_file)
                 if settKV.keyName != 'settings':
                     settKV.keyName = 'settings'
                 settKV["legacy_source1_inverted_normal"] = 1
@@ -940,7 +942,6 @@ def convertSpecials():
         #"$envmaplightscale"       "1"
         #"$envmaplightscaleminmax" "[0 .3]"     metalness modifier?
 
-from shared.materials.proxies import ProxiesToDynamicParams
 
 def _ImportVMTtoExtraVMAT(vmt_path: Path, shader = None, path = None):
     global vmat, import_extra
@@ -951,17 +952,16 @@ def _ImportVMTtoExtraVMAT(vmt_path: Path, shader = None, path = None):
     vmat = VMAT()
     vmat.shader = shader if shader else old_vmat.shader
     vmat.path = path if path else old_vmat.path
-
     rv = ImportVMTtoVMAT(vmt_path, preset_vmat = True)
-
-    if rv: import_extra+=1
+    if rv:
+        import_extra+=1
 
 def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False) -> Optional[Path]:
 
     global vmt, vmat, jsonSkyCollection
     validMaterial = False
 
-    vmt = VMT(kv1.KV.FromFile(vmt_path))
+    vmt = VMT(KV.FromFile(vmt_path))
     vmt.path = vmt_path
 
     if any(wd in vmt.shader for wd in shaderDict):
