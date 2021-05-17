@@ -67,3 +67,10 @@ for file in vscSoundscapeFiles:
 
 with open(manifest_file, 'w') as fp:
     fp.write(str(soundscapes_manifest))
+
+def ImportUpdateResourceRefs(asset_path: Path):
+    ...
+    # we ported .wavs to vsnds,
+    # this func is for other generic scripts to update their resource refs
+    # eg. search for each value and see if its a ref and replace each
+    # after that just integ
