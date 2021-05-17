@@ -1,4 +1,3 @@
-import shared.PFM as PFM
 import os
 from shutil import move
 from pathlib import Path
@@ -6,18 +5,19 @@ import time
 from PIL import Image
 import numpy as np
 
+import shared.PFM as PFM
+from vmt_to_vmat import TexTransform, OUT_EXT, TEXTURE_FILEEXT
+
 COLLECTION_EXT = ".json"
 skyboxFaces = ['up', 'dn', 'lf', 'rt', 'bk', 'ft']
 materials, skybox, legacy_faces = Path("materials"), Path("skybox"), Path("legacy_faces")
 
-#legacy_face_collections = materials / skybox / legacy_faces / Path("face_collections.json")
-
-OVERWRITE_SKYBOX = True
+OVERWRITE_SKYCUBES = True
 OVERWRITE_SKYBOX_MATS = True
 
 SKYBOX_CREATE_LDR_FALLBACK = True
 
-# materials/skybox/legacy_faces/sky_example.json -> materials/skybox/sky_example.vmat 
+# materials/skybox/legacy_faces/sky_example.json -> materials/skybox/sky_example.vmat
 def OutName(path: Path) -> Path:
     return fs.NoSpace(path.parents[1] / Path(path.with_suffix(OUT_EXT).name))
 
@@ -32,7 +32,6 @@ def collectSkybox(vmtPath: Path, vmtKeyValues: dict) -> Path:
     if face not in skyboxFaces:
         return
 
-    #jsonCollectionPath = fs.Input ( materials / skybox / legacy_faces / Path(name).with_suffix(".json") )
     jsonCollectionPath = fs.Output ( materials / skybox / legacy_faces / Path(name).with_suffix(".json") )
     hdrbasetexture = vmtKeyValues.get('$hdrbasetexture')
     hdrcompressedtexture = vmtKeyValues.get('$hdrcompressedtexture')
@@ -68,7 +67,7 @@ def collectSkybox(vmtPath: Path, vmtKeyValues: dict) -> Path:
     if(faceTransform.rotate != 0):
         collect_face_extra['rotate'] = faceTransform.rotate
         msg("Collecting", face, "transformation: rotate", collect_face_extra['rotate'], 'degrees')
-    
+
     if collect_face_extra:
         path = collect[face]
         collect[face] = {}
@@ -80,20 +79,11 @@ def collectSkybox(vmtPath: Path, vmtKeyValues: dict) -> Path:
 
     if False: #bHasLDRFallback:
         ldr_vmtPath = "1"
-        ldr_vmtKeyValues = "2" 
+        ldr_vmtKeyValues = "2"
         collectSkybox(ldr_vmtPath, ldr_vmtKeyValues)
-    
+
     return jsonCollectionPath
 
-
-#if fs.LocalDir(vmtFilePath).is_relative_to(materials/skybox):
-#    vmtSkyboxFile = vmtFilePath.with_suffix("").name
-#    skyName, skyFace = [vmtSkyboxFile[:-2], vmtSkyboxFile[-2:]]
-#    if skyFace in skyboxFaces:
-#        collectSkyboxFaces(vmtKeyValues, skyName, skyFace)
-#        vmatShader = shader.vr_complex
-#        validMaterial = False
-#        msg("MATERIAL:", matType)
 
 ########################################################################
 # Build sky cubemap from sky faces
@@ -112,7 +102,7 @@ def createSkyCubemap(skyName: str, faceP: dict, maxFaceRes: int = 0) -> Path:
 
         if not (v := faceP.get(face)): continue
         facePath = v.get('path') if isinstance(v, dict) else v
-        
+
         if not facePath:
             continue
 
@@ -128,17 +118,13 @@ def createSkyCubemap(skyName: str, faceP: dict, maxFaceRes: int = 0) -> Path:
         if (hdrType == 'uncompressed'):
             size = PFM.read_pfm(facePath)[2]
         else:
-            size = Image.open(facePath).size 
+            size = Image.open(facePath).size
 
         faceParams[face]['size'] = size
 
         # the largest face determines the resolution of the full map
         maxFaceRes = max(maxFaceRes, max(size[0], size[1]))
 
-    # done
-    #pprint( faceParams )
-    #print()
-    #pprint(faceList)
     cube_w = 4 * maxFaceRes
     cube_h = 3 * maxFaceRes
 
@@ -146,7 +132,7 @@ def createSkyCubemap(skyName: str, faceP: dict, maxFaceRes: int = 0) -> Path:
     img_ext = '.pfm' if hdrType else TEXTURE_FILEEXT
     sky_cubemap_path =  fs.Output( materials/skybox/ Path(skyName + '_cube').with_suffix(img_ext) )
 
-    if not fs.ShouldOverwrite(sky_cubemap_path, OVERWRITE_SKYBOX):
+    if not fs.ShouldOverwrite(sky_cubemap_path, OVERWRITE_SKYCUBES):
         return sky_cubemap_path
 
     if hdrType in (None, 'compressed'):
@@ -157,7 +143,7 @@ def createSkyCubemap(skyName: str, faceP: dict, maxFaceRes: int = 0) -> Path:
             faceScale = faceParams[face].get('scale')
             faceRotate = int(faceParams[face].get('rotate') or 0)
             if not (faceImage := Image.open(facePath).convert(image_mode)): continue
-            
+
             if face == 'up':
                 pasteCoord = ( cube_w - (maxFaceRes * 3) , cube_h - (maxFaceRes * 3) ) # (1, 2)
                 faceRotate += 90
@@ -181,9 +167,6 @@ def createSkyCubemap(skyName: str, faceP: dict, maxFaceRes: int = 0) -> Path:
 
         # for hdr compressed: uncompress the whole tga map we just created and paste to pfm
         if (hdrType == 'compressed'):
-
-            #print("UNCOMPRESSING... NOT!! -- saving your precious time..")
-            #return sky_cubemap_path
             compressedPixels = SkyCubemapImage.load()
             stamp = time.time()
             hdrImageData = [0] * (cube_w * cube_h * 3) # TODO: numpy array
@@ -207,7 +190,7 @@ def createSkyCubemap(skyName: str, faceP: dict, maxFaceRes: int = 0) -> Path:
         else:
             SkyCubemapImage.save(sky_cubemap_path)
             #print('+ Successfuly created sky cubemap:', sky_cubemap_path.name)
-    
+
     # hdr uncompressed: join the pfms same way as tgas TODO: ...
     elif hdrType == 'uncompressed':
         #emptyData = [0] * (cube_w * cube_h)
@@ -237,32 +220,29 @@ def ImportSkyVMTtoVMAT(jsonFile: Path) -> Path:
         sky_cubemap_path = fs.LocalDir( cubemap )
     else:
         sky_cubemap_path = Path("materials/default/default_cube.tga")
-    
+
     if fs.ShouldOverwrite(vmatFile, True):
         with open(vmatFile, 'w') as fp:
             fp.write('// Sky material and cubemap created by vmt_to_vmat.py\n\n')
             fp.write('Layer0\n{\n\tshader "sky.vfx"\n\n')
             fp.write(f'\tSkyTexture\t"{sky_cubemap_path}"\n\n}}\n')
-        
+
         print(f"+ Saved {fs.LocalDir(vmatFile)}")
 
     return vmatFile
 
 def main():
-    
+
     skyCollections = collect_files_skycollections(r"D:\Games\steamapps\common\Half-Life Alyx\content\hlvr_addons\csgo\materials", OVERWRITE_SKYBOX_MATS)
     for jsonCollection in skyCollections:
         print(jsonCollection.name, end=" - ")
         ImportSkyVMTtoVMAT(jsonCollection)
 
-from vmt_to_vmat import TexTransform
-from vmt_to_vmat import OUT_EXT, TEXTURE_FILEEXT
-
 if __name__ == "__main__":
-    import shared.base_utils as sh#from py_shared import GetJson, UpdateJson, getKV
+    import shared.base_utils as sh
     fs = sh.Source(materials, r"D:\Games\steamapps\common\Half-Life Alyx\content\hlvr_addons\csgo", r"D:\Games\steamapps\common\Half-Life Alyx\content\hlvr_addons\csgo")
     main()
-else:
+elif __name__ == "materials_import_skybox":
     import shared.base_utils as sh
     from vmt_to_vmat import PATH_TO_CONTENT_ROOT, PATH_TO_NEW_CONTENT_ROOT
     from shared.base_utils import msg, DEBUG
@@ -278,7 +258,7 @@ xd = {
   "ft": "materials/skybox/legacy_faces/sky_nightup.tga"
 }
 xd2 = {
-	"_hdrtype": None,
+    "_hdrtype": None,
     "up": "materials/skybox/legacy_faces/cs_baggage_skybox_up.tga",
     "dn": "materials/skybox/legacy_faces/cs_baggage_skybox_dn.tga",
     "lf": "materials/skybox/legacy_faces/cs_baggage_skybox_lf.tga",

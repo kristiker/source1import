@@ -4,11 +4,15 @@ from difflib import get_close_matches
 from typing import Optional
 from PIL import Image, ImageOps
 
+if __name__ == "__main__":
+    import materials_import_skybox as sky
+else:
+    sky = Optional
+
 from shared import base_utils as sh
 from shared.keyvalue_simple import getKV_tailored as getKeyValues
 from shared.keyvalues1 import KV
 from shared.materials.proxies import ProxiesToDynamicParams
-import materials_import_skybox as sky
 
 # generic, blend instead of vr_complex, vr_simple_2wayblend etc...
 LEGACY_SHADER = False
@@ -21,8 +25,8 @@ PATH_TO_NEW_CONTENT_ROOT = r""
 
 # Set this to True if you wish to overwrite your old vmat files. Same as adding -f to launch parameters
 OVERWRITE_VMAT = True
-sky.OVERWRITE_SKYBOX = False
-sky.OVERWRITE_SKYBOX_MATS = False
+sky.OVERWRITE_SKYCUBES = True
+sky.OVERWRITE_SKYBOX_MATS = True
 
 # True to let vtex handle the inverting of the normalmap.
 NORMALMAP_G_VTEX_INVERT = True
@@ -359,7 +363,7 @@ surfprop_force = {
     'wood':         'world.wood_solid',
 }
 
-surfprop_list = sh.GetJson(Path(__file__).parent / Path("surfproperties.json"))['hlvr']
+surfprop_list = sh.GetJson(Path(__file__).parent / "shared/surfproperties.json")['hlvr']
 # TODO: ideally, we want to import our legacy surfaceprops and use those instead of whatever is closest
 def fixSurfaceProp(vmtVal):
 

@@ -29,7 +29,7 @@ def recurse(kv, find_key, fixup_func):
         elif key[1] == find_key:
             kv[key] = fixup_func(value)
 
-def ImportSoundscape(file):
+def ImportSoundscape(file: Path):
     soundscapes = KV.CollectionFromFile(file)
 
     for soundscape, keyvalues in soundscapes.iteritems(indexed_keys=True):
@@ -50,8 +50,9 @@ def ImportSoundscape(file):
 
     with open(newsc_path, 'w') as fp:
         fp.write(new_soundscapes)
+    print("Saved", newsc_path)
     
-    soundscapes_manifest.add("file", newsc_path.name)
+    soundscapes_manifest.add("file", f'scripts/{newsc_path.name}')
 
 fs = sh.Source("scripts", PATH_TO_NEW_CONTENT_ROOT, PATH_TO_NEW_CONTENT_ROOT)
 
