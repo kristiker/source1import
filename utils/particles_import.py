@@ -162,8 +162,8 @@ pcf_to_vpcf = {
 
         'Rotation Random': 'C_INIT_RandomRotation',
             'randomly_flip_direction': 'm_bRandomlyFlipDirection',
-            'rotation_offset_max': 'm_flDegreesMin',
-            'rotation_offset_min': 'm_flDegreesMax',
+            'rotation_offset_max': 'm_flDegreesMax',
+            'rotation_offset_min': 'm_flDegreesMin',
             'rotation_initial': 'm_flDegrees',
 
         'Alpha Random': 'C_INIT_RandomAlpha',
@@ -280,7 +280,7 @@ pcf_to_vpcf = {
             # probably modified? why did you do this mr csgo dev
             # "num_to_emit" "int" "180"
             # "num_to_emit_minimum" "int" "100"
-            'num_to_emit_minimum': minof('m_nParticlesToEmit'), # proc 
+            'num_to_emit_minimum': minof('m_nParticlesToEmit'),
         }),
         'emit_continuously': ('C_OP_ContinuousEmitter', {
             'emission_duration': dynamicparam('m_flEmissionDuration'),
@@ -294,6 +294,7 @@ pcf_to_vpcf = {
             'operator fade oscillate': '',
         }),
         'emit noise': ('C_OP_NoiseEmitter', {
+            'emission_duration': 'm_flEmissionDuration',
             'emission minimum': 'm_flOutputMin',
             'emission maximum': 'm_flOutputMax',
         }),
@@ -301,11 +302,50 @@ pcf_to_vpcf = {
             'count to maintain': 'm_iMaintainCount',
         }),
     }),
-    'forces':      ('m_ForceGenerators', {
+    'forces': ('m_ForceGenerators', {
+        'twist around axis': ('C_OP_TwistAroundAxis', {
+            'amount of force': 'm_fForceAmount',
+            'twist axis': 'm_TwistAxis',
+            'operator strength random scale max': '',
+            'operator strength random scale min': '',
+            'operator strength scale seed': '',
+            'object local space axis 0/1': 'm_bLocalSpace',
+        }),
+        'random force': ('C_OP_RandomForce', {
+            'min force': 'm_MinForce',
+            'max force': 'm_MaxForce',
+        }),
+        'Force based on distance from plane': ('C_OP_ForceBasedOnDistanceToPlane', {
 
+        }),
+        'time varying force': ('C_OP_TimeVaryingForce', {
+            'time to start transition': 'm_flStartLerpTime',
+            'starting force': 'm_StartingForce',
+            'time to end transition': 'm_flEndLerpTime',
+            'ending force': 'm_EndingForce',
+        }),
+        'Pull towards control point': ('C_OP_AttractToControlPoint', {
+
+        }),
     }),
-    'constraints':  ('m_Constraints', {
-
+    'constraints': ('m_Constraints', {
+        'Constrain distance to control point': ('C_OP_ConstrainDistance', {
+            'maximum distance': '',
+            'offset of center': '',
+            'global center point': '',
+        }),
+        'Prevent passing through a plane': ('C_OP_PlanarConstraint', {
+            'plane point': '',
+        }),
+        'Collision via traces': ('C_OP_WorldTraceConstraint', {
+            'trace accuracy tolerance': '',
+            'collision group': '',
+            'amount of slide': '',
+            'amount of bounce': '',
+            'collision mode': '',
+            'operator end fadein': '',
+            'operator start fadein': '',
+        }),
     }),
 
     'children': 'm_Children',
@@ -339,8 +379,9 @@ pcf_to_vpcf = {
 explosions_fx = Path(r'D:\Users\kristi\Documents\GitHub\source1import\utils\shared\particles\explosions_fx.pcf')
 lightning = Path(r'D:\Users\kristi\Documents\GitHub\source1import\utils\shared\particles\lighting.pcf')
 
-x = dmx.load(explosions_fx)
-
+particles_in = Path(r'D:\Games\steamapps\common\Half-Life Alyx\content\csgo\particles')
+particles_out = Path(r'D:\Games\steamapps\common\Half-Life Alyx\content\hlvr_addons\csgo\particles')
+#particles_out = Path(r'C:\Users\kristi\Desktop\Source 2\content\hlvr_addons\addon\particles')
 def is_valid_pcf(x: dmx.DataModel):
     return ('particleSystemDefinitions' in x.elements[0].keys() and
             x.elements[1].type == 'DmeParticleSystemDefinition'      
@@ -349,14 +390,15 @@ def is_valid_pcf(x: dmx.DataModel):
 def tests():
     print(x.elements[0].keys())
     print(x.elements[1].type)
-
+materials = []
 def pcfkv_convert(key, value):
 
     if not (vpcf_translation:= pcf_to_vpcf.get(key)):
         if vpcf_translation is None:
             un(key, '_generic')
         return
-
+    if key == "material":
+        materials.append(value)
     outKey, outVal = key, value
 
     if isinstance(vpcf_translation, str):  # simple translation
@@ -402,19 +444,37 @@ def pcfkv_convert(key, value):
             for key, value in opitem.items():
                 if key == 'functionName':
                     continue
-                    
-                if bWasTuple:
-                    value = {'m_nType': "PF_TYPE_LITERAL",'m_flLiteralValue': value}
 
                 if subkey:=vpcf_translation.get(key):
                     if isinstance(subkey, BoolToSetKV):
                         subkey, value = subkey.k, subkey.v
                     elif isinstance(subkey, minof):
-                        ...
+                        if str(subkey) in subKV:
+                            if not isinstance(subKV[subkey], dict): # not a dynamicparam
+                                subKV[subkey] = dict(
+                                    m_nType = "PF_TYPE_RANDOM_UNIFORM",
+                                    m_flRandomMin = value,
+                                    m_flRandomMax = subKV[subkey]
+                                )
+                            else:
+                                subKV[subkey]['m_flRandomMin'] = value
+                            continue
+
+                        else: value = dict(
+                                    m_nType = "PF_TYPE_RANDOM_UNIFORM",
+                                    m_flRandomMin = value,
+                                )
+
                     elif isinstance(subkey, maxof):
                         ...
                     elif isinstance(subkey, dynamicparam):
-                        ...
+                        value = {'m_nType': "PF_TYPE_LITERAL",'m_flLiteralValue': value}
+                    #elif bWasTuple:
+                            
+                    ## no maxof for num_to_emit workaround
+                    #if subkey in subKV and isinstance(subKV[subkey], dict):
+                    #    # TODO if min add max if max add min
+                    #    subKV[subkey]['m_flRandomMax'] = value
                     subKV[subkey] = value
                 elif subkey is None:
                     un(key, opitem.name)
@@ -434,14 +494,14 @@ def dict_to_kv3_text(
         ind = ('\t' * indent)
         if obj is None:
             return 'null'
+        elif isinstance(obj, resource):
+            #print(obj, "Is resource:", pcf_path.stem, f'resource:"particles/{pcf_path.stem}/{obj}.vpcf"')
+            return f'resource:"particles/{pcf_path.stem}/{obj}.vpcf"'
         elif isinstance(obj, bool):
             if obj: return 'true'
             return 'false'
         elif isinstance(obj, str):
             return '"' + obj + '"'
-        elif isinstance(obj, resource):
-            print(obj, "Is resource:")
-            return f'resource:"{obj}"'
         elif isinstance(obj, list):
             s = '['
             if any(isinstance(item, dict) for item in obj):
@@ -479,22 +539,34 @@ def un(val, t):
         unt[val] = list()
         unt[val].append(t)
 
-if is_valid_pcf(x):
-    print('valid')
-    for datamodel in x.find_elements(elemtype='DmeParticleSystemDefinition'):
-        print(datamodel.type, datamodel.name)
-        
-        vpcf = dict(_class = "CParticleSystemDefinition")
-        for key, value in datamodel.items():
-            if converted_kv:= pcfkv_convert(key, value):
-                vpcf[converted_kv[0]] = converted_kv[1]
-        
-        
-        header = '<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf26:version{26288658-411e-4f14-b698-2e1e5d00dec6} -->'
-        print(dict_to_kv3_text(vpcf, header))
-        #break
-        #for element in datamodel:
-        #    print(f'  {element}')
+if __name__ == '__main__':
+    for pcf_path in particles_in.glob('*.pcf'):
+        print(f"Reading particles/{pcf_path.name}")
+        x = dmx.load(pcf_path)
+        if not is_valid_pcf(x):
+            print("Invalid!!")
+            #tests()
+            continue
+
+        root = (particles_out / pcf_path.stem)
+        root.mkdir(exist_ok=True)
+        for datamodel in x.find_elements(elemtype='DmeParticleSystemDefinition'):
+            
+            vpcf = dict(_class = "CParticleSystemDefinition")
+            for key, value in datamodel.items():
+                if converted_kv:= pcfkv_convert(key, value):
+                    vpcf[converted_kv[0]] = converted_kv[1]
+            
+            header = '<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf26:version{26288658-411e-4f14-b698-2e1e5d00dec6} -->'
+            #print(dict_to_kv3_text(vpcf, header))
+            
+            out_particle_path = root / (datamodel.name + '.vpcf')
+            with open(out_particle_path, 'w') as fp:
+                fp.write(dict_to_kv3_text(vpcf, header))
+            
+            print("+ Saved", out_particle_path.relative_to(out_particle_path.parents[2]).as_posix())
+            #break
+
     generics = list()
     dd = {}
     for n, nn in unt.items():
@@ -520,6 +592,5 @@ if is_valid_pcf(x):
 
     for n in generics:
         print(f"'{n}': '',")
-else:
-    print("Invalid!!")
-    #tests()
+    for mat in materials:
+        print(f'materials/{Path(mat).as_posix()}')
