@@ -9,6 +9,10 @@ class resource(str): pass  # kv3 resource
 class dynamicparam(str): pass
 class maxof(dynamicparam): pass
 class minof(dynamicparam): pass
+
+class BoolToSetKV:
+    def __init__(self, k, v):
+        self.k, self.v = k, v
 #TODO: are arrays different from vectors? vec seems to have no newlines and no comma at end
 
 pcf_to_vpcf = {
@@ -17,6 +21,7 @@ pcf_to_vpcf = {
     'renderers': ( 'm_Renderers', {
         'render_sprite_trail': '',
         'render_animated_sprites':  'C_OP_RenderSprites',
+            # wtf
             'animation rate': 'm_flAnimationRate',
             'second sequence animation rate': '',
             'Visibility Proxy Radius': '',
@@ -44,79 +49,84 @@ pcf_to_vpcf = {
         'Radius Scale': 'C_OP_InterpolateRadius',
             'radius_start_scale': 'm_flEndScale',
             'radius_end_scale': 'm_flStartScale',
-            'scale_bias': '',
-            'end_time': '',
-            'ease_in_and_out': '',
+            'scale_bias': 'm_flBias',
+            'end_time': 'm_flEndTime',
+            'ease_in_and_out': 'm_bEaseInAndOut',
         'Alpha Fade In Random': 'C_OP_FadeIn',
             'proportional 0/1': 'm_bProportional',
-            'fade out time min': 'm_flFadeOutTimeMin',
+            'fade out time min': 'm_flFadeOutTimeMin', # TODO m_(type)joinedcapitalizedwords.stripnumber/
             'fade out time max': 'm_flFadeOutTimeMax',
-            'fade in time min': '',
-            'fade in time max': '',
+            'fade in time min': 'm_flFadeInTimeMin',
+            'fade in time max': 'm_flFadeInTimeMax',
             'ease in and out': 'm_bEaseInAndOut',
         'Alpha Fade Out Random': 'C_OP_FadeOut',
             'proportional 0/1': 'm_bProportional',
             'fade out time min': 'm_flFadeOutTimeMin',
             'fade out time max': 'm_flFadeOutTimeMax',
             'ease in and out': 'm_bEaseInAndOut',
-            'fade bias': '',
+            'fade bias': 'm_flFadeBias',
         'Movement Basic': 'C_OP_BasicMovement',
             'gravity': 'm_Gravity',
-            'drag': '',
+            'drag': 'm_fDrag',
             'operator end fadeout': '',
             'operator start fadeout': '',
             'operator end fadein': '',
             'operator start fadein': '',
-        'Movement Dampen Relative to Control Point': '',
-            'dampen scale': '',
-            'falloff range': '',
-        'Alpha Fade and Decay': '',
-            'end_fade_in_time': '',
-            'start_alpha': '',
-            'start_fade_out_time': '',
-            'end_fade_out_time': '',
-        'Rotation Basic': '',
-        'Oscillate Scalar': '',
-            'oscillation frequency max': '',
-            'oscillation frequency min': '',
-            'oscillation rate max': '',
-            'oscillation rate min': '',
-            'oscillation field': '',
-            'oscillation multiplier': '',
-        'Oscillate Vector': '',
-        'Movement Lock to Control Point': '',
-            'lock rotation': '',
-            'start_fadeout_min': '',
-            'start_fadeout_max': '',
-            'end_fadeout_min': '',
-            'end_fadeout_max': '',
-        'Cull when crossing sphere': '',
-            'Cull Distance': '',
-            'Cull plane offset': '',
-        'Remap Distance to Control Point to Scalar': '',
-            'output maximum': '',
-            'output minimum': '',
-            'output field': '',
-            'distance maximum': '',
-            'distance minimum': '',
-        'Color Fade': '',
-            'color_fade': '',
-            'fade_start_time': '',
-            'fade_end_time': '',
-        'Rotation Spin Roll': '',
-            'spin_rate_degrees': '',
-            'spin_stop_time': '',
+        'Movement Dampen Relative to Control Point': 'C_OP_DampenToCP',
+            # m_nControlPointNumber
+            'dampen scale': 'm_flScale',
+            'falloff range': 'm_flRange',
+        'Alpha Fade and Decay': 'C_OP_FadeAndKill',
+            'end_fade_in_time': 'm_flEndFadeInTime',
+            'start_alpha': 'm_flStartAlpha',
+            #'end_alpha': 'm_flEndAlpha',
+            'start_fade_out_time': 'm_flStartFadeOutTime',
+            'end_fade_out_time': 'm_flEndFadeOutTime',
+        'Rotation Basic': 'C_OP_SpinUpdate',
+        'Oscillate Scalar': 'C_OP_OscillateScalar',
+        'Oscillate Vector': 'C_OP_OscillateVector',
+            'oscillation frequency max': 'm_FrequencyMax',
+            'oscillation frequency min': 'm_FrequencyMin',
+            'oscillation rate max': 'm_RateMax',
+            'oscillation rate min': 'm_RateMin',
+            'oscillation field': 'm_nField',
+            'oscillation multiplier': 'm_flOscMult',
+        'Movement Lock to Control Point': 'C_OP_PositionLock',
+            # m_flStartTime_exp, m_flEndTime_exp m_flRange, m_flJumpThreshold, m_flPrevPosScale
+            'lock rotation': 'm_bLockRot',
+            'start_fadeout_min': 'm_flStartTime_min',
+            'start_fadeout_max': 'm_flStartTime_max',
+            'end_fadeout_min': 'm_flEndTime_min',
+            'end_fadeout_max': 'm_flEndTime_max',
+        'Cull when crossing sphere': 'C_OP_DistanceCull',
+            'Cull Distance': 'm_flDistance',
+            # m_flPlaneOffset is from `...crossing plane`
+            'Cull plane offset': 'm_flPlaneOffset', # this is a float.. what m_vecPointOffset
+        'Remap Distance to Control Point to Scalar': 'C_OP_DistanceToCP',
+            'output maximum': 'm_flOutputMax',
+            'output minimum': 'm_flOutputMin',
+            'output field': 'm_nFieldOutput',
+            'distance maximum': 'm_flInputMax',
+            'distance minimum': 'm_flInputMin',
+        'Color Fade': 'C_OP_ColorInterpolate',
+            'color_fade': 'm_ColorFade',
+            'fade_start_time': 'm_flFadeStartTime',
+            'fade_end_time': 'm_flFadeEndTime',
+        'Rotation Spin Roll': 'C_OP_Spin',
+            'spin_rate_degrees': 'm_nSpinRateDegrees',
+            'spin_stop_time': 'm_fSpinRateStopTime',
             'operator strength random scale max': '',
             'operator strength random scale min': '',
             'operator strength scale seed': '',
-            'spin_rate_min': '',
-        'Set Control Point Positions': '',
-            'First Control Point Location': '',
-        'Alpha Fade In Simple': '',
-            'proportional fade in time': '',
-        'Cull when crossing plane': '',
-        'Set child control points from particle positions': '',
-            '# of control points to set': '',
+            'spin_rate_min': 'm_nSpinRateMinDegrees',
+        # this one is a m_PreEmissionOperators TODO
+        'Set Control Point Positions': 'C_OP_SetControlPointPositions',
+            'First Control Point Location': 'm_vecCP1Pos',
+        'Alpha Fade In Simple': 'C_OP_FadeInSimple',
+            'proportional fade in time': 'm_flFadeInTime',
+        'Cull when crossing plane': 'C_OP_PlaneCull',
+        'Set child control points from particle positions': 'C_OP_SetChildControlPoints',
+            '# of control points to set': 'm_nNumControlPoints',
     }),
 
     'initializers': ('m_Initializers', {
@@ -165,65 +175,86 @@ pcf_to_vpcf = {
             'offset min': 'm_OffsetMax',
             'offset in local space 0/1': 'm_bLocalCoords',
             'offset proportional to radius 0/1': 'm_bProportional',
+
         'Sequence Random': 'C_INIT_RandomSequence',
             'sequence_max': 'm_nSequenceMax',
             'sequence_min': 'm_nSequenceMin',
             'shuffle': 'm_bShuffle',
+
         'Sequence Two Random': 'C_INIT_RandomSecondSequence',
         'Radius Random': 'C_INIT_RandomRadius',
             'radius_min': 'm_flRadiusMin',
             'radius_max': 'm_flRadiusMax',
             'radius_random_exponent': 'm_flRadiusRandExponent',
+
         'Rotation Speed Random': 'C_INIT_RandomRotationSpeed',
             'rotation_speed_random_min': 'm_flDegreesMin',
             'rotation_speed_random_max': 'm_flDegreesMax',
-        'Position Within Box Random': '',
+
+        'Position Within Box Random': 'C_INIT_CreateWithinBox',
             'max': 'm_vecMax',
             'min': 'm_vecMin',
-        'Rotation Yaw Flip Random': '',
+
+        'Rotation Yaw Flip Random': 'C_INIT_RandomYawFlip',
             'Flip Percentage': 'm_flPercent',
-        'remap initial scalar': '',
+
+        'remap initial scalar': 'C_INIT_RemapScalar',
             'input minimum': 'm_flInputMin',
             'input maximum': 'm_flInputMax',
             'output minimum': 'm_flOutputMin',
             'output maximum': 'm_flOutputMax',
-            'output is scalar of initial random range': '',
+            'output is scalar of initial random range': BoolToSetKV('m_nSetMethod', 'PARTICLE_SET_SCALE_INITIAL_VALUE'), # unsure
             'output field': 'm_nFieldOutput',
-        'Position Modify Warp Random': '',
-            'warp min': '',
-            'warp max': '',
-            'warp transition time (treats min/max as start/end sizes)': '',
-            'warp transition start time': '',
-        'Velocity Noise': '',
-            'Spatial Noise Coordinate Scale': '',
-            'Absolute Value': '',
-            'Time Noise Coordinate Scale': '',
-            'Apply Velocity in Local Space (0/1)': '',
-        'Trail Length Random': '',
-            'length_min': '',
-            'length_max': '',
-        'Lifetime From Sequence': '',
-            'Frames Per Second': '',
+    
+        'Position Modify Warp Random': 'C_INIT_PositionWarp',
+            'warp min': 'm_vecWarpMin',
+            'warp max': 'm_vecWarpMax',
+            'warp transition time (treats min/max as start/end sizes)': 'm_flWarpTime',
+            'warp transition start time': 'm_flWarpStartTime',
+
+        'Velocity Noise': 'C_INIT_InitialVelocityNoise',
+            'Time Noise Coordinate Scale': dynamicparam('m_flNoiseScale'),
+            'Spatial Noise Coordinate Scale': dynamicparam('m_flNoiseScaleLoc'),
+            'Absolute Value': 'm_vecAbsVal',
+            'Apply Velocity in Local Space (0/1)': 'm_bLocalSpace',
+
+        'Trail Length Random': 'C_INIT_RandomTrailLength',
+            'length_min': 'm_flMinLength',
+            'length_max': 'm_flMaxLength',
+
+        'Lifetime From Sequence': 'C_INIT_SequenceLifeTime',
+            'Frames Per Second': 'm_flFramerate',
             'operator strength random scale max': '',
             'operator strength scale seed': '',
-        'Remap Initial Scalar': '', # 'remap initial scalar' wtf
-            'input minimum': '',
-            'emitter lifetime end time (seconds)': '',
-            'emitter lifetime start time (seconds)': '',
+
+        'Remap Initial Scalar': 'C_INIT_RemapScalar', # 'remap initial scalar' duplicate wtf
+            'emitter lifetime end time (seconds)': 'm_flStartTime',
+            'emitter lifetime start time (seconds)': 'm_flEndTime',
+
         'Remap Initial Distance to Control Point to Scalar': '',
-            'distance maximum': '',
-        'Position Along Ring': '',
-            'initial radius': '',
-            'min initial speed': '',
-            'max initial speed': '',
-            'even distribution': '',
-            'XY velocity only': '',
-            'thickness': '',
-        'Velocity Random': '',
-        'Position From Parent Particles': '',
+            #'distance minimum': 'm_flInputMin'
+            'distance maximum': 'm_flInputMax',
+        'Position Along Ring': 'C_INIT_RingWave',
+            'initial radius': 'm_flInitialRadius',
+            'thickness': 'm_flThickness',
+            'min initial speed': 'm_flInitialSpeedMin',
+            'max initial speed': 'm_flInitialSpeedMax',
+            'even distribution': 'm_bEvenDistribution',
+            'XY velocity only': 'm_bXYVelocityOnly',
+            # m_flRoll m_flPitch m_flYaw
+        'Velocity Random': 'C_INIT_VelocityRandom',
+            # this one has got 'speed_in_local_coordinate_system_min', etc from C_INIT_CreateWithinSphere random
+            # but on this one its a dynamicparam, so can you skip dynamic paraming on this (and most that dont use random) #TODO
+        'Position From Parent Particles': 'C_INIT_CreateFromParentParticles',
         'Remap Scalar to Vector': '',
-        'lifetime from sequence': '',
-        'Scalar Random': '',
+            # m_flVelocityScale = 1.0
+			# m_flIncrement = 11.0
+			# m_bRandomDistribution = true
+			# m_nRandomSeed = 1
+			# m_bSubFrame = false
+        'lifetime from sequence': 'C_INIT_SequenceLifeTime',
+        'Scalar Random': 'C_INIT_RandomScalar',
+            # this likely has m_flMin & clashes with m_vecMin TODO FIXME
     }),
 
     # this seems more advanced
@@ -329,10 +360,8 @@ def pcfkv_convert(key, value):
     outKey, outVal = key, value
 
     if isinstance(vpcf_translation, str):  # simple translation
-        if value == []: return
-        #if vpcf_translation =='m_Children':
-        #    print(type(value))
-        #    quit()
+        if value == []:
+            return
         if isinstance(value, dmx._ElementArray):
             if key == 'children':
                 outVal = []
@@ -378,6 +407,14 @@ def pcfkv_convert(key, value):
                     value = {'m_nType': "PF_TYPE_LITERAL",'m_flLiteralValue': value}
 
                 if subkey:=vpcf_translation.get(key):
+                    if isinstance(subkey, BoolToSetKV):
+                        subkey, value = subkey.k, subkey.v
+                    elif isinstance(subkey, minof):
+                        ...
+                    elif isinstance(subkey, maxof):
+                        ...
+                    elif isinstance(subkey, dynamicparam):
+                        ...
                     subKV[subkey] = value
                 elif subkey is None:
                     un(key, opitem.name)
