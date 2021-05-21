@@ -7,8 +7,8 @@ from pathlib import Path
 class resource(str): pass  # kv3 resource
 
 class dynamicparam(str): pass
-class maxof(dynamicparam): pass
-class minof(dynamicparam): pass
+class maxof(dynamicparam): pass # for Random Uniform
+class minof(dynamicparam): pass # for Random Uniform
 
 class BoolToSetKV:
     def __init__(self, k, v):
@@ -50,13 +50,6 @@ pcf_to_vpcf = {
             'max length': 'm_flMaxSize',
             'constrain radius to length': '',
             'ignore delta time': '',
-            'operator time offset max': '',
-            'operator strength random scale min': '',
-            'operator start fadein': '',
-            'operator end fadein': '',
-            'operator start fadeout': '',
-            'operator end fadeout': '',
-            'operator fade oscillate': '',
         'render_rope': 'C_OP_RenderRopes',
             'texel_size': '',
             'texture_scroll_rate': '',
@@ -82,10 +75,10 @@ pcf_to_vpcf = {
         'Radius Scale': 'C_OP_InterpolateRadius',
             'radius_start_scale': 'm_flEndScale',
             'radius_end_scale': 'm_flStartScale',
+            'start_time': 'm_flStartTime',
             'scale_bias': 'm_flBias',
             'end_time': 'm_flEndTime',
             'ease_in_and_out': 'm_bEaseInAndOut',
-            'start_time': '',
 
         'Alpha Fade In Random': 'C_OP_FadeIn',
             'proportional 0/1': 'm_bProportional',
@@ -106,12 +99,6 @@ pcf_to_vpcf = {
             'gravity': 'm_Gravity',
             'drag': 'm_fDrag',
             'max constraint passes': 'm_nMaxConstraintPasses',
-            'operator end fadeout': '',
-            'operator start fadeout': '',
-            'operator end fadein': '',
-            'operator start fadein': '',
-            'operator time offset max': '',
-            'operator fade oscillate': '',
 
         'Movement Dampen Relative to Control Point': 'C_OP_DampenToCP',
             # m_nControlPointNumber
@@ -140,7 +127,6 @@ pcf_to_vpcf = {
             'oscillation multiplier': 'm_flOscMult',
             'start time max': 'm_flStartTime_max',
             'start time min': 'm_flStartTime_min',
-            'operator time strength random scale max': '',
 
         'Movement Lock to Control Point': 'C_OP_PositionLock',
             # m_flStartTime_exp, m_flEndTime_exp m_flRange, m_flJumpThreshold, m_flPrevPosScale
@@ -149,7 +135,6 @@ pcf_to_vpcf = {
             'start_fadeout_max': 'm_flStartTime_max',
             'end_fadeout_min': 'm_flEndTime_min',
             'end_fadeout_max': 'm_flEndTime_max',
-            'operator end cap state': 'm_nOpEndCapState',
             'control_point_number': 'm_nControlPointNumber',
         'Cull when crossing sphere': 'C_OP_DistanceCull',
             'Cull Distance': 'm_flDistance',
@@ -173,9 +158,6 @@ pcf_to_vpcf = {
         'Rotation Spin Roll': 'C_OP_Spin',
             'spin_rate_degrees': 'm_nSpinRateDegrees',
             'spin_stop_time': 'm_fSpinRateStopTime',
-            'operator strength random scale max': '',
-            'operator strength random scale min': '',
-            'operator strength scale seed': '',
             'spin_rate_min': 'm_nSpinRateMinDegrees',
         'Alpha Fade In Simple': 'C_OP_FadeInSimple',
             'proportional fade in time': 'm_flFadeInTime',
@@ -190,6 +172,8 @@ pcf_to_vpcf = {
             'ramp rate max': 'm_RateMax',
             'ramp field': 'm_nField',
         'Remap Speed to Scalar': 'C_OP_RemapSpeed',
+            'input maximum': 'm_flInputMax',
+            'input minimum': 'm_flInputMin',
         'Lifespan Minimum Velocity Decay': 'C_OP_VelocityDecay',
             'minimum velocity': 'm_flMinVelocity',
         'Rotation Orient Relative to CP': 'C_OP_Orient2DRelToCP',
@@ -197,10 +181,17 @@ pcf_to_vpcf = {
             'lifetime fade end': '',
             'lifetime fade start': '',
         'Cull Random': 'C_OP_Cull',
-            'Cull Percentage': '',
-            'Cull End Time': '',
+            'Cull Percentage': 'm_flCullPerc',
+            'Cull End Time': 'm_flCullEnd',
         'Movement Place On Ground': 'C_OP_MovementPlaceOnGround',
+            'include water': 'm_bIncludeWater',
+            'max trace length': 'm_flMaxTraceLength',
+            'collision group': 'm_CollisionGroupName',
+            'offset': 'm_flOffset',
+            'kill on no collision': 'm_bKill',
+            'interpolation rate': 'm_flLerpRate',
         'Remap Scalar': 'C_OP_RemapScalar',
+            'input field': 'm_nFieldInput',
         'Lifespan Maintain Count Decay': 'C_OP_DecayMaintainCount',
         'Remap Control Point to Vector': 'C_OP_RemapCPtoVector',
         'Color Light from Control Point': 'C_OP_ControlpointLight',
@@ -220,18 +211,18 @@ pcf_to_vpcf = {
             'Light 1 Type 0=Point 1=Spot': 'm_bLightType1',
             'Light 1 Direction': '',
         'Movement Max Velocity': 'C_OP_MaxVelocity',
-            'Maximum Velocity': '',
+            'Maximum Velocity': 'm_flMaxVelocity',
         'Remap Dot Product to Scalar': 'C_OP_RemapDotProductToScalar',
             'first input control point': '',
             'second input control point': '',
             'input minimum (-1 to 1)': '',
         'Remap Distance Between Two Control Points to Scalar': 'C_OP_DistanceBetweenCPs',
         'Remap Control Point to Scalar': 'C_OP_RemapCPtoScalar',
-            'input control point number': '',
-            'input field 0-2 X/Y/Z': '',
+            'input control point number': 'm_nCPInput',
+            'input field 0-2 X/Y/Z': 'm_nField',
         'Movement Match Particle Velocities': 'C_OP_VelocityMatchingForce',
-            'Speed Matching Strength': '',
-            'Direction Matching Strength': '',
+            'Speed Matching Strength': 'm_flSpdScale',
+            'Direction Matching Strength': 'm_flDirScale',
 
         'Set Control Point Positions': PreOP('C_OP_SetControlPointPositions'),
             'First Control Point Location': 'm_vecCP1Pos',
@@ -247,8 +238,9 @@ pcf_to_vpcf = {
             'Trace Update Rate': 'm_flUpdateRate',
             'Trace Direction Override': 'm_vecTraceDir',
             'Control Point to Set': 'm_nCPOut',
+            'trace collision group': 'm_CollisionGroupName',
         "Set Control Point To Particles' Center": PreOP('C_OP_SetControlPointToCenter'),
-            'Control Point Number to Set': '',
+            'Control Point Number to Set': 'm_nCP1',
     }),
 
     'initializers': ('m_Initializers', {
@@ -302,8 +294,6 @@ pcf_to_vpcf = {
             'alpha_max': 'm_nAlphaMin',
             'alpha_min': 'm_nAlphaMax',
             'alpha_random_exponent': 'm_flAlphaRandExponent',
-            'operator time offset max': '',
-            'operator strength random scale min': '',
 
         'Position Modify Offset Random': 'C_INIT_PositionOffset',
             'offset max': 'm_OffsetMin',
@@ -366,8 +356,6 @@ pcf_to_vpcf = {
 
         'Lifetime From Sequence': 'C_INIT_SequenceLifeTime',
             'Frames Per Second': 'm_flFramerate',
-            'operator strength random scale max': '',
-            'operator strength scale seed': '',
 
         'Remap Initial Scalar': 'C_INIT_RemapScalar', # 'remap initial scalar' duplicate wtf
             'emitter lifetime end time (seconds)': 'm_flStartTime',
@@ -393,7 +381,6 @@ pcf_to_vpcf = {
             # this one has got 'speed_in_local_coordinate_system_min', etc from C_INIT_CreateWithinSphere random
             # but on this one its a dynamicparam, so can you skip dynamic paraming on this (and most that dont use random) #TODO
         'Position From Parent Particles': 'C_INIT_CreateFromParentParticles',
-            'operator end cap state': 'm_nOpEndCapState',
             'Inherited Velocity Scale': 'm_flVelocityScale',
             'Random Parent Particle Distribution': 'm_bRandomDistribution',
             # m_flIncrement = 11.0 m_bRandomDistribution = true m_nRandomSeed = 1 m_bSubFrame = false
@@ -408,17 +395,19 @@ pcf_to_vpcf = {
         'Scalar Random': 'C_INIT_RandomScalar',
             # this likely has m_flMin & clashes with m_vecMin TODO FIXME
         'Remap Control Point to Scalar': 'C_INIT_RemapCPtoScalar',
+            'input control point number': 'm_nCPInput',
+            'input field 0-2 X/Y/Z': 'm_nField',
         'Position on Model Random': 'C_INIT_CreateOnModel',
             'force to be inside model': '',
             'direction bias': '',
         'Velocity Set from Control Point': 'C_INIT_VelocityFromCP',
         'Position Modify Place On Ground': 'C_INIT_PositionPlaceOnGround',
-            'collision group': '',
-            'max trace length': '',
-            'kill on no collision': '',
-            'offset': '',
-            'set normal': '',
-            'include water': '',
+            'collision group': 'm_CollisionGroupName',
+            'max trace length': 'm_flMaxTraceLength',
+            'kill on no collision': 'm_bKill',
+            'offset': 'm_flOffset',
+            'set normal': 'm_bSetNormal',
+            'include water': 'm_bIncludeWater',
         'Velocity Inherit from Control Point': 'C_INIT_InheritVelocity',
             'velocity scale': '',
         'Remap Noise to Scalar': 'C_INIT_CreationNoise',
@@ -438,6 +427,8 @@ pcf_to_vpcf = {
             'bias distance': 'm_vecComponentScale',
             # m_bIncludeWater = false
         'Position from Parent Cache': 'C_INIT_CreateFromPlaneCache',
+            'Local Offset Max': '',
+            'Local Offset Min': '',
         'Rotation Yaw Random': 'C_INIT_RandomYaw',
             'yaw_offset_max': '',
             'yaw_offset_min': '',
@@ -447,7 +438,7 @@ pcf_to_vpcf = {
             'maximum distance': '',
             'start control point number': '',
         'Velocity Repulse from World': 'C_INIT_InitialRepulsionVelocity',
-            'Trace Length': '',
+            'Trace Length': 'm_flTraceLength',
             'Inherit from Parent': '',
             'maximum velocity': '',
             'control points to broadcast to children (n + 1)': '',
@@ -485,9 +476,6 @@ pcf_to_vpcf = {
             # "num_to_emit" "int" "180"
             # "num_to_emit_minimum" "int" "100"
             'num_to_emit_minimum': minof('m_nParticlesToEmit'),
-            'operator time offset max': '',
-            'operator strength random scale min': '',
-            'operator end cap state': 'm_nOpEndCapState',
 
         }),
         'emit_continuously': ('C_OP_ContinuousEmitter', {
@@ -496,13 +484,8 @@ pcf_to_vpcf = {
             'emission_start_time': dynamicparam('m_flStartTime'),
             'emission count scale control point': 'm_nScaleControlPoint',
             'emission count scale control point field': 'm_nScaleControlPointField',
-            'operator end fadein': '',
             'scale emission to used control points': 'm_flScalePerParentParticle', # not sure
-            'operator end fadeout': '',
-            'operator start fadein': '',
-            'operator start fadeout': '',
             'use parent particles for emission scaling': '',
-            'operator fade oscillate': '',
         }),
         'emit noise': ('C_OP_NoiseEmitter', {
             'emission_start_time': 'm_flStartTime',
@@ -526,23 +509,11 @@ pcf_to_vpcf = {
         'twist around axis': ('C_OP_TwistAroundAxis', {
             'amount of force': 'm_fForceAmount',
             'twist axis': 'm_TwistAxis',
-            'operator strength random scale max': '',
-            'operator strength random scale min': '',
-            'operator strength scale seed': '',
             'object local space axis 0/1': 'm_bLocalSpace',
         }),
         'random force': ('C_OP_RandomForce', {
             'min force': 'm_MinForce',
             'max force': 'm_MaxForce',
-            'operator fade oscillate': '',
-            'operator end fadeout': '',
-            'operator start fadeout': '',
-            'operator end fadein': '',
-            'operator start fadein': '',
-            'operator time scale min': '',
-            'operator time scale max': '',
-            'operator strength random scale max': '',
-            'operator strength scale seed': '',
         }),
         'Force based on distance from plane': ('C_OP_ForceBasedOnDistanceToPlane', {
             'Max Distance from plane': 'm_flMaxDist',
@@ -564,8 +535,6 @@ pcf_to_vpcf = {
             'amount of force': dynamicparam('m_fForceAmount'),
             'falloff power': 'm_fFalloffPower',
             'control point number': 'm_nControlPointNumber',
-            'operator start fadeout': '',
-            'operator end fadeout': '',
         }),
          'turbulent force': ('C_OP_TurbulenceForce', {
             'Noise scale 0': 'm_flNoiseCoordScale0',
@@ -621,10 +590,29 @@ pcf_to_vpcf = {
             'control point movement distance tolerance': 'm_flCpMovementTolerance',
             'minimum speed to kill on collision': 'm_flMinSpeed',
             'kill particle on collision': 'm_bKillonContact',
-            'operator end fadein': '',
-            'operator start fadein': '',
         }),
     }),
+
+    '__operator_shared': {
+        'operator start fadein': 'm_flOpStartFadeInTime',
+        'operator end fadein': 'm_flOpEndFadeInTime',
+        'operator start fadeout': 'm_flOpStartFadeOutTime',
+        'operator end fadeout': 'm_flOpEndFadeOutTime',
+        'operator fade oscillate': 'm_flOpFadeOscillatePeriod',
+        'normalize fade times to endcap': 'm_bNormalizeToStopTime',
+        'operator time scale min': 'm_flOpTimeScaleMin',
+        'operator time scale max': 'm_flOpTimeScaleMax',
+        'operator time scale seed': 'm_nOpTimeScaleSeed',
+        'operator time offset min': 'm_flOpTimeOffsetMin',
+        'operator time offset max': 'm_flOpTimeOffsetMax',
+        'operator time offset seed': 'm_flOpTimeOffsetSeed',
+        'operator end cap state': 'm_nOpEndCapState',
+        'operator strength random scale max': maxof('m_flOpStrength'),
+        'operator strength random scale min': minof('m_flOpStrength'),
+        'operator time strength random scale max': '',
+        'operator strength scale seed': '',
+
+    },
 
     'children': 'm_Children',
     'material': ('m_Renderers', 'm_hTexture', 'm_hMaterial'), # TODO FIXME
@@ -668,15 +656,17 @@ pcf_to_vpcf = {
     'bounding_box_min':                 'm_BoundingBoxMin',
     'bounding_box_max':                 'm_BoundingBoxMax',
 
-    '_pcf_operator_globals': {
-        'operator start fadein': '',
-        'operator end fadein': '',
-        'operator start fadeout': '',
-        'operator end fadeout': '',
-
-    },
-
 }
+
+
+# vistasmokev1_emods.vmt ->
+# vistasmokev1_emods.mks | vistasmokev1_emods.txt(empty) | [pieces]
+{
+    '$vertexcolor': 'm_bPerVertexLighting'
+}
+
+
+
 
 explosions_fx = Path(r'D:\Users\kristi\Documents\GitHub\source1import\utils\shared\particles\explosions_fx.pcf')
 lightning = Path(r'D:\Users\kristi\Documents\GitHub\source1import\utils\shared\particles\lighting.pcf')
@@ -692,7 +682,7 @@ def is_valid_pcf(x: dmx.DataModel):
 def guess_key_name(key, value):
     key_words = key.replace('_', ' ').split(' ')
 
-    shorts = {'minimum':'min', 'maximum':'max', 'simulation': 'sim', 'rotation': 'rot'}
+    shorts = {'minimum':'min', 'maximum':'max', 'simulation':'sim', 'rotation':'rot', 'interpolation':'lerp'}
     typepreffix = {
         bool:'b', float:'fl', int:'n', resource:'h'
     }
@@ -709,7 +699,7 @@ def guess_key_name(key, value):
 def tests():
     print(x.elements[0].keys())
     print(x.elements[1].type)
-materials = []
+materials = set()
 children = []
 fallbacks = []
 def pcfkv_convert(key, value):
@@ -720,7 +710,7 @@ def pcfkv_convert(key, value):
         return guess_key_name(key, value), value
 
     if key == "material":
-        materials.append(value)
+        materials.add(value)
     outKey, outVal = key, value
 
     if isinstance(vpcf_translation, str):  # simple translation
@@ -761,17 +751,19 @@ def pcfkv_convert(key, value):
         outVal = []
 
         for opitem in value:
-            bWasTuple = False
+            # handle the 2 formats
+            # {'dmxobj': 'class', 'k':'kt'} <- this one has global subkeys
+            # {'dmxobj': ('class', {'k':'kt'})}
             sub_translation = vpcf_translation[1]
-            if not (className := sub_translation.get(opitem.name)):
+            if (className := sub_translation.get(opitem.name)):
+                if type(className) is tuple:
+                    className, sub_translation = className
+                    
+            if not className:
                 if className is None:
-                    if opitem.name == 'emit_continuously':
-                        print("WHAT", sub_translation)
                     un(opitem.name, outKey)
                 continue
-            if isinstance(className, tuple):
-                className, sub_translation = className
-                bWasTuple = True
+
             subKV = { '_class': className }
 
             for key2, value2 in opitem.items():
@@ -780,42 +772,45 @@ def pcfkv_convert(key, value):
                         print("functionName mismatch", key2, opitem.name)
                     continue
 
-                if subkey:=sub_translation.get(key2):
-                    if isinstance(subkey, BoolToSetKV):
-                        if not value2:
-                            continue
-                        subkey, value = subkey.k, subkey.v
-                    elif isinstance(subkey, minof):
-                        if str(subkey) in subKV:
-                            if not isinstance(subKV[subkey], dict): # not a dynamicparam
-                                subKV[subkey] = dict(
-                                    m_nType = "PF_TYPE_RANDOM_UNIFORM",
-                                    m_flRandomMin = value2,
-                                    m_flRandomMax = subKV[subkey]
-                                )
-                            else:
-                                subKV[subkey]['m_flRandomMin'] = value2
-                            continue
+                if not (subkey:=sub_translation.get(key2)):
+                    if key2 not in pcf_to_vpcf['__operator_shared']:
+                        if subkey is None:
+                            un(key2, opitem.name)
+                        subkey = guess_key_name(key2, value2)
+                    else:
+                        subkey = pcf_to_vpcf['__operator_shared'][key2]
 
-                        else: value = dict(
-                                    m_nType = "PF_TYPE_RANDOM_UNIFORM",
-                                    m_flRandomMin = value2,
-                                )
+                if isinstance(subkey, BoolToSetKV):
+                    if not value2:
+                        continue
+                    subkey, value = subkey.k, subkey.v
+                elif isinstance(subkey, minof):
+                    if str(subkey) in subKV:
+                        if not isinstance(subKV[subkey], dict): # not a dynamicparam
+                            subKV[subkey] = dict(
+                                m_nType = "PF_TYPE_RANDOM_UNIFORM",
+                                m_flRandomMin = value2,
+                                m_flRandomMax = subKV[subkey]
+                            )
+                        else:
+                            subKV[subkey]['m_flRandomMin'] = value2
+                        continue
 
-                    elif isinstance(subkey, maxof):
-                        ...
-                    elif isinstance(subkey, dynamicparam):
-                        value2 = {'m_nType': "PF_TYPE_LITERAL",'m_flLiteralValue': value2}
-                    #elif bWasTuple:
+                    else: value = dict(
+                                m_nType = "PF_TYPE_RANDOM_UNIFORM",
+                                m_flRandomMin = value2,
+                            )
 
-                    ## no maxof for num_to_emit workaround
-                    #if subkey in subKV and isinstance(subKV[subkey], dict):
-                    #    # TODO if min add max if max add min
-                    #    subKV[subkey]['m_flRandomMax'] = value
-                    subKV[subkey] = value2
-                elif subkey is None:
-                    un(key2, opitem.name)
-                    #guess_key_name not here, change logic TODO
+                elif isinstance(subkey, maxof):
+                    ...
+                elif isinstance(subkey, dynamicparam):
+                    value2 = {'m_nType': "PF_TYPE_LITERAL",'m_flLiteralValue': value2}
+
+                ## no maxof for num_to_emit workaround
+                #if subkey in subKV and isinstance(subKV[subkey], dict):
+                #    # TODO if min add max if max add min
+                #    subKV[subkey]['m_flRandomMax'] = value
+                subKV[subkey] = value2
 
             outVal.append(subKV)
 
