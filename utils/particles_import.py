@@ -3,15 +3,21 @@ if __name__ is None:
     import utils.shared.datamodel as dmx
 
 from pathlib import Path
-
+particles = Path('particles')
 # https://developer.valvesoftware.com/wiki/Particle_System_Overview
 # https://developer.valvesoftware.com/wiki/Animated_Particles
 # https://developer.valvesoftware.com/wiki/Source_2_Particle_System_Properties
 
-class resource(str): pass  # kv3 resource
+# particles_manifest.txt
+# "!" before path means precache all on map spawn
+# normal paths get 
+
 class dynamicparam(str): pass
 class maxof(dynamicparam): pass # for Random Uniform
 class minof(dynamicparam): pass # for Random Uniform
+
+class Ref(str):
+    "Resource reference"
 
 class ObjectP:
     def __init__(self, object_name: str, param: str=''):
@@ -19,23 +25,38 @@ class ObjectP:
         self.name = param
     def __str__(self):
         return self.name
+
+class watch:
+    def __init__(self, t):
+        self.key = t
+    def __call__(self,oldval):
+        print(self.key, oldval)
+        input()
+        return self.key, oldval
+
 class remap:
     def __init__(self, t, map):
         self.key = t
         self.map = map
-    def get_kv(self, oldval):
+    def __call__(self, oldval):
         return self.key, self.map.get(oldval)
 
 class BoolToSetKV:
     def __init__(self, k, v):
         self.k, self.v = k, v
+    def __call__(self, oldval):
+        if oldval: return self.k, self.v
 
 class Discontinued:
     "This parameter worked on particle systems with behaviour versions lower than `self.at"
     def __init__(self, at: int=10):
         self.at = at
-    def __bool__(self): return False
+    def __bool__(self): return False # FIXME
 
+class Multiple:
+    def __init__(self, *args, **kwargs):
+        self.bare_replacements = args
+        self.kw_replacements = kwargs
 vpcf_PreOPs = set()
 
 def PreOP(cls: str):
@@ -46,31 +67,35 @@ def PreOP(cls: str):
 
 # are pcf keys case insensitive?
 
+# incomplete - contains most common ones
 pcf_to_vpcf = {
     # name/functionName -> class
     'renderers': ( 'm_Renderers', {
         'render_animated_sprites':  'C_OP_RenderSprites',
             'animation rate': 'm_flAnimationRate',
             'second sequence animation rate': 'm_flAnimationRate2',
-            'cull system when CP normal faces away from camera': '',
-            'cull system starting at this recursion depth': '',
-            'use animation rate as FPS': '',
+            'cull system when CP normal faces away from camera': Discontinued(-1),
+            'cull system starting at this recursion depth': Discontinued(-1),
+            'use animation rate as FPS': 'm_bAnimateInFPS',
             'animation_fit_lifetime': BoolToSetKV('m_nAnimationType', 'ANIMATION_TYPE_FIT_LIFETIME'),
             'orientation control point': 'm_nOrientationControlPoint',
             'orientation_type': 'm_nOrientationType',
-            'length fade in time': '',
+            'length fade in time': Discontinued(-1),
             'min length': 'm_flMinSize',
             'max length': 'm_flMaxSize',
-            'constrain radius to length': '',
-            'ignore delta time': '',
+            'constrain radius to length': Discontinued(-1),
+            'ignore delta time': Discontinued(-1),
 
         'render_rope': 'C_OP_RenderRopes',
-            'texel_size': '',
+            'texel_size': '',#radius scale?#Multiple('m_flFinalTextureScaleU', 'm_flFinalTextureScaleV'), # unsure
             'texture_scroll_rate': dynamicparam('m_flTextureVScrollRate'),
-            'subdivision_count': '',
-        'render_screen_velocity_rotate': '',
+            'subdivision_count': 'm_flTessScale',
+        'render_screen_velocity_rotate': NotImplemented,
         'render_sprite_trail': 'C_OP_RenderTrails',
-             'tail color and alpha scale factor': '',
+            'tail color and alpha scale factor': Multiple(
+                m_vecTailColorScale = lambda v: v[:3],
+                m_flTailAlphaScale = lambda v: v[3:]
+            ),
         'render_blobs': 'C_OP_RenderBlobs',
             'cube_width': 'm_cubeWidth',
             'cutoff_radius': 'm_cutoffRadius',
@@ -83,10 +108,12 @@ pcf_to_vpcf = {
             # 	 	m_model = resource:"asd"
             # 	 },
             # ]
-            'sequence 0 model': '',
-            'orient model z to normal': '',
-            'activity override': '',
-            'animation rate scale field': '',
+            'sequence 0 model': lambda v: ('m_ModelList',
+                [{'m_model': resource(Path('models/' + v).with_suffix('.vmdl'))}]
+            ),
+            'orient model z to normal': 'm_bOrientZ',
+            'activity override': 'm_ActivityName',
+            'animation rate scale field': 'm_nAnimationScaleField',
         'render_project': 'C_OP_RenderProjected',
     }),
 
@@ -94,8 +121,8 @@ pcf_to_vpcf = {
         'Lifespan Decay': 'C_OP_Decay',
             # m_bRopeDecay
         'Radius Scale': 'C_OP_InterpolateRadius',
-            'radius_start_scale': 'm_flEndScale',
-            'radius_end_scale': 'm_flStartScale',
+            'radius_start_scale': 'm_flStartScale',
+            'radius_end_scale': 'm_flEndScale',
             'start_time': 'm_flStartTime',
             'scale_bias': 'm_flBias',
             'end_time': 'm_flEndTime',
@@ -108,7 +135,7 @@ pcf_to_vpcf = {
             'fade in time min': 'm_flFadeInTimeMin',
             'fade in time max': 'm_flFadeInTimeMax',
             'ease in and out': 'm_bEaseInAndOut',
-            'fade in time exponent': '', # m_flFadeInTimeExp ?
+            'fade in time exponent': 'm_flFadeInTimeExp',
 
         'Alpha Fade Out Random': 'C_OP_FadeOut',
             'proportional 0/1': 'm_bProportional',
@@ -116,7 +143,7 @@ pcf_to_vpcf = {
             'fade out time max': 'm_flFadeOutTimeMax',
             'ease in and out': 'm_bEaseInAndOut',
             'fade bias': 'm_flFadeBias',
-            'fade out time exponent': '', # m_flFadeOutTimeExp ?
+            'fade out time exponent': 'm_flFadeOutTimeExp',
 
         'Movement Basic': 'C_OP_BasicMovement',
             'gravity': 'm_Gravity',
@@ -175,9 +202,9 @@ pcf_to_vpcf = {
             'output field': 'm_nFieldOutput',
             'distance maximum': 'm_flInputMax',
             'distance minimum': 'm_flInputMin',
-            'output is scalar of initial random range': '',
-            'output is scalar of current value': '',
-            'only active within specified distance': '',
+            'output is scalar of initial random range': BoolToSetKV('m_nSetMethod', "PARTICLE_SET_SCALE_INITIAL_VALUE"),
+            'output is scalar of current value': BoolToSetKV('m_nSetMethod', "PARTICLE_SET_SCALE_CURRENT_VALUE"),
+            'only active within specified distance': 'm_bActiveRange',
             'control point': 'm_nControlPoint',
         'Color Fade': 'C_OP_ColorInterpolate',
             'color_fade': 'm_ColorFade',
@@ -190,13 +217,13 @@ pcf_to_vpcf = {
         'Alpha Fade In Simple': 'C_OP_FadeInSimple',
             'proportional fade in time': 'm_flFadeInTime',
         'Cull when crossing plane': 'C_OP_PlaneCull',
-            'Control Point for point on plane': '',
-            'Plane Normal': '',
+            'Control Point for point on plane': 'm_nPlaneControlPoint',
+            'Plane Normal': 'm_vecPlaneDirection',
         'Set child control points from particle positions': 'C_OP_SetChildControlPoints',
             '# of control points to set': 'm_nNumControlPoints',
             'First control point to set': 'm_nFirstControlPoint',
             'first particle to copy': dynamicparam('m_nFirstSourcePoint'),
-            'Group ID to affect': '',
+            'Group ID to affect': 'm_nChildGroupID',
         'Alpha Fade Out Simple': 'C_OP_FadeOutSimple',
             'proportional fade out time': 'm_flFadeOutTime',
         'Ramp Scalar Linear Random': 'C_OP_RampScalarLinear',
@@ -209,15 +236,15 @@ pcf_to_vpcf = {
         'Lifespan Minimum Velocity Decay': 'C_OP_VelocityDecay',
             'minimum velocity': 'm_flMinVelocity',
         'Rotation Orient Relative to CP': 'C_OP_Orient2DRelToCP',
-            'Rotation Offset': '',
+            'Rotation Offset': 'm_flRotOffset',
         'Movement Lock to Bone': 'C_OP_LockToBone',
-            'lifetime fade end': '',
-            'lifetime fade start': '',
+            'lifetime fade start': 'm_flLifeTimeFadeStart',
+            'lifetime fade end': 'm_flLifeTimeFadeEnd',
         'Cull Random': 'C_OP_Cull',
             'Cull Percentage': 'm_flCullPerc',
             'Cull End Time': 'm_flCullEnd',
-            'Cull Start Time': '',
-            'Cull Time Exponent': '',
+            'Cull Start Time': 'm_flCullStart',
+            'Cull Time Exponent': 'm_flCullExp',
         'Movement Place On Ground': 'C_OP_MovementPlaceOnGround',
             'include water': 'm_bIncludeWater',
             'max trace length': 'm_flMaxTraceLength',
@@ -244,21 +271,26 @@ pcf_to_vpcf = {
             'Light 2 50% Distance': 'm_LightFiftyDist2',
             'Light 2 0% Distance': 'm_LightZeroDist2',
             'Light 1 Type 0=Point 1=Spot': 'm_bLightType1',
-            'Light 1 Direction': '',
-            'Light 1 Dynamic Light': '',
+            'Light 1 Direction': Discontinued(-1),
+            'Light 1 Dynamic Light': 'm_bLightDynamic1',
         'Movement Max Velocity': 'C_OP_MaxVelocity',
             'Maximum Velocity': 'm_flMaxVelocity',
         'Remap Dot Product to Scalar': 'C_OP_RemapDotProductToScalar',
-            'first input control point': '',
-            'second input control point': '',
-            'input minimum (-1 to 1)': '',
+        'remap dot product to scalar': 'C_OP_RemapDotProductToScalar',
+            'first input control point': 'm_nInputCP1',
+            'second input control point': 'm_nInputCP2',
+            'input minimum (-1 to 1)': 'm_flInputMin',
+            'input maximum (-1 to 1)': 'm_flInputMin',
+            'only active within specified input range': 'm_bActiveRange',
+            # m_bUseParticleVelocity m_bUseParticleNormal
+			# m_nSetMethod = PARTICLE_SET_REPLACE_VALUE "PARTICLE_SET_SCALE_INITIAL_VALUE" "PARTICLE_SET_ADD_TO_INITIAL_VALUE" PARTICLE_SET_SCALE_CURRENT_VALUE PARTICLE_SET_ADD_TO_CURRENT_VALUE
         'Remap Distance Between Two Control Points to Scalar': 'C_OP_DistanceBetweenCPs',
-            'starting control point': '',
-            'ending control point': '',
-            'ensure line of sight': '',
-            'LOS collision group': '',
-            'Maximum Trace Length': '',
-            'LOS Failure Scalar': '',
+            'starting control point': 'm_nStartCP',
+            'ending control point': 'm_nEndCP',
+            'ensure line of sight': 'm_bLOS',
+            'LOS collision group': 'm_CollisionGroupName',
+            'Maximum Trace Length': 'm_flMaxTraceLength',
+            'LOS Failure Scalar': 'm_flLOSScale',
         'Remap Control Point to Scalar': 'C_OP_RemapCPtoScalar',
             'input control point number': 'm_nCPInput',
             'input field 0-2 X/Y/Z': 'm_nField',
@@ -276,52 +308,101 @@ pcf_to_vpcf = {
             'Third Control Point Number': 'm_nCP3',
             'Fourth Control Point Number': 'm_nCP4',
             'Control Point to offset positions from': 'm_nHeadLocation',
-            'First Control Point Parent': '',
-            'Second Control Point Parent': '',
-            'Third Control Point Parent': '',
-            'Fourth Control Point Parent': '',
-            'Set positions in world space': '',
+            'First Control Point Parent': Discontinued(-1),
+            'Second Control Point Parent': Discontinued(-1),
+            'Third Control Point Parent': Discontinued(-1),
+            'Fourth Control Point Parent': Discontinued(-1),
+            'Set positions in world space': 'm_bUseWorldLocation',
+            # m_bOrient m_bSetOnce
         'Set Control Point to Impact Point': PreOP('C_OP_SetControlPointToImpactPoint'),
             'Trace Update Rate': 'm_flUpdateRate',
             'Trace Direction Override': 'm_vecTraceDir',
             'Control Point to Set': 'm_nCPOut',
             'trace collision group': 'm_CollisionGroupName',
-            'Control Point to Trace From': '',
-            'Offset End Point Amount': '',
-            'Max Trace Length': '',
+            'Control Point to Trace From': 'm_nCPIn',
+            'Offset End Point Amount': 'm_flOffset',
+            'Max Trace Length': 'm_flTraceLength',
+            # m_bSetToEndpoint
         "Set Control Point To Particles' Center": PreOP('C_OP_SetControlPointToCenter'),
             'Control Point Number to Set': 'm_nCP1',
-            'basic_movement': '',
-        'radius_scale': '',
-        'alpha_fade': '',
-        'rotation_spin': '',
-        'Rotation Spin Yaw': '',
-        'Remap CP Speed to CP': '',
-        'Remap Difference of Sequential Particle Vector to Scalar': '',
-        'Movement Maintain Position Along Path': '',
-        'Ramp Scalar Spline Random': '',
-        'Remap Velocity to Vector': '',
-        'Ramp Scalar Spline Simple': '',
-        'Ramp Scalar Linear Simple': '',
-        'Noise Vector': '',
-        'remap dot product to scalar': '',
-        'Set Control Point To Player': '',
-        'Oscillate Scalar Simple': '',
-        'Normal Lock to Control Point': '',
-        'Inherit Attribute From Parent Particle': '',
-        'Movement Lock to Saved Position Along Path': '',
-        'Restart Effect after Duration': '',
-        'Set per child control point from particle positions': '',
-        'Remap Percentage Between Two Control Points to Scalar': '',
-        'Remap Direction to CP to Vector': '',
-        'Lerp Initial Scalar': '',
-        'Lifespan Minimum Alpha Decay': '',
-        'Clamp Scalar': '',
-        'Set Control Point Rotation': '',
-        'Lifespan Minimum Radius Decay': '',
-        'Set control points from particle positions': '',
-        'Alpha Fade and Decay for Tracers': '',
-        'Noise Scalar': '',
+            'center offset': 'm_vecCP1Pos',
+            'basic_movement': Discontinued(-1),
+        'radius_scale': 'C_OP_InterpolateRadius',
+        'alpha_fade': 'C_OP_FadeAndKill', # C_OP_FadeOutSimple
+        'rotation_spin': 'C_OP_Spin', # rotation spin roll ?????
+        'Rotation Spin Yaw': 'C_OP_SpinYaw',
+            'yaw_rate_degrees': 'm_nSpinRateDegrees',
+            'yaw_rate_min': 'm_nSpinRateMinDegrees',
+            'yaw_stop_time': 'm_fSpinRateStopTime',
+        'Remap CP Speed to CP': PreOP('C_OP_RemapSpeedtoCP'),
+            'input control point': 'm_nInControlPointNumber',
+            'output control point': 'm_nOutControlPointNumber',
+        'Remap Difference of Sequential Particle Vector to Scalar': 'C_OP_DifferencePreviousParticle',
+            'difference minimum': 'm_flInputMin',
+            'difference maximum': 'm_flInputMax',
+            'also set ouput to previous particle': 'm_bSetPreviousParticle',
+        'Movement Maintain Position Along Path': 'C_OP_MaintainSequentialPath',
+            'particles to map from start to end': 'm_flNumToAssign',
+            'cohesion strength': 'm_flCohesionStrength',
+            'maximum distance': 'm_fMaxDistance',
+            **(m_PathParams:={'bulge': ObjectP('m_PathParams', 'm_flBulge'), # random bulge? m_flBulge
+            'start control point number': ObjectP('m_PathParams', 'm_nStartControlPointNumber'),
+            'end control point number': ObjectP('m_PathParams', 'm_nEndControlPointNumber'),
+            'bulge control 0=random 1=orientation of start pnt 2=orientation of end point':\
+                ObjectP('m_PathParams', 'm_nBulgeControl'),
+            'mid point position': ObjectP('m_PathParams', 'm_flMidPoint'),}),
+            # m_flTolerance m_bLoop m_bUseParticleCount
+        'Ramp Scalar Spline Random': 'C_OP_RampScalarSpline',
+            'ease out': 'm_bEaseOut',
+        'Remap Velocity to Vector': 'C_OP_RemapVelocityToVector',
+            'normalize': 'm_bNormalize',
+        'Ramp Scalar Spline Simple': 'C_OP_RampScalarSplineSimple',
+            'ramp rate': 'm_Rate',
+        'Ramp Scalar Linear Simple': 'C_OP_RampScalarLinearSimple',
+            'end time': '',
+        'Noise Vector': 'C_OP_VectorNoise',
+            'noise coordinate scale': 'm_fl4NoiseScale',
+            # m_bAdditive m_bOffset m_flNoiseAnimationTimeScale
+        'Set Control Point To Player': PreOP('C_OP_SetControlPointToPlayer'),
+            'Control Point Number': 'm_nCP1',
+            'Control Point Offset': 'm_vecCP1Pos',
+            # m_bOrientToEyes
+        'Oscillate Scalar Simple': 'C_OP_OscillateScalarSimple',
+            'oscillation rate': 'm_Rate',
+            'oscillation frequency': 'm_Frequency',
+        'Normal Lock to Control Point': 'C_OP_CalculateVectorAttribute',
+        'Inherit Attribute From Parent Particle': 'C_OP_InheritFromParentParticlesV2',
+            'Inherited Field': 'm_nFieldOutput',
+        'Movement Lock to Saved Position Along Path': 'C_OP_LockToSavedSequentialPathV2',
+            'Use sequential CP pairs between start and end point': 'm_bCPPairs',
+            **m_PathParams,
+        'Restart Effect after Duration': 'C_OP_RestartAfterDuration',
+            'Minimum Restart Time': '',
+            'Maximum Restart Time': '',
+        'Set per child control point from particle positions': 'C_OP_SetPerChildControlPoint',
+            'control point to set': '',
+            '# of children to set': 'm_nChildren', # made up
+        'Remap Percentage Between Two Control Points to Scalar': 'C_OP_PercentageBetweenCPs',
+            'treat distance between points as radius': '',
+            'percentage maximum': '',
+            'percentage minimum': '',
+        'Remap Direction to CP to Vector': 'C_OP_RemapDirectionToCPToVector',
+            'scale factor': '',
+            'offset rotation': '',
+            'offset axis': '',
+        'Lerp Initial Scalar': 'C_OP_LerpScalar',
+            'value to lerp to': '',
+            'start time': '',
+        'Lifespan Minimum Alpha Decay': 'C_OP_AlphaDecay',
+            'minimum alpha': '',
+        'Clamp Scalar': 'C_OP_ClampScalar',
+        'Set Control Point Rotation': PreOP('C_OP_SetControlPointRotation'),
+            'Rotation Rate': '',
+            'Rotation Axis': '',
+        'Lifespan Minimum Radius Decay': 'C_OP_RadiusDecay',
+        'Set control points from particle positions': 'C_OP_SetControlPointsToParticle',
+        'Alpha Fade and Decay for Tracers': 'C_OP_FadeAndKillForTracers',
+        'Noise Scalar': 'C_OP_Noise',
     }),
 
     'initializers': ('m_Initializers', {
@@ -340,7 +421,7 @@ pcf_to_vpcf = {
             'randomly distribute to highest supplied Control Point': Discontinued(),
             'randomly distribution growth time': 'm_flEndCPGrowthTime',
             'scale cp (distance/speed/local speed)': 'm_nScaleCP',
-            'create in model': '',
+            'create in model': Discontinued(-1),
 
         'Move Particles Between 2 Control Points': 'C_INIT_MoveBetweenPoints',
         'move particles between 2 control points': 'C_INIT_MoveBetweenPoints',
@@ -376,13 +457,15 @@ pcf_to_vpcf = {
             'rotation_offset_max': 'm_flDegreesMax',
             'rotation_offset_min': 'm_flDegreesMin',
             'rotation_initial': 'm_flDegrees',
-            'rotation_random_exponent': '',
+            'rotation_random_exponent': 'm_flRotationRandExponent',
+            #'rotation_field': 'm_nFieldOutput',
 
         'Alpha Random': 'C_INIT_RandomAlpha',
+            #'alpha_field': 'm_nFieldOutput',
             'alpha_max': 'm_nAlphaMin',
             'alpha_min': 'm_nAlphaMax',
             'alpha_random_exponent': 'm_flAlphaRandExponent',
-            'run for killed parent particles': '',
+            'run for killed parent particles': Discontinued(-1),
 
         'Position Modify Offset Random': 'C_INIT_PositionOffset',
             'offset max': 'm_OffsetMin',
@@ -405,7 +488,7 @@ pcf_to_vpcf = {
         'Rotation Speed Random': 'C_INIT_RandomRotationSpeed',
             'rotation_speed_random_min': 'm_flDegreesMin',
             'rotation_speed_random_max': 'm_flDegreesMax',
-            'rotation_speed_constant': '',
+            'rotation_speed_constant': Discontinued(-1),
 
         'Position Within Box Random': 'C_INIT_CreateWithinBox',
             'max': 'm_vecMax',
@@ -429,9 +512,9 @@ pcf_to_vpcf = {
             'warp max': 'm_vecWarpMax',
             'warp transition time (treats min/max as start/end sizes)': 'm_flWarpTime',
             'warp transition start time': 'm_flWarpStartTime',
-            'reverse warp (0/1)': '',
-            'use particle count instead of time': '',
-
+            'reverse warp (0/1)': 'm_bInvertWarp',
+            'use particle count instead of time': 'm_bUseCount',
+            # m_nScaleControlPointNumber m_nRadiusComponent m_flPrevPosScale
         'Velocity Noise': 'C_INIT_InitialVelocityNoise',
             'Time Noise Coordinate Scale': dynamicparam('m_flNoiseScale'),
             'Spatial Noise Coordinate Scale': dynamicparam('m_flNoiseScaleLoc'),
@@ -445,7 +528,7 @@ pcf_to_vpcf = {
         'Trail Length Random': 'C_INIT_RandomTrailLength',
             'length_min': 'm_flMinLength',
             'length_max': 'm_flMaxLength',
-            'length_random_exponent': '',
+            'length_random_exponent': 'm_flLengthRandExponent',
 
         'Lifetime From Sequence': 'C_INIT_SequenceLifeTime',
             'Frames Per Second': 'm_flFramerate',
@@ -453,11 +536,17 @@ pcf_to_vpcf = {
         'Remap Initial Scalar': 'C_INIT_RemapScalar', # 'remap initial scalar' duplicate wtf
             'emitter lifetime end time (seconds)': 'm_flStartTime',
             'emitter lifetime start time (seconds)': 'm_flEndTime',
-            'only active within specified input range': '',
+            'only active within specified input range': 'm_bActiveRange',
 
-        'Remap Initial Distance to Control Point to Scalar': '',
-            #'distance minimum': 'm_flInputMin'
+        'Remap Initial Distance to Control Point to Scalar': 'C_INIT_DistanceToCPInit',
+            'distance minimum': 'm_flInputMin',
             'distance maximum': 'm_flInputMax',
+            'control point': 'm_nStartCP',
+            'only active within specified distance': 'm_bActiveRange',
+            'LOS Failure Scalar': 'm_flLOSScale',
+            'Maximum Trace Length': 'm_flMaxTraceLength',
+            'LOS collision group': 'm_CollisionGroupName',
+            'ensure line of sight': 'm_bLOS',
         'Position Along Ring': 'C_INIT_RingWave',
             'initial radius': 'm_flInitialRadius',
             'thickness': 'm_flThickness',
@@ -482,12 +571,7 @@ pcf_to_vpcf = {
             'Random Parent Particle Distribution': 'm_bRandomDistribution',
             # m_flIncrement = 11.0 m_bRandomDistribution = true m_nRandomSeed = 1 m_bSubFrame = false
         'Remap Scalar to Vector': 'C_INIT_RemapScalarToVector',
-            'use local system': '',
-            # m_flVelocityScale = 1.0
-            # m_flIncrement = 11.0
-            # m_bRandomDistribution = true
-            # m_nRandomSeed = 1
-            # m_bSubFrame = false
+            'use local system': 'm_bLocalCoords',
         'lifetime from sequence': 'C_INIT_SequenceLifeTime',
         'Scalar Random': 'C_INIT_RandomScalar',
             # this likely has m_flMin & clashes with m_vecMin TODO FIXME
@@ -521,7 +605,7 @@ pcf_to_vpcf = {
         'Lifetime Pre-Age Noise': 'C_INIT_AgeNoise',
             'start age minimum': 'm_flAgeMin',
             'start age maximum': 'm_flAgeMax',
-        'Position In CP Hierarchy': '',
+        'Position In CP Hierarchy': '', # suspect C_INIT_CreateFromCPs maybe needs processing
         'Lifetime from Time to Impact': 'C_INIT_LifespanFromVelocity',
             'maximum trace length': 'm_flMaxTraceLength',
             'trace collision group': 'm_CollisionGroupName',
@@ -531,46 +615,43 @@ pcf_to_vpcf = {
             'bias distance': 'm_vecComponentScale',
             # m_bIncludeWater = false
         'Position from Parent Cache': 'C_INIT_CreateFromPlaneCache',
-            'Local Offset Max': '',
-            'Local Offset Min': '',
+            'Local Offset Max': 'm_vecOffsetMax',
+            'Local Offset Min': 'm_vecOffsetMin',
+            # 'set normal': 'm_bUseNormal', that clashes with another m_bSetNormal
         'Rotation Yaw Random': 'C_INIT_RandomYaw',
-            'yaw_offset_max': '',
-            'yaw_offset_min': '',
-            'yaw_random_exponent': '',
-            'yaw_initial': '',
+            'yaw_offset_min': 'm_flDegreesMin',
+            'yaw_offset_max': 'm_flDegreesMax',
+            'yaw_random_exponent': 'm_flRotationRandExponent',
+            'yaw_initial': 'm_flDegrees',
         'Position Along Path Sequential': 'C_INIT_CreateSequentialPathV2',
             'particles to map from start to end': 'm_flNumToAssign',
             'maximum distance': 'm_fMaxDistance',
             'restart behavior (0 = bounce, 1 = loop )': 'm_bLoop',
             'Use sequential CP pairs between start and end point': 'm_bCPPairs',
             'Save Offset': 'm_bSaveOffset',
-            'bulge': ObjectP('m_PathParams', 'm_flBulge'), # random bulge? m_flBulge
-            'start control point number': ObjectP('m_PathParams', 'm_nStartControlPointNumber'),
-            'end control point number': ObjectP('m_PathParams', 'm_nEndControlPointNumber'),
-            'bulge control 0=random 1=orientation of start pnt 2=orientation of end point':\
-                ObjectP('m_PathParams', 'm_nBulgeControl'),
-            'mid point position': ObjectP('m_PathParams', 'm_flMidPoint'),
+            **m_PathParams,
             # m_vStartPointOffset m_vMidPointOffset m_vEndOffset
         'Velocity Repulse from World': 'C_INIT_InitialRepulsionVelocity',
             'Trace Length': 'm_flTraceLength',
-            'Inherit from Parent': '',
-            'maximum velocity': '',
-            'control points to broadcast to children (n + 1)': '',
-            'Offset instead of accelerate': '',
-            'minimum velocity': '',
-            'Per Particle World Collision Tests': '',
-            'Use radius for Per Particle Trace Length': '',
-            'Offset proportional to radius 0/1': '',
-            'Child Group ID to affect': '',
+            'Inherit from Parent': 'm_bInherit',
+            'minimum velocity': 'm_vecOutputMin',
+            'maximum velocity': 'm_vecOutputMax',
+            'control points to broadcast to children (n + 1)': 'm_nChildCP',
+            'Offset instead of accelerate': 'm_bTranslate',
+            'Per Particle World Collision Tests': 'm_bPerParticle',
+            'Use radius for Per Particle Trace Length': 'm_bPerParticleTR',
+            'Offset proportional to radius 0/1': 'm_bProportional',
+            'Child Group ID to affect': 'm_nChildGroupID',
         'Cull relative to Ray Trace Environment': 'C_INIT_RtEnvCull',
-            'cull on miss': '',
-            'cull normal': '',
-            'ray trace environment name': '',
-            'velocity test adjust lifespan': '',
-            'use velocity for test direction': '',
+            #'test direction': 'm_vecTestDir',
+            'cull on miss': 'm_bCullOnMiss',
+            'cull normal': 'm_vecTestNormal',
+            'ray trace environment name': 'm_RtEnvName',
+            'velocity test adjust lifespan': 'm_bLifeAdjust',
+            'use velocity for test direction': 'm_bUseVelocity',
         'Color Lit Per Particle': 'C_INIT_ColorLitPerParticle',
             'light bias': 'm_flTintPerc',
-            'position_within_sphere': '',
+            'position_within_sphere': Discontinued(-1),
         'rotation_random': 'C_INIT_RandomRotation',
         'lifetime_random': 'C_INIT_RandomLifeTime',
         'Initial Velocity Noise': 'C_INIT_InitialVelocityNoise',
@@ -585,7 +666,7 @@ pcf_to_vpcf = {
         'trail_length_random': 'C_INIT_RandomTrailLength',
         'Position Along Path Random': 'C_INIT_CreateAlongPath',
             'randomly select sequential CP pairs between start and end points': '',
-            # m_PathParams
+            **m_PathParams,
         'Remap Particle Count to Scalar': 'C_INIT_RemapParticleCountToScalar',
         'Remap Control Point to Vector': 'C_INIT_RemapCPtoVector',
             'offset position': 'm_bOffset',
@@ -799,7 +880,7 @@ pcf_to_vpcf = {
     },
 
     'children': 'm_Children',
-    'material': resource('m_hMaterial'), # TODO FIXME
+    'material': Ref('m_hMaterial'), # TODO FIXME
 
     # base properties
     'batch particle systems': 'm_bShouldBatch',
@@ -828,14 +909,14 @@ pcf_to_vpcf = {
     'normal': 'm_ConstantNormal',
     'max_particles':                    'm_nMaxParticles',
     'initial_particles':                'm_nInitialParticles',
-    'cull_replacement_definition':      resource('m_pszCullReplacementName'),
-    'fallback replacement definition':   resource('m_hFallback'), # not a string on pcf, its value is an id
+    'cull_replacement_definition':      Ref('m_pszCullReplacementName'),
+    'fallback replacement definition':  Ref('m_hFallback'),    
     'fallback max count':               'm_nFallbackMaxCount',
     'radius':                           'm_flConstantRadius',
     'color':                            'm_ConstantColor',
     'maximum draw distance':            'm_flMaxDrawDistance',
     'time to sleep when not drawn':     'm_flNoDrawTimeToGoToSleep',
-    'Sort particles':                   'm_bShouldSort',
+    'Sort particles':                   'm_bShouldSort', # deprecated use renderer m_nSortMethod "0"
     'bounding_box_min':                 'm_BoundingBoxMin',
     'bounding_box_max':                 'm_BoundingBoxMax',
     'bounding_box_control_point': '',
@@ -852,9 +933,12 @@ class fx:
         self.t = t
         self.func = func
 
+# out of scale textures on fountain rings...
+# is this same as hammer texture scale issue
+# vtf scaling -> m_flConstantRadius
 # vistasmokev1_emods.vmt ->
 # vistasmokev1_emods.mks | vistasmokev1_emods.txt(empty) | [pieces]
-{
+vmt_to_vpcf = {
     # https://developer.valvesoftware.com/wiki/SpriteCard
     # https://developer.valvesoftware.com/wiki/Refract
     '$vertexcolor': 'm_bPerVertexLighting',
@@ -881,9 +965,10 @@ class fx:
     '$translucent': '', # Enable expensive translucency
     '$nocull': '',
     '$mod2x': 'm_bMod2X',
+    '$additive': 'm_bAdditive', # color blend type ?
     #$opaque Are we opaque? Default 0.
     #Note: Enabling this disables these parameters: $addbasetexture2, $dualsequence, $sequence_blend_mode, $maxlumframeblend1, $maxlumframeblend2, $extractgreenalpha, $ramptexture, $zoomanimateseq2, $addoverblend, $addself, $blendframes, $depthblend, and $inversedepthblend.
-    '$overbrightfactor': fx('', lambda x: x+1.0),
+    '$overbrightfactor': lambda v: ('m_flOverbrightFactor', v+1.0),
     '$distancealpha': 'm_bDistanceAlpha',
     '$softedges': 'm_bSoftEdges',
     '$edgesoftnessstart': 'm_flEdgeSoftnessStart',
@@ -901,16 +986,13 @@ class fx:
     '': '',
 
     #'$orientationmatrix' i think this needs a separate control point
-    '$basetexturetransform': (  'm_flFinalTextureScaleU',
-                                'm_flFinalTextureScaleV',
-                                'm_flFinalTextureOffsetU',
-                                'm_flFinalTextureOffsetV',
-                                'm_flCenterXOffset',
-                                'm_flCenterYOffset'),
+    #'$basetexturetransform': (  'm_flFinalTextureScaleU',
+    #                            'm_flFinalTextureScaleV',
+    #                            'm_flFinalTextureOffsetU',
+    #                            'm_flFinalTextureOffsetV',
+    #                            'm_flCenterXOffset',
+    #                            'm_flCenterYOffset'),
 }
-
-
-
 
 explosions_fx = Path(r'D:\Users\kristi\Documents\GitHub\source1import\utils\shared\particles\explosions_fx.pcf')
 lightning = Path(r'D:\Users\kristi\Documents\GitHub\source1import\utils\shared\particles\lighting.pcf')
@@ -928,7 +1010,7 @@ def guess_key_name(key, value):
 
     shorts = {'minimum':'min', 'maximum':'max', 'simulation':'sim', 'rotation':'rot', 'interpolation':'lerp'}
     typepreffix = {
-        bool:'b', float:'fl', int:'n', resource:'h'
+        bool:'b', float:'fl', int:'n', Ref:'h'
     }
 
     guess = 'm_' + typepreffix.get(type(value), '')
@@ -936,6 +1018,7 @@ def guess_key_name(key, value):
     for kw in key_words[:3]:
         if kw.startswith('('):
             break
+        elif '#' in kw or "'" in kw: break
         kw = shorts.get(kw, kw)
         guess += kw.capitalize()
     return guess
@@ -943,6 +1026,9 @@ def guess_key_name(key, value):
 materials = set()
 children = []
 fallbacks = []
+
+from materials_import import VMT, PATH_TO_CONTENT_ROOT
+from shared.keyvalues1 import KV
 def pcfkv_convert(key, value):
 
     if not (vpcf_translation:= pcf_to_vpcf.get(key)):
@@ -951,15 +1037,39 @@ def pcfkv_convert(key, value):
         return guess_key_name(key, value), value
 
     if key == "material": # TODO
+        render_add = {}
         if not value:
             return
-        materials.add(value)
-        mat_path = Path('materials') / Path(value).with_suffix('.vmat')
-        value = resource( mat_path.as_posix() )
+
+        vmt_path = Path(PATH_TO_CONTENT_ROOT) / value
+        texture = None
+        try:
+            vmt = VMT(KV.FromFile(vmt_path))
+        except FileNotFoundError:
+            materials.add(value)
+        else:
+            for vmtkey, vmtval in vmt.KeyValues.items():
+                if vmtkey == '$basetexture':
+                    texture = Path('materials') / vmtval
+                    continue
+                if vmtkey not in vmt_to_vpcf:
+                    continue
+                add = vmt_to_vpcf[vmtkey]
+                if callable(add):
+                    #if isinstance(add, remap):
+                    add, vmtval = add(vmtval)
+                    #else:
+                        #vmtval = add(vmtval)
+                if add:
+                    render_add[add] = vmtval
+
+        vmat_path = Path('materials') / Path(value).with_suffix('.vmat')
+        value = resource(vmat_path)
         for renderer in vpcf.get('m_Renderers', ()):
             renderer[vpcf_translation] = value
-            if renderer['_class'] != 'C_OP_RenderBlobs':
-                renderer['m_hTexture'] = resource( mat_path.with_suffix('.vtex').as_posix())
+            if renderer['_class'] != 'C_OP_RenderBlobs' and texture is not None:
+                renderer['m_hTexture'] = resource(texture.with_suffix('.vtex'))
+            renderer.update(render_add)
             # materials/particle/water/WaterSplash_001a.vtex
         return
 
@@ -973,22 +1083,20 @@ def pcfkv_convert(key, value):
                 outVal = []
                 for child in value:
                     if not child.type == 'DmeParticleChild': # TODO dont need
-                        continue
-                    child_path = f"particles/{root.relative_to(particles_out).as_posix()}/{child['child'].name}.vpcf"
-                    children.append(child_path)
-                    child_resrc_ref = resource(child_path) # TODO: proper resource path
-                    outVal.append(dict(m_ChildRef = child_resrc_ref))
+                        continue                    
+                    child_ref = resource(vpcf_localpath.parent / (child['child'].name + '.vpcf'))
+                    children.append(child_ref.path)
+                    outVal.append(dict(m_ChildRef = child_ref))
                 return vpcf_translation, outVal
 
             else:
                 print('Warning:', key, "is an unhandled element_array")
                 return
 
-        if isinstance(vpcf_translation, resource):
-            ##if vpcf_translation == 'm_hFallback':
+        if isinstance(vpcf_translation, Ref):
             if not value:
                 return
-            return str(vpcf_translation), resource(value)
+            return str(vpcf_translation), resource(Path(vpcf_localpath.parent / (value  + '.vpcf')))
 
         return vpcf_translation, value
     elif isinstance(vpcf_translation, tuple):
@@ -1048,10 +1156,10 @@ def pcfkv_convert(key, value):
                 if isinstance(subkey, ObjectP):
                     subKV.setdefault(subkey.mother, {})[subkey.name] = value2
                     continue
-                elif isinstance(subkey, BoolToSetKV):
-                    if not value2:
-                        continue
-                    subkey, value2 = subkey.k, subkey.v
+                #elif isinstance(subkey, BoolToSetKV):
+                #    if not value2:
+                #        continue
+                #    subkey, value2 = subkey.k, subkey.v
                 elif isinstance(subkey, (minof, maxof)):
                     bMin = isinstance(subkey, minof)
                     if str(subkey) in subKV:
@@ -1077,20 +1185,40 @@ def pcfkv_convert(key, value):
                                 m_flRandomMax = value2
                             )
                 elif isinstance(subkey, dynamicparam):
-                    value2 = {'m_nType': "PF_TYPE_LITERAL",'m_flLiteralValue': value2}
-                else:
+                    pass#value2 = {'m_nType': "PF_TYPE_LITERAL",'m_flLiteralValue': value2}
+                elif isinstance(subkey, Multiple):
+                    for bare_key in subkey.bare_replacements:
+                        subKV[bare_key] = value2
+                    for key, f in subkey.kw_replacements.items():
+                        subKV[key] = f(value2)
+                    continue
+                elif callable(subkey):
+                    if subkey is repr:
+                        input("HEJ @",className, key2, value2)
+                        continue
                     try:
-                        subkey, value2 = subkey.get_kv(value2)
-                    except (TypeError, AttributeError): pass
-                ## no maxof for num_to_emit workaround
-                #if subkey in subKV and isinstance(subKV[subkey], dict):
-                #    # TODO if min add max if max add min
-                #    subKV[subkey]['m_flRandomMax'] = value
+                        subkey, value2 = subkey(value2)
+                    except TypeError:
+                        continue
                 subKV[subkey] = value2
+                #if key2 == 'sequence 0 model':
+                #    print(subkey, value2)
+                #    print(dict_to_kv3_text(subKV))
+                #    input()
 
             outVal.append(subKV)
+    else:
+        return
 
     return outKey, outVal
+
+class resource:
+    def __init__(self, path):
+        self.path = path
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}('{self.path!r}')"
+    def __str__(self):
+        return f'resource:"{self.path.as_posix()}"'
 
 def dict_to_kv3_text(
         kv3dict: dict,
@@ -1103,10 +1231,6 @@ def dict_to_kv3_text(
         ind = ('\t' * indent)
         if obj is None:
             return 'null'
-        elif isinstance(obj, resource):
-            #print(obj, "Is resource:", pcf_path.stem, f'resource:"particles/{pcf_path.stem}/{obj}.vpcf"')
-            #return f'resource:"particles/{pcf_path.stem}/{obj}.vpcf"'
-            return f'resource:"{obj}"'
         elif isinstance(obj, bool):
             if obj: return 'true'
             return 'false'
@@ -1162,12 +1286,14 @@ if __name__ == '__main__':
             print(pcf.elements[1].type)
             continue
 
-        root = (particles_out / pcf_path.relative_to(particles_in).parent / pcf_path.stem)
-
-        root.mkdir(parents = True, exist_ok=True)
+        vpcf_root = pcf_path.relative_to(particles_in).parent / pcf_path.stem
+        vpcf_root.mkdir(parents = True, exist_ok=True)
         for ParticleSystemDefinition in pcf.find_elements(elemtype='DmeParticleSystemDefinition'):
-            imports.append(ParticleSystemDefinition.name)
             vpcf = dict(_class = "CParticleSystemDefinition")
+            vpcf_localpath = particles / vpcf_root / (ParticleSystemDefinition.name + '.vpcf')
+            vpcf_path = particles_out.parent / vpcf_localpath
+            imports.append(vpcf_localpath.as_posix())
+            
             for key, value in ParticleSystemDefinition.items():
                 if converted_kv:= pcfkv_convert(key, value):
                     if not converted_kv[0]:
@@ -1184,11 +1310,10 @@ if __name__ == '__main__':
             header = '<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf26:version{26288658-411e-4f14-b698-2e1e5d00dec6} -->'
             #print(dict_to_kv3_text(vpcf, header))
 
-            out_particle_path = root / (ParticleSystemDefinition.name + '.vpcf')
-            with open(out_particle_path, 'w') as fp:
+            with open(vpcf_path, 'w') as fp:
                 fp.write(dict_to_kv3_text(vpcf, header))
 
-            print("+ Saved", out_particle_path.relative_to(particles_out.parent).as_posix())
+            print("+ Saved", vpcf_localpath.as_posix())
             #break
     print("Looks like we are done!")
     generics = list()
@@ -1214,15 +1339,16 @@ if __name__ == '__main__':
         spaces = '            '
         if k.startswith('m_'):
             spaces = '        '
-        for n in v:
-            print(f"{spaces}'{n}': '',")
+        for i, n in enumerate(v):
+            if i == 0: print(f"    '{n}': '',")
+            else: print(f"{spaces}'{n}': '',")
         print()
 
     for n in generics:
         print(f"'{n}': '',")
 
     for child in children:
-        if child not in imports:
+        if str(child.as_posix()) not in imports:
             print(child, "was not imported...")
     for fb in fallbacks:
         print(fb)
