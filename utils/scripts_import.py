@@ -19,25 +19,26 @@ PATH_TO_NEW_CONTENT_ROOT = r"D:\Games\steamapps\common\Half-Life Alyx\game\hlvr_
 
 
 def fix_wave_resource(old_value):
-    old_value = old_value.lstrip('~')
-    return f"sounds/{Path(old_value).with_suffix('.vsnd').as_posix()}"
+    soundchars = '*?!#><^@~+)(}$' # public\soundchars.h
+    for char in soundchars:
+        while old_value[0] == char:
+            old_value = old_value[1:]
 
-def recurse(kv, find_key, fixup_func):
-    for key, value in kv.iteritems(indexed_keys=True):
-        if isinstance(value, VDFDict):
-            recurse(value, find_key, fixup_func)
-        elif key[1] == find_key:
-            kv[key] = fixup_func(value)
+    return f"sounds/{Path(old_value).with_suffix('.vsnd').as_posix()}"
 
 def ImportSoundscape(file: Path):
     soundscapes = KV.CollectionFromFile(file)
 
-    for soundscape, keyvalues in soundscapes.iteritems(indexed_keys=True):
-        print(soundscape)
-        for key, value in keyvalues.iteritems(indexed_keys=True):
-            if not isinstance(value, VDFDict):
-                continue
-            recurse(value, 'wave', fix_wave_resource)
+    fixups = {'wave': fix_wave_resource}
+
+    def recursively_fixup(kv: VDFDict):
+        for key, value in kv.iteritems(indexed_keys=True):
+            if isinstance(value, VDFDict):
+                recursively_fixup(value)
+            elif (k:=key[1]) in fixups:
+                kv[key] = fixups[k](value)
+
+    recursively_fixup(soundscapes)
     
     new_soundscapes = ''
     newsc_path = file.with_suffix('.txt')
@@ -67,6 +68,17 @@ for file in vscSoundscapeFiles:
 
 with open(manifest_file, 'w') as fp:
     fp.write(str(soundscapes_manifest))
+
+# in soundscapes_*.txt: soundmixer <string>
+# ->
+# Selects a custom soundmixer. Soundmixers manage the priority and volume of groups of sounds; create new ones in scripts\soundmixers.txt (ALWAYS use Default_Mix as a template).
+# 
+# "quiet"
+# {
+# 	"soundmixer"	"Citadel_Dialog_Only"
+# 
+# 	...
+# }
 
 def ImportUpdateResourceRefs(asset_path: Path):
     ...
