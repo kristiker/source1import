@@ -12,6 +12,8 @@ particles = Path('particles')
 # "!" before path means precache all on map spawn
 # normal paths get 
 
+BEHAVIOR_VERSION = 9
+
 class dynamicparam(str): pass
 class maxof(dynamicparam): pass # for Random Uniform
 class minof(dynamicparam): pass # for Random Uniform
@@ -49,7 +51,7 @@ class BoolToSetKV:
 
 class Discontinued:
     "This parameter worked on particle systems with behaviour versions lower than `self.at"
-    def __init__(self, at: int=10):
+    def __init__(self, t: str='', at: int=10):
         self.at = at
     def __bool__(self): return False # FIXME
 
@@ -674,9 +676,9 @@ pcf_to_vpcf = {
             'local space CP': 'm_nLocalSpaceCP',
         'Normal Modify Offset Random': 'C_INIT_NormalOffset',
             'normalize output 0/1': 'm_bNormalize',
-        #'CP Scale Size': '',
-        #'CP Scale Life': '',
-        #'CP Scale Trail': '',
+        'CP Scale Size': '', # Discontinued / NotImplemented
+        'CP Scale Life': '',
+        'CP Scale Trail': '',
         'Position Along Epitrochoid': 'C_INIT_CreateInEpitrochoid',
             'offset from existing position': 'm_bOffsetExistingPos',
             'use particle count instead of creation time': 'm_bUseCount',
@@ -879,8 +881,13 @@ pcf_to_vpcf = {
 
     },
 
-    'children': 'm_Children',
-    'material': Ref('m_hMaterial'), # TODO FIXME
+    'children': ('m_Children', {
+        'child': Ref('m_ChildRef'),
+        'delay': 'm_flDelay',
+        'end cap effect': 'm_bEndCap',
+
+    }),
+    'material': '',#Ref('m_hMaterial')
 
     # base properties
     'batch particle systems': 'm_bShouldBatch',
@@ -897,10 +904,10 @@ pcf_to_vpcf = {
     'cull_radius': 'm_flCullRadius',
     'control point to disable rendering if it is the camera': 'm_nSkipRenderControlPoint',
     'control point to only enable rendering if it is the camera': 'm_nAllowRenderControlPoint',
+    'sequence_number': 'm_nConstantSequenceNumber',
     'sequence_number 1': 'm_nConstantSequenceNumber1',
     'minimum free particles to aggregate': 'm_nAggregationMinAvailableParticles',
     'rotation': 'm_flConstantRotation',
-    'sequence_number': 'm_nConstantSequenceNumber',
     'group id': 'm_nGroupID',
     'cull_cost': 'm_flCullFillCost',
     'minimum CPU level': 'm_nMinCPULevel',
@@ -927,6 +934,8 @@ pcf_to_vpcf = {
 
 }
 
+NotFoundYet = ''
+
 class fx:
     "`self.func` is the func that will be applied to the value"
     def __init__(self, t: str, func):
@@ -941,11 +950,14 @@ class fx:
 vmt_to_vpcf = {
     # https://developer.valvesoftware.com/wiki/SpriteCard
     # https://developer.valvesoftware.com/wiki/Refract
+
     '$vertexcolor': 'm_bPerVertexLighting',
     '$minsize': 'm_flMinSize',
     '$maxsize': 'm_flMaxSize',
     '$minfadesize': dynamicparam('m_flStartFadeSize'),
     '$maxfadesize': dynamicparam('m_flEndFadeSize'),
+    '$startfadesize': '',
+    '$endfadesize': '',
     '$farfadeinterval': '',
 
     '$blendframes': 'm_bBlendFramesSeq0',
@@ -960,14 +972,21 @@ vmt_to_vpcf = {
     '$addself': 'm_flAddSelfAmount',
 
     #'$inversedepthblend': '', # m_bReverseZBuffering
+    '$spriteorientation': remap('m_nOrientationType', map = {
+        'vp_parallel': 0
+    }),
+    '$spriterendermode': BoolToSetKV('m_nColorBlendType', "PARTICLE_COLOR_BLEND_ADD"), # temp
     '$orientation': 'm_nOrientationType',
+    '$orientationmatrix': '',
     '$alpha': dynamicparam('m_flAlphaScale'),
     '$translucent': '', # Enable expensive translucency
     '$nocull': '',
     '$mod2x': 'm_bMod2X',
     '$additive': 'm_bAdditive', # color blend type ?
-    #$opaque Are we opaque? Default 0.
-    #Note: Enabling this disables these parameters: $addbasetexture2, $dualsequence, $sequence_blend_mode, $maxlumframeblend1, $maxlumframeblend2, $extractgreenalpha, $ramptexture, $zoomanimateseq2, $addoverblend, $addself, $blendframes, $depthblend, and $inversedepthblend.
+    '$opaque': 'm_bDrawAsOpaque',
+    '$ignorez': 'm_bDisableZBuffering',
+    '$inversedepthblend': '', # sort method oldest?
+    '$nofog': lambda v: ('m_bFogParticles',not v),
     '$overbrightfactor': lambda v: ('m_flOverbrightFactor', v+1.0),
     '$distancealpha': 'm_bDistanceAlpha',
     '$softedges': 'm_bSoftEdges',
@@ -982,8 +1001,10 @@ vmt_to_vpcf = {
     '$outlineend1': 'm_flOutlineEnd1',
     '$refractamount': 'm_flRefractAmount',
     '$bluramount': 'm_nRefractBlurRadius',
-    '': '',
-    '': '',
+    '$cropfactor': '', # Texture UV control magic?
+    '$pos': '', # subrect
+    '$size': '', # subrect
+    '$aimatcamera': '',
 
     #'$orientationmatrix' i think this needs a separate control point
     #'$basetexturetransform': (  'm_flFinalTextureScaleU',
@@ -992,6 +1013,14 @@ vmt_to_vpcf = {
     #                            'm_flFinalTextureOffsetV',
     #                            'm_flCenterXOffset',
     #                            'm_flCenterYOffset'),
+}
+vmtshader = {
+    'unlitgeneric': ('m_bGammaCorrectVertexColors', False),
+    'sprite': '',
+    'spritecard': '',
+    'refract': 'm_bRefract',
+    'decalmodulate': '',
+    'subrect': '',
 }
 
 explosions_fx = Path(r'D:\Users\kristi\Documents\GitHub\source1import\utils\shared\particles\explosions_fx.pcf')
@@ -1002,8 +1031,7 @@ particles_out = Path(r'D:\Games\steamapps\common\Half-Life Alyx\content\hlvr_add
 #particles_out = Path(r'C:\Users\kristi\Desktop\Source 2\content\hlvr_addons\addon\particles')
 def is_valid_pcf(x: dmx.DataModel):
     return ('particleSystemDefinitions' in x.elements[0].keys() and
-            x.elements[1].type == 'DmeParticleSystemDefinition'
-        )
+            'DmeParticleSystemDefinition' == x.elements[1].type)
 
 def guess_key_name(key, value):
     key_words = key.replace('_', ' ').split(' ')
@@ -1021,11 +1049,57 @@ def guess_key_name(key, value):
         elif '#' in kw or "'" in kw: break
         kw = shorts.get(kw, kw)
         guess += kw.capitalize()
-    return guess
+    return guess, value
 
 materials = set()
 children = []
 fallbacks = []
+
+def process_material(value):
+    if not value:
+        return
+
+    vmt_path = Path(PATH_TO_CONTENT_ROOT) / value
+    vmat_path = Path('materials') / Path(value).with_suffix('.vmat')
+    renderer_base['m_hMaterial'] = resource(vmat_path)
+    try:
+        vmt = VMT(KV.FromFile(vmt_path))
+    except FileNotFoundError:
+        materials.add(value)
+    else:
+        if (shader_add:=vmtshader.get(vmt.shader)) is not None:
+            if not shader_add == '':
+                if isinstance(shader_add, tuple):
+                    renderer_base[shader_add[0]] = shader_add[1]
+                else:
+                    renderer_base[shader_add] = True
+        else:
+            un(vmt.shader, 'VMTSHADER')
+        non_opaque_params = ('$addbasetexture2', '$dualsequence', '$sequence_blend_mode', '$maxlumframeblend1', '$maxlumframeblend2', '$extractgreenalpha', '$ramptexture', '$zoomanimateseq2', '$addoverblend', '$addself', '$blendframes', '$depthblend', '$inversedepthblend')
+        if vmt.KeyValues.get('$opaque', 0) == 1:
+            for nop in non_opaque_params:
+                print('deleted', nop, vmt.KeyValues[nop])
+                del vmt.KeyValues[nop]
+                input(str(vmt.KeyValues))
+        for vmtkey, vmtval in vmt.KeyValues.items():
+            if '?' in vmtkey: vmtkey = vmtkey.split('?')[1]
+            if vmtkey in ('$basetexture', '$material', '$normalmap', '$bumpmap'):
+                vtex_ref = resource((Path('materials') / vmtval).with_suffix('.vtex'))
+                vpcf_replacement_key = 'm_hTexture' if vmtkey in ('$basetexture', '$material') else 'm_hNormalTexture'
+                renderer_base[vpcf_replacement_key] = vtex_ref
+                continue
+            if vmtkey not in vmt_to_vpcf:
+                #un((vmtkey, vmtval), "VMT")
+                continue
+            add = vmt_to_vpcf[vmtkey]
+            if callable(add):
+                add, vmtval = add(vmtval)
+            elif isinstance(add, tuple):
+                add, vmtval = add
+            if add:
+                renderer_base[add] = vmtval
+        # materials/particle/water/WaterSplash_001a.vtex
+
 
 from materials_import import VMT, PATH_TO_CONTENT_ROOT
 from shared.keyvalues1 import KV
@@ -1034,65 +1108,13 @@ def pcfkv_convert(key, value):
     if not (vpcf_translation:= pcf_to_vpcf.get(key)):
         if vpcf_translation is None:
             un(key, '_generic')
-        return guess_key_name(key, value), value
-
-    if key == "material": # TODO
-        render_add = {}
-        if not value:
-            return
-
-        vmt_path = Path(PATH_TO_CONTENT_ROOT) / value
-        texture = None
-        try:
-            vmt = VMT(KV.FromFile(vmt_path))
-        except FileNotFoundError:
-            materials.add(value)
-        else:
-            for vmtkey, vmtval in vmt.KeyValues.items():
-                if vmtkey == '$basetexture':
-                    texture = Path('materials') / vmtval
-                    continue
-                if vmtkey not in vmt_to_vpcf:
-                    continue
-                add = vmt_to_vpcf[vmtkey]
-                if callable(add):
-                    #if isinstance(add, remap):
-                    add, vmtval = add(vmtval)
-                    #else:
-                        #vmtval = add(vmtval)
-                if add:
-                    render_add[add] = vmtval
-
-        vmat_path = Path('materials') / Path(value).with_suffix('.vmat')
-        value = resource(vmat_path)
-        for renderer in vpcf.get('m_Renderers', ()):
-            renderer[vpcf_translation] = value
-            if renderer['_class'] != 'C_OP_RenderBlobs' and texture is not None:
-                renderer['m_hTexture'] = resource(texture.with_suffix('.vtex'))
-            renderer.update(render_add)
-            # materials/particle/water/WaterSplash_001a.vtex
-        return
+        return guess_key_name(key, value)
 
     outKey, outVal = key, value
 
     if isinstance(vpcf_translation, str):  # simple translation
         if value == []:
             return
-        if isinstance(value, dmx._ElementArray):
-            if key == 'children':
-                outVal = []
-                for child in value:
-                    if not child.type == 'DmeParticleChild': # TODO dont need
-                        continue                    
-                    child_ref = resource(vpcf_localpath.parent / (child['child'].name + '.vpcf'))
-                    children.append(child_ref.path)
-                    outVal.append(dict(m_ChildRef = child_ref))
-                return vpcf_translation, outVal
-
-            else:
-                print('Warning:', key, "is an unhandled element_array")
-                return
-
         if isinstance(vpcf_translation, Ref):
             if not value:
                 return
@@ -1105,28 +1127,43 @@ def pcfkv_convert(key, value):
         elif not isinstance(vpcf_translation[1], dict):
             return
 
-        if not isinstance(value, list):
+        if not isinstance(value, list): # dmx._ElementArray
             print(key, "is not a list?", value)
             return
-
+    
         outKey = vpcf_translation[0]
         outVal = []
 
+        #if not child.type == 'DmeParticleChild': # TODO dont need
+        #    continue                    
+        #child_ref = resource(vpcf_localpath.parent / (child['child'].name + '.vpcf'))
+        #for k, v in child.items():
+        #    if k != 'child':
+        #        un(k, 'childrenn')
+        #children.append(child_ref.path)
+        #outVal.append(dict(m_ChildRef = child_ref))
+    
         for opitem in value:
             # handle the 2 formats
             # {'dmxobj': 'class', 'k':'kt'} <- this one has global subkeys
             # {'dmxobj': ('class', {'k':'kt'})}
             sub_translation = vpcf_translation[1]
-            if (className := sub_translation.get(opitem.name)):
-                if type(className) is tuple:
-                    className, sub_translation = className
-                    
-            if not className:
-                if className is None:
-                    un(opitem.name, outKey)
-                continue
+            if key != 'children':
+                if (className := sub_translation.get(opitem.name)):
+                    if type(className) is tuple:
+                        className, sub_translation = className
 
-            subKV = { '_class': className }
+                if not className:
+                    if className is None:
+                        un(opitem.name, outKey)
+                    continue
+
+                
+                subKV = { '_class': className}
+                if key == 'renderers':
+                    subKV.update(renderer_base)
+            else:
+                subKV = {}
 
             for key2, value2 in opitem.items():
                 if key2 == 'functionName':
@@ -1147,12 +1184,12 @@ def pcfkv_convert(key, value):
                             #     continue
                             continue
                         else:
-                            subkey = guess_key_name(key2, value2)
-                
+                            subkey, value = guess_key_name(key2, value2)
+
                 if not key2 or not subkey:
                     continue
-                if subkey == 'm_nCollisionMode' and (value2 == 1 or value2 == 2):
-                    print("YOOO", ParticleSystemDefinition.name)
+                #if subkey == 'm_nCollisionMode' and (value2 == 1 or value2 == 2):
+                #    print("YOOO", ParticleSystemDefinition.name)
                 if isinstance(subkey, ObjectP):
                     subKV.setdefault(subkey.mother, {})[subkey.name] = value2
                     continue
@@ -1160,6 +1197,11 @@ def pcfkv_convert(key, value):
                 #    if not value2:
                 #        continue
                 #    subkey, value2 = subkey.k, subkey.v
+                if isinstance(subkey, Ref):
+                    if isinstance(value2, dmx.Element):
+                        value2 = value2.name
+                    else: input(f'Ref not an element {key2}: {value2}')
+                    value2 = resource(Path(vpcf_localpath.parent / (value2  + '.vpcf')))
                 elif isinstance(subkey, (minof, maxof)):
                     bMin = isinstance(subkey, minof)
                     if str(subkey) in subKV:
@@ -1189,8 +1231,8 @@ def pcfkv_convert(key, value):
                 elif isinstance(subkey, Multiple):
                     for bare_key in subkey.bare_replacements:
                         subKV[bare_key] = value2
-                    for key, f in subkey.kw_replacements.items():
-                        subKV[key] = f(value2)
+                    for kk, f in subkey.kw_replacements.items():
+                        subKV[kk] = f(value2)
                     continue
                 elif callable(subkey):
                     if subkey is repr:
@@ -1289,11 +1331,17 @@ if __name__ == '__main__':
         vpcf_root = pcf_path.relative_to(particles_in).parent / pcf_path.stem
         vpcf_root.mkdir(parents = True, exist_ok=True)
         for ParticleSystemDefinition in pcf.find_elements(elemtype='DmeParticleSystemDefinition'):
-            vpcf = dict(_class = "CParticleSystemDefinition")
+            vpcf = dict(
+                _class = "CParticleSystemDefinition",
+                m_nBehaviorVersion = BEHAVIOR_VERSION
+            )
             vpcf_localpath = particles / vpcf_root / (ParticleSystemDefinition.name + '.vpcf')
             vpcf_path = particles_out.parent / vpcf_localpath
             imports.append(vpcf_localpath.as_posix())
-            
+    
+            renderer_base = {'m_bFogParticles': True}
+            process_material(ParticleSystemDefinition.get('material'))
+
             for key, value in ParticleSystemDefinition.items():
                 if converted_kv:= pcfkv_convert(key, value):
                     if not converted_kv[0]:
@@ -1352,7 +1400,3 @@ if __name__ == '__main__':
             print(child, "was not imported...")
     for fb in fallbacks:
         print(fb)
-
-#for mat in materials:
-#    print(particles_in.parent/"materials"/mat)
-#
