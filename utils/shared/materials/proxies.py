@@ -2,19 +2,6 @@
 # https://developer.valvesoftware.com/wiki/List_Of_Material_Proxies
 # https://developer.valvesoftware.com/wiki/Dota_2_Workshop_Tools/Materials/Dynamic_Material_Expressions
 
-
-from math import sin, pi
-from os import name
-import pprint
-from time import time, sleep
-
-kv_Sine = {
-    "sinemin": 0,
-    "sinemax":    1,
-    "sineperiod": 1,
-    "timeoffset": 0,
-}
-
 from vdf import VDFDict
 class Proxies(VDFDict): pass
 
@@ -43,13 +30,12 @@ def selectfirstifnonzero(srcvar1, srcvar2, **_):
 def wrapminmax(srcvar1, minval, maxval, **_):
     if ( maxval <= minval ): # Bad input, just return the min
         return f"{minval}"
-    else: #TODO
+    else:
         expr = (
             f"flResult = ( {srcvar1} - {minval} ) / ( {maxval} - {minval} )",
             f"(flResult >= 0) ? flResult = flResult - ({int('flResult')}) : flResult = flResult - ({int('flResult')}) - 1",
             f"(flResult * ( {maxval} - {minval} )) + {minval}"
         )
-            
 		            #f"flResult = flResult + minval;
     return expr
 def remapvalclamp(srcvar1, range_in_min = 0, range_in_max = 1, range_out_min = 0, range_out_max = 1, **_):
@@ -197,15 +183,12 @@ class DynamicParams(TypedDict, total=True):
 def ProxiesToDynamicParams(vmtProxies: VDFDict, known, KeyValues) -> DynamicParams:
     vmatDynamicParams: DynamicParams = {}
 
-    #breakpoint()
     for proxy, proxyParams in vmtProxies.items():
         # resultvar needs to be a vmt $key that can be translated 
         if (resultvar:=get_resultvar(proxyParams)) not in known:
             continue
 
         dynEx = FormDynamicExpression(proxy, proxyParams, resultvar, known, KeyValues, vmtProxies)
-
-        #pprint.pprint(dynEx.__dict__)
 
         dpKey = known[resultvar][0] # g_vColorTint
         vmatDynamicParams[dpKey] = repr(dynEx).strip("'") # "clamp(random(1), 0.4, 0.6)"
