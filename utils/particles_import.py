@@ -84,13 +84,14 @@ def PreOP(cls: str):
 pcf_to_vpcf = {
     # name/functionName -> class
     'renderers': ( 'm_Renderers', {
+        'render_points': 'C_OP_RenderPoints',
         'render_animated_sprites':  'C_OP_RenderSprites',
             'animation rate': 'm_flAnimationRate',
             'second sequence animation rate': 'm_flAnimationRate2',
             'cull system when CP normal faces away from camera': Discontinued(),
             'cull system starting at this recursion depth': Discontinued(),
             'use animation rate as FPS': 'm_bAnimateInFPS',
-            'animation_fit_lifetime': BoolToSetKV('m_nAnimationType', 'ANIMATION_TYPE_FIT_LIFETIME'),
+            'animation_fit_lifetime': BoolToSetKV('m_nAnimationType', 'ANIMATION_TYPE_FIT_LIFETIME'), # parser gives 'm_bFitCycleToLifetime',
             'orientation control point': 'm_nOrientationControlPoint',
             'orientation_type': 'm_nOrientationType',
             'length fade in time': Discontinued(),
@@ -107,13 +108,21 @@ pcf_to_vpcf = {
             'scale offset by CP distance': 'm_flScaleVOffsetByControlPointDistance',
             'scale scroll by CP distance': 'm_flScaleVScrollByControlPointDistance',
         'render_screen_velocity_rotate': NotImplemented,
-            'forward_angle': '',
-        'render_sprite_trail': 'C_OP_RenderTrails',
+            'forward_angle': 'm_flForwardDegrees',
+            'rotate_rate(dps)': 'm_flRotateRateDegrees',
+        'render_sprite_trail': ('C_OP_RenderTrails', {
+            'animation rate': 'm_flAnimationRate',
+            'length fade in time': 'm_flLengthFadeInTime',
+            'max length': 'm_flMaxLength',
+            'min length': 'm_flMinLength',
+            'constrain radius to length': 'm_bConstrainRadius',
+            'ignore delta time': 'm_bIgnoreDT',
             'tail color and alpha scale factor': Multiple(
                 m_vecTailColorScale = lambda v: v[:3],
                 m_flTailAlphaScale = lambda v: v[3:]
             ),
             'Visibility Camera Depth Bias': 'm_flDepthBias', # weird name source engine but ok
+        }),
         'render_blobs': 'C_OP_RenderBlobs',
             'cube_width': 'm_cubeWidth',
             'cutoff_radius': 'm_cutoffRadius',
@@ -132,7 +141,10 @@ pcf_to_vpcf = {
             'orient model z to normal': 'm_bOrientZ',
             'activity override': 'm_ActivityName',
             'animation rate scale field': 'm_nAnimationScaleField',
+            'scale animation rate': 'm_bScaleAnimationRate',
+            'skin number': 'm_nSkin',
         'render_project': 'C_OP_RenderProjected',
+        'Render projected': 'C_OP_RenderProjected',
     }),
 
     'operators': ('m_Operators', {
@@ -222,12 +234,13 @@ pcf_to_vpcf = {
             'end_fadeout_exponent': 'm_flEndTime_exp',
             'start_fadeout_exponent': 'm_flStartTime_exp',
             'distance fade range': 'm_flRange',
-        'Cull when crossing sphere': 'C_OP_DistanceCull',
+        'Cull when crossing sphere': ('C_OP_DistanceCull', {
             'Cull Distance': 'm_flDistance',
             'Cull inside instead of outside': 'm_bCullInside',
             'Control Point': 'm_nControlPoint',
             # m_flPlaneOffset is from `...crossing plane`
             'Cull plane offset': 'm_flPlaneOffset', # this is a float.. what m_vecPointOffset
+        }),
         'Remap Distance to Control Point to Scalar': 'C_OP_DistanceToCP',
             'output maximum': 'm_flOutputMax',
             'output minimum': 'm_flOutputMin',
@@ -238,10 +251,11 @@ pcf_to_vpcf = {
             'output is scalar of current value': BoolToSetKV('m_nSetMethod', "PARTICLE_SET_SCALE_CURRENT_VALUE"),
             'only active within specified distance': 'm_bActiveRange',
             'control point': 'm_nControlPoint',
-        'Color Fade': 'C_OP_ColorInterpolate',
+        'Color Fade': ('C_OP_ColorInterpolate', {
             'color_fade': 'm_ColorFade',
             'fade_start_time': 'm_flFadeStartTime',
             'fade_end_time': 'm_flFadeEndTime',
+        }),
         'Rotation Spin Roll': 'C_OP_Spin',
             'spin_rate_degrees': 'm_nSpinRateDegrees',
             'spin_stop_time': 'm_fSpinRateStopTime',
@@ -439,9 +453,10 @@ pcf_to_vpcf = {
             'ramp rate': 'm_Rate',
         'Ramp Scalar Linear Simple': 'C_OP_RampScalarLinearSimple',
             'end time': '',
-        'Noise Vector': 'C_OP_VectorNoise',
+        'Noise Vector': ('C_OP_VectorNoise', {
             'noise coordinate scale': 'm_fl4NoiseScale',
             # m_bAdditive m_bOffset m_flNoiseAnimationTimeScale
+        }),
         'Set Control Point To Player': PreOP('C_OP_SetControlPointToPlayer'),
             'Control Point Number': 'm_nCP1',
             'Control Point Offset': 'm_vecCP1Pos',
@@ -449,7 +464,7 @@ pcf_to_vpcf = {
         'Oscillate Scalar Simple': 'C_OP_OscillateScalarSimple',
             'oscillation rate': 'm_Rate',
             'oscillation frequency': 'm_Frequency',
-        'Normal Lock to Control Point': 'C_OP_CalculateVectorAttribute',
+        'Normal Lock to Control Point': 'C_OP_NormalLock',#'C_OP_CalculateVectorAttribute',
         'Inherit Attribute From Parent Particle': 'C_OP_InheritFromParentParticlesV2',
             'Inherited Field': 'm_nFieldOutput',
         'Movement Lock to Saved Position Along Path': 'C_OP_LockToSavedSequentialPathV2',
@@ -460,7 +475,7 @@ pcf_to_vpcf = {
             'Maximum Restart Time': '',
         'Set per child control point from particle positions': 'C_OP_SetPerChildControlPoint',
             'control point to set': '',
-            '# of children to set': 'm_nChildren', # made up
+            '# of children to set': 'm_nNumControlPoints', # made up
         'Remap Percentage Between Two Control Points to Scalar': 'C_OP_PercentageBetweenCPs',
             'treat distance between points as radius': '',
             'percentage maximum': '',
@@ -475,10 +490,12 @@ pcf_to_vpcf = {
         'Lifespan Minimum Alpha Decay': 'C_OP_AlphaDecay',
             'minimum alpha': '',
         'Clamp Scalar': 'C_OP_ClampScalar',
-        'Set Control Point Rotation': PreOP('C_OP_SetControlPointRotation'),
+        'Set Control Point Rotation': (PreOP('C_OP_SetControlPointRotation'), {
             'Rotation Rate': dynamicparam('m_flRotRate'),
             'Rotation Axis': dynamicparam('m_vecRotAxis'),
+            'Control Point': 'm_nCP',
             'Local Space Control Point': 'm_nLocalCP',
+        }), 
         'Lifespan Minimum Radius Decay': 'C_OP_RadiusDecay',
         'Set control points from particle positions': 'C_OP_SetControlPointsToParticle',
         'Alpha Fade and Decay for Tracers': 'C_OP_FadeAndKillForTracers',
@@ -489,6 +506,30 @@ pcf_to_vpcf = {
             'Rotation Rate Max': '',
         'Movement Rotate Particle Around Axis': 'C_OP_MovementRotateParticleAroundAxis',
             'Use Local Space': 'm_bLocalSpace',
+        'Clamp Vector': ('C_OP_ClampVector',{
+
+        }),
+        'Oscillate Vector Simple': 'C_OP_OscillateVectorSimple',
+        'Lerp EndCap Scalar': 'C_OP_LerpEndCapScalar',
+        'Lerp EndCap Vector': 'C_OP_LerpEndCapVector',
+        'Lerp Initial Vector': 'C_OP_LerpVector',
+        'Remap Model Volume to CP': 'C_OP_RemapModelVolumetoCP',
+        'Remap Particle BBox Volume to CP': 'C_OP_RemapBoundingVolumetoCP',
+        'Remap Average Scalar Value to CP': 'C_OP_RemapAverageScalarValuetoCP',
+        'Remap Distance Between Two Control Points to CP': ('C_OP_DistanceBetweenCPsToCP',{
+            'output control point': 'm_nOutputCP',
+        }),
+        'Remap Percentage Between Two Control Points to Vector': 'C_OP_PercentageBetweenCPsVector',
+        'Movement Lerp to Hitbox': 'C_OP_MoveToHitbox',
+        'Set CP Offset to CP Percentage Between Two Control Points': 'C_OP_CPOffsetToPercentageBetweenCPs',
+        'Cull relative to model': 'C_OP_ModelCull',
+        'Movement Maintain Offset': 'C_OP_MovementMaintainOffset',
+        'Stop Effect after Duration': 'C_OP_StopAfterCPDuration',
+        'Movement Lag Compensation': 'C_OP_LagCompensation',
+        'Remap CP Velocity to Vector': 'C_OP_RemapCPVelocityToVector',
+        'Set CP Orientation to CP Direction': 'C_OP_SetCPOrientationToDirection',
+        'Normalize Vector': 'C_OP_NormalizeVector',
+        'Remap Control Point Direction to Vector': 'C_OP_RemapControlPointDirectionToVector',
         'Remap Distance to Control Point to Vector': NotImplemented, # maybe C_OP_RemapDistanceToLineSegmentToVector
         'Distance to Control Points Scale': NotImplemented,
     }),
@@ -1053,20 +1094,13 @@ pcf_to_vpcf = {
     'tintg': SingleColour('m_ConstantColor', 2),
     'tintb': SingleColour('m_ConstantColor', 3),
     'bounding_box_control_point': '',
-    'maximum portal recursion depth': '',
+    'maximum portal recursion depth': 'm_nMaxRecursionDepth',
     'fallback_dx80': '',
-    'draw through leafsystem': '',
+    'draw through leafsystem': 'm_bDrawThroughLeafSystem',
     'preventNameBasedLookup': '',
 
 }
-
-NotFoundYet = ''
-
-class fx:
-    "`self.func` is the func that will be applied to the value"
-    def __init__(self, t: str, func):
-        self.t = t
-        self.func = func
+NotYetFound = ''
 
 # out of scale textures on fountain rings...
 # is this same as hammer texture scale issue
@@ -1183,6 +1217,7 @@ def guess_key_name(key, value):
 
 materials = set()
 children = []
+vsnaps = {}
 fallbacks = []
 
 def process_material(value):
@@ -1210,7 +1245,6 @@ def process_material(value):
             for nop in non_opaque_params:
                 print('deleted', nop, vmt.KeyValues[nop])
                 del vmt.KeyValues[nop]
-                input(str(vmt.KeyValues))
         for vmtkey, vmtval in vmt.KeyValues.items():
             if '?' in vmtkey: vmtkey = vmtkey.split('?')[1]
             if vmtkey in ('$basetexture', '$material', '$normalmap', '$bumpmap'):
@@ -1246,13 +1280,14 @@ def pcfkv_convert(key, value):
         return
 
     outKey, outVal = key, value
-    if key == 'snapshot': input(value)
     if isinstance(vpcf_translation, str):  # simple translation
         if value == []:
             return
         if isinstance(vpcf_translation, Ref):
             if not value:
                 return
+            if key == 'snapshot':
+                vsnaps[vpcf_localpath] = value
             return str(vpcf_translation), resource(Path(vpcf_localpath.parent / (value  + '.vpcf')))
 
         return vpcf_translation, value
@@ -1515,7 +1550,8 @@ if __name__ == '__main__':
 
     for n in generics:
         print(f"'{n}': '',")
-
+    for snap in vsnaps:
+        print(f'{snap} `{vsnaps[snap]}`')
     for child in children:
         if str(child.as_posix()) not in imports:
             print(child, "was not imported...")
