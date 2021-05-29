@@ -1,6 +1,0 @@
-#include "file.vdf"
-
-"test case"
-{
-	"foo"	"bar"
-}
