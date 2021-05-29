@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import shared.datamodel as dmx
 if __name__ is None:
     import utils.shared.datamodel as dmx
@@ -45,9 +46,10 @@ class remap:
     def __call__(self, oldval):
         return self.key, self.map.get(oldval)
 
+@dataclass
 class BoolToSetKV:
-    def __init__(self, k, v):
-        self.k, self.v = k, v
+    k: str
+    v: str
     def __call__(self, oldval):
         if oldval: return self.k, self.v
 
@@ -73,10 +75,14 @@ class SingleColour:
         rv[self.place] = oldval
         return self.t, rv
 
-vpcf_PreOPs = set()
-def PreOP(cls: str):
-    vpcf_PreOPs.add(cls)
-    return cls
+vpcf_PreEmisionOperators = (
+    'C_OP_RemapSpeedtoCP',
+    'C_OP_SetControlPointPositions',
+    'C_OP_SetControlPointToPlayer',
+    'C_OP_SetControlPointToCenter',
+    'C_OP_SetControlPointRotation',
+    'C_OP_SetControlPointToImpactPoint',
+)
 
 #TODO: are arrays different from vectors? vec seems to have no newlines and no comma at end
 
@@ -255,7 +261,7 @@ pcf_to_vpcf = {
             'output field': 'm_nFieldOutput',
             'output minimum': 'm_flOutputMin',
             'output maximum': 'm_flOutputMax',
-            'output is scalar of initial random range': 'm_bScaleInitialRange',
+            'output is scalar of initial random range': BoolToSetKV('m_nSetMethod', "PARTICLE_SET_SCALE_CURRENT_VALUE"),#'m_bScaleInitialRange',
             'only active within specified difference': 'm_bActiveRange',
             'also set ouput to previous particle': 'm_bSetPreviousParticle',
         }),
@@ -295,10 +301,10 @@ pcf_to_vpcf = {
             'output field': 'm_nFieldOutput',
             'output minimum': 'm_flOutputMin',
             'output maximum': 'm_flOutputMax',
-            'output is scalar of initial random range': 'm_bScaleInitialRange',
-            'output is scalar of current value': 'm_bScaleCurrent',
+            'output is scalar of initial random range': BoolToSetKV('m_nSetMethod', "PARTICLE_SET_SCALE_CURRENT_VALUE"),#'m_bScaleInitialRange',
+            'output is scalar of current value': BoolToSetKV('m_nSetMethod', "PARTICLE_SET_SCALE_INITIAL_VALUE"),#'m_bScaleCurrent',
         }),
-        'Remap CP Speed to CP': (PreOP('C_OP_RemapSpeedtoCP'), {
+        'Remap CP Speed to CP': ('C_OP_RemapSpeedtoCP', {
             'input control point': 'm_nInControlPointNumber',
             'input minimum': 'm_flInputMin',
             'input maximum': 'm_flInputMax',
@@ -507,7 +513,7 @@ pcf_to_vpcf = {
             'first particle to copy': 'm_nFirstSourcePoint',
             'set orientation': 'm_bSetOrientation',
         }),
-        'Set Control Point Positions': (PreOP('C_OP_SetControlPointPositions'), {
+        'Set Control Point Positions': ('C_OP_SetControlPointPositions', {
             'First Control Point Number': 'm_nCP1',
             'First Control Point Parent': 'm_nCP1Parent',
             'First Control Point Location': 'm_vecCP1Pos',
@@ -540,8 +546,8 @@ pcf_to_vpcf = {
             'LOS collision group': 'm_CollisionGroupName',
             'Maximum Trace Length': 'm_flMaxTraceLength',
             'LOS Failure Scalar': 'm_flLOSScale',
-            'output is scalar of initial random range': 'm_bScaleInitialRange',
-            'output is scalar of current value': 'm_bScaleCurrent',
+            'output is scalar of initial random range': BoolToSetKV('m_nSetMethod', "PARTICLE_SET_SCALE_CURRENT_VALUE"),#'m_bScaleInitialRange',
+            'output is scalar of current value': BoolToSetKV('m_nSetMethod', "PARTICLE_SET_SCALE_INITIAL_VALUE"),#'m_bScaleCurrent',
         }),
         'Remap Distance Between Two Control Points to CP': ('C_OP_DistanceBetweenCPsToCP', {
             'distance minimum': 'm_flInputMin',
@@ -565,8 +571,8 @@ pcf_to_vpcf = {
             'output maximum': 'm_flOutputMax',
             'starting control point': 'm_nStartCP',
             'ending control point': 'm_nEndCP',
-            'output is scalar of initial random range': 'm_bScaleInitialRange',
-            'output is scalar of current value': 'm_bScaleCurrent',
+            'output is scalar of initial random range': BoolToSetKV('m_nSetMethod', "PARTICLE_SET_SCALE_CURRENT_VALUE"),#'m_bScaleInitialRange',
+            'output is scalar of current value': BoolToSetKV('m_nSetMethod', "PARTICLE_SET_SCALE_INITIAL_VALUE"),#'m_bScaleCurrent',
             'only active within input range': 'm_bActiveRange',
             'treat distance between points as radius': 'm_bRadialCheck',
         }),
@@ -578,8 +584,8 @@ pcf_to_vpcf = {
             'output maximum': 'm_vecOutputMax',
             'starting control point': 'm_nStartCP',
             'ending control point': 'm_nEndCP',
-            'output is scalar of initial random range': 'm_bScaleInitialRange',
-            'output is scalar of current value': 'm_bScaleCurrent',
+            'output is scalar of initial random range': BoolToSetKV('m_nSetMethod', "PARTICLE_SET_SCALE_CURRENT_VALUE"),#'m_bScaleInitialRange',
+            'output is scalar of current value': BoolToSetKV('m_nSetMethod', "PARTICLE_SET_SCALE_INITIAL_VALUE"),#'m_bScaleCurrent',
             'only active within input range': 'm_bActiveRange',
             'treat distance between points as radius': 'm_bRadialCheck',
         }),
@@ -594,11 +600,11 @@ pcf_to_vpcf = {
             'LOS collision group': 'm_CollisionGroupName',
             'Maximum Trace Length': 'm_flMaxTraceLength',
             'LOS Failure Scalar': 'm_flLOSScale',
-            'output is scalar of initial random range': 'm_bScaleInitialRange',
-            'output is scalar of current value': 'm_bScaleCurrent',
+            'output is scalar of initial random range': BoolToSetKV('m_nSetMethod', "PARTICLE_SET_SCALE_CURRENT_VALUE"),#'m_bScaleInitialRange',
+            'output is scalar of current value': BoolToSetKV('m_nSetMethod', "PARTICLE_SET_SCALE_INITIAL_VALUE"),#'m_bScaleCurrent',
             'only active within specified distance': 'm_bActiveRange',
         }),
-        'Set Control Point To Player': (PreOP('C_OP_SetControlPointToPlayer'), {
+        'Set Control Point To Player': ('C_OP_SetControlPointToPlayer', {
             'Control Point Number': 'm_nCP1',
             'Control Point Offset': 'm_vecCP1Pos',
             'Use Eye Orientation': 'm_bOrientToEyes',
@@ -645,7 +651,7 @@ pcf_to_vpcf = {
             'cull outside instead of inside': 'm_bCullOutside',
             'hitbox set': 'm_HitboxSetName',
         }),
-        "Set Control Point To Particles' Center": (PreOP('C_OP_SetControlPointToCenter'), {
+        "Set Control Point To Particles' Center": ('C_OP_SetControlPointToCenter', {
             'Control Point Number to Set': 'm_nCP1',
             'Center Offset': 'm_vecCP1Pos',
         }),
@@ -700,7 +706,7 @@ pcf_to_vpcf = {
             'Control Point': 'm_nCP',
             'rotation field': 'm_nFieldOutput',
         }),
-        'Set Control Point Rotation': (PreOP('C_OP_SetControlPointRotation'), {
+        'Set Control Point Rotation': ('C_OP_SetControlPointRotation', {
             'Rotation Axis': 'm_vecRotAxis',
             'Rotation Rate': 'm_flRotRate',
             'Control Point': 'm_nCP',
@@ -771,13 +777,13 @@ pcf_to_vpcf = {
             'output field': 'm_nFieldOutput',
             'output minimum': 'm_flOutputMin',
             'output maximum': 'm_flOutputMax',
-            'output is scalar of initial random range': 'm_bScaleInitialRange',
-            'output is scalar of current value': 'm_bScaleCurrent',
+            'output is scalar of initial random range': BoolToSetKV('m_nSetMethod', "PARTICLE_SET_SCALE_CURRENT_VALUE"),#'m_bScaleInitialRange',
+            'output is scalar of current value': BoolToSetKV('m_nSetMethod', "PARTICLE_SET_SCALE_INITIAL_VALUE"),#'m_bScaleCurrent',
         }),
         'Normal Lock to Control Point': ('C_OP_NormalLock', {
             'control_point_number': 'm_nControlPointNumber',
         }),
-        'Set Control Point to Impact Point': (PreOP('C_OP_SetControlPointToImpactPoint'), {
+        'Set Control Point to Impact Point': ('C_OP_SetControlPointToImpactPoint', {
             'Control Point to Set': 'm_nCPOut',
             'Control Point to Trace From': 'm_nCPIn',
             'Trace Direction Override': 'm_vecTraceDir',
@@ -795,8 +801,8 @@ pcf_to_vpcf = {
             'output field': 'm_nFieldOutput',
             'output minimum': 'm_vOutputMin',
             'output maximum': 'm_vOutputMax',
-            'output is scalar of initial random range': 'm_bScaleInitialRange',
-            'output is scalar of current value': 'm_bScaleCurrent',
+            'output is scalar of initial random range': BoolToSetKV('m_nSetMethod', "PARTICLE_SET_SCALE_CURRENT_VALUE"),#'m_bScaleInitialRange',
+            'output is scalar of current value': BoolToSetKV('m_nSetMethod', "PARTICLE_SET_SCALE_INITIAL_VALUE"),#'m_bScaleCurrent',
             'offset position': 'm_bOffset',
             'accelerate position': 'm_bAccelerate',
             'local space CP': 'm_nLocalSpaceCP',
@@ -1841,7 +1847,7 @@ if __name__ == '__main__':
                     vpcf[converted_kv[0]] = converted_kv[1]
 
             for operator in vpcf.get('m_Operators', ()):
-                if not operator.get('_class') in vpcf_PreOPs:
+                if not operator.get('_class') in vpcf_PreEmisionOperators:
                     continue
                 vpcf['m_Operators'].remove(operator)
                 vpcf.setdefault('m_PreEmissionOperators', list())
