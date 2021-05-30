@@ -1,22 +1,44 @@
-#import source1 panorama from csgo into source2
-
-
+# import csgo source1 panorama into source2
 
 from pathlib import Path
+import zipfile as pbin
+from io import TextIOWrapper
 
+panorama_in = Path(r'D:\Games\steamapps\common\Half-Life Alyx\game\csgo\panorama')
+panorama_out = Path(r'D:\Games\steamapps\common\Half-Life Alyx\content\hlvr_addons\csgo\panorama')
 
-def ImportPanoramaVFont(asset_path: Path):
+code_pbin = panorama_in / "code.pbin"
+
+from functools import wraps
+def zipimport(ext):
+    def inner_function(function):
+        @wraps(function)
+        def wrapper(asset_in: Path, asset_out: Path = None, pre_opened: TextIOWrapper = None, **kwargs):
+            if pre_opened is None:
+                pre_opened = open(asset_in, encoding="utf-8")
+            if asset_out is None:
+                asset_out = panorama_out / asset_in.relative_to(panorama_in).with_suffix(ext)
+            asset_out.parent.mkdir(parents=True, exist_ok=True)
+            function(asset_in, asset_out, pre_opened, **kwargs)
+            pre_opened.close()
+        return wrapper
+    return inner_function
+
+@zipimport
+def ImportPanoramaVFont(asset_in: Path, pre_opened: TextIOWrapper = None):
     ...
     # \panorama\fonts\*.vfont
 
-def ImportPanoramaFontConfig(asset_path: Path):
+@zipimport
+def ImportPanoramaFontConfig(asset_in: Path, pre_opened: TextIOWrapper = None):
     ...
     # \panorama\fonts\fonts.conf
 
-def ImportPanoramaCss(asset_path: Path):
-    ...
-def ImportPanoramaXml(asset_path: Path):
-    ...
+@zipimport('.vxml')
+def ImportPanoramaXml(xml_in: Path, vxml_out: Path = None, pre_opened: TextIOWrapper = None):
+    with open(vxml_out, 'w', encoding="utf-8") as out:
+        out.write(pre_opened.read().replace('file://','s2r://'))
+        print("+ Saved", vxml_out.relative_to(panorama_out.parent))
 '''
 <root>
 	<styles>
@@ -69,5 +91,49 @@ def ImportPanoramaXml(asset_path: Path):
 	</PopupCustomLayout>
 </root>
 '''
-def ImportPanoramaCss(asset_path: Path):
-    ...
+
+@zipimport('.vcss')
+def ImportPanoramaCss(css_in: Path, vcss_out: Path = None, pre_opened: TextIOWrapper = None):
+    with open(vcss_out, 'w', encoding="utf-8") as out:
+        out.write(pre_opened.read()) # .replace('file://','s2r://')
+        print("+ Saved", vcss_out.relative_to(panorama_out.parent))
+    
+
+@zipimport('.vjs')
+def ImportJS(js_in: Path, vjs_out: Path = None, pre_opened: TextIOWrapper = None):
+    with open(vjs_out, 'w', encoding="utf-8") as out:
+        out.write(pre_opened.read())
+        print("+ Saved", vjs_out.relative_to(panorama_out.parent))
+
+@zipimport('.vcfg')
+def ImportCfg(cfg_in: Path, vcfg_out: Path = None, pre_opened: TextIOWrapper = None):
+    with open(vcfg_out, 'w', encoding="utf-8") as out:
+        out.write(pre_opened.read())
+        print("+ Saved", vcfg_out.relative_to(panorama_out.parent))
+
+if __name__ == '__main__':
+    code = pbin.ZipFile(code_pbin, 'r')
+
+    panorama_cfg = {}
+
+    try:
+        with TextIOWrapper(code.open('panorama/panorama.cfg'), encoding="utf-8") as cfg:
+            ... # kv1 read
+    except KeyError:
+        print("panorama.cfg not found")
+
+    for file in code.filelist:
+        path = panorama_in.parent / file.filename
+        fp = TextIOWrapper(code.open(file), encoding="utf-8")
+        if file.filename.endswith('.xml'):
+            ImportPanoramaXml(path, pre_opened = fp)
+        elif file.filename.endswith('.css'):
+            ImportPanoramaCss(path, pre_opened = fp)
+        elif file.filename.endswith('.js'):
+            ImportJS(path, pre_opened = fp)
+        elif file.filename.endswith('.cfg'):
+            if file.filename == 'panorama/panorama.cfg':
+                continue
+            ImportCfg(path, pre_opened = fp)
+        else:
+            print("Import me senpai", file.filename)
