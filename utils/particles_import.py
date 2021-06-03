@@ -13,7 +13,7 @@ particles = Path('particles')
 # "!" before path means precache all on map spawn
 # normal paths get 
 
-BEHAVIOR_VERSION = 9
+BEHAVIOR_VERSION = 8
 
 class dynamicparam(str): pass
 class maxof(dynamicparam): pass # for Random Uniform
@@ -1334,9 +1334,6 @@ pcf_to_vpcf = {
         }),
         'Assign target CP': '',
         'Lifetime From Control Point Life Time': '',
-        'CP Scale Size': '',
-        'CP Scale Life': '',
-        'CP Scale Trail': '',
         'Random position within a curved cylinder': '',
     }),
 
@@ -1543,7 +1540,7 @@ pcf_to_vpcf = {
         'end cap effect': 'm_bEndCap',
 
     }),
-    'material': '',#Ref('m_hMaterial')
+    'material': NotImplemented,#Ref('m_hMaterial'),
 
     # base properties
     'batch particle systems': 'm_bShouldBatch',
@@ -1883,10 +1880,11 @@ def pcfkv_convert(key, value):
 
         # convert the array
         for opitem in value:
+            functionName = opitem.get('functionName', opitem.name)
             className = None
             sub_translation = vpcf_translation[1]
             if key != 'children':
-                if (className := sub_translation.get(opitem.name)):
+                if (className := sub_translation.get(functionName)):
                     # handle the 2 formats
                     # {'dmxobj': 'class', 'k':'kt'} <- this one has global subkeys
                     # {'dmxobj': ('class', {'k':'kt'})}
@@ -1895,8 +1893,8 @@ def pcfkv_convert(key, value):
 
                 if not className:
                     if className is None:
-                        un(opitem.name, outKey)
-                    className = guess_class_name(opitem.name, key)
+                        un(functionName, outKey)
+                    className = guess_class_name(functionName, key)
 
                 if className is NotImplemented:
                     continue
@@ -1909,8 +1907,9 @@ def pcfkv_convert(key, value):
 
             for key2, value2 in opitem.items():
                 if key2 == 'functionName':
-                    if value2 != opitem.name:
-                        print("functionName mismatch", key2, opitem.name)
+                    #if value2 != opitem.name:
+                    #    #print("functionName mismatch", value2, opitem.name)
+                    #    functionName = value2
                     continue
 
                 if not (subkey:=sub_translation.get(key2)):
@@ -1922,7 +1921,7 @@ def pcfkv_convert(key, value):
                         subkey = pcf_to_vpcf['__initializer_shared'].get(key2, subkey)
                     
                     if subkey is None:
-                        un(key2, opitem.name)
+                        un(key2, functionName)
                     elif isinstance(subkey, Discontinued):
                         # if subkey.at >= vpcf m_nBehaviorVersion: # TODO,, also maybe this is not here __bool__ -> True
                         #     continue
@@ -1934,8 +1933,7 @@ def pcfkv_convert(key, value):
 
                 if not key2 or not subkey:
                     continue
-                #if subkey == 'm_nCollisionMode' and (value2 == 1 or value2 == 2):
-                #    print("YOOO", ParticleSystemDefinition.name)
+
                 if isinstance(subkey, ObjectP):
                     subKV.setdefault(subkey.mother, {})[subkey.name] = value2
                     continue
@@ -2034,7 +2032,9 @@ def dict_to_kv3_text(
                 s +=  ind + f"{key} = {obj_serialize(value, indent+1, dictKey=True)}\n"
             return s + preind + '}'
         else: # likely an int, float
-            # floats can be in e notation "1e+09"
+            # round off inaccurate dmx floats TODO: does this make any diff
+            if type(obj) == float:
+                obj = round(obj, 6)
             return str(obj)
 
     if not isinstance(kv3dict, dict):
@@ -2121,12 +2121,13 @@ if __name__ == '__main__':
 
     for k, v in dd.items():
         print('------', k)
-        spaces = '            '
+        spaces = ' ' * 12
         if k.startswith('m_'):
-            spaces = '        '
+            spaces = ' ' * 8
         for i, n in enumerate(v):
-            if i == 0: print(f"    '{n}': '',")
-            else: print(f"{spaces}'{n}': '',")
+            #if i == 0: print(f"    '{n}': '',")
+            #else:
+            print(f"{spaces}'{n}': '',")
         print()
 
     for n in generics:
