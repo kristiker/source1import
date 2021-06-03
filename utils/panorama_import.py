@@ -92,6 +92,8 @@ def ImportPanoramaXml(xml_in: Path, vxml_out: Path = None, pre_opened: TextIOWra
 </root>
 '''
 
+"""GenerateNameMappingFromAssetList: Unknown extension for "panorama/images/tooltips/tooltip_arrow_left.vtf"""
+
 @zipimport('.vcss')
 def ImportPanoramaCss(css_in: Path, vcss_out: Path = None, pre_opened: TextIOWrapper = None):
     with open(vcss_out, 'w', encoding="utf-8") as out:
