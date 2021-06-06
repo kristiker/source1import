@@ -13,10 +13,8 @@ from shared import base_utils as sh
 from pathlib import Path
 from shared.keyvalues1 import KV, VDFDict
 
-
-PATH_TO_CONTENT_ROOT = r"D:\Games\steamapps\common\Half-Life Alyx\content\hlvr_addons\csgo" #r"D:\Games\steamapps\common\Half-Life Alyx\game\csgo"
-PATH_TO_NEW_CONTENT_ROOT = r"D:\Games\steamapps\common\Half-Life Alyx\game\hlvr_addons\csgo"
-
+SOUNDSCAPES_MANIFEST = Path("scripts/soundscapes_manifest.txt")
+SOUND_OPERATORS_FILE = "scripts/sound_operator_stacks.txt" # TODO.....
 
 def fix_wave_resource(old_value):
     soundchars = '*?!#><^@~+)(}$' # public\soundchars.h
@@ -41,7 +39,8 @@ def ImportSoundscape(file: Path):
     recursively_fixup(soundscapes)
     
     new_soundscapes = ''
-    newsc_path = file.with_suffix('.txt')
+    newsc_path = fs.Output(file.with_suffix('.txt'))
+    newsc_path.parent.mkdir(exist_ok=True)
 
     for key, value in soundscapes.items():
         if isinstance(value, VDFDict):
@@ -53,18 +52,23 @@ def ImportSoundscape(file: Path):
         fp.write(new_soundscapes)
     print("+ Saved", fs.LocalDir(newsc_path))
     
-    soundscapes_manifest.add("file", f'scripts/{newsc_path.name}')
+    #soundscapes_manifest.add("file", f'scripts/{newsc_path.name}')
 
-fs = sh.Source("scripts", PATH_TO_NEW_CONTENT_ROOT, PATH_TO_NEW_CONTENT_ROOT)
+def ImportSoundscapeManifest(asset_path: Path):
+    "Integ, but with '.vsc' fixup for csgo"
 
-manifest_file = fs.SEARCH_PATH / "soundscapes_manifest.txt"
-soundscapes_manifest = KV.FromFile(manifest_file)
-
-#for file in fs.collect_files(".vsc", ".txt", existing = True, customMatch="soundscapes_*.vsc"):
-#    ImportSoundscape(file)
-
-with open(manifest_file, 'w') as fp:
-    fp.write(str(soundscapes_manifest))
+    out_manifest = fs.Output(asset_path)
+    out_manifest.parent.mkdir(exist_ok=True)
+    with open(asset_path) as old, open(out_manifest, 'w') as out:
+        contents = old.read().replace('.vsc', '.txt')
+        if False:  # importing to an hla addon fix
+            ls = contents.split('{', 1)
+            ls[1] = '\n\t"file"\t"scripts/test123.txt"' + ls[1]
+            contents = '{'.join(ls)
+        out.write(contents)
+    
+    print("+ Saved manifest", fs.LocalDir(out_manifest))
+    return out_manifest
 
 # in soundscapes_*.txt: soundmixer <string>
 # ->
@@ -98,8 +102,8 @@ CHAN = {
     'CHAN_VOICE': 2,
     'CHAN_ITEM': 3,
     'CHAN_BODY': 4,
-    'CHAN_STREAM': 5,		# allocate stream channel from the static or dynamic area
-    'CHAN_STATIC': 6,		# allocate channel from the static area 
+    'CHAN_STREAM': 0,#5,		# allocate stream channel from the static or dynamic area
+    'CHAN_STATIC': 0,#6,		# allocate channel from the static area 
 }
 SNDLVL = {
     'SNDLVL_NONE': 0,
@@ -136,14 +140,14 @@ PITCH = {
     'PITCH_HIGH': 120,
 }
 
-#import wave
-#import contextlib
-#fname = '/tmp/test.wav'
-#with contextlib.closing(wave.open(fname,'r')) as f:
-#    frames = f.getnframes()
-#    rate = f.getframerate()
-#    duration = frames / float(rate)
-#    print(duration)
+import wave
+import contextlib
+def _get_wavfile_duration(wave_path):
+    with contextlib.closing(wave.open(wave_path,'r')) as f:
+        frames = f.getnframes()
+        rate = f.getframerate()
+        return frames / float(rate)
+
 def _handle_range(k, v):
     if not (type(v) is str and ',' in v):
         return
@@ -155,9 +159,12 @@ def _handle_range(k, v):
         rv = {}
         out_v = min+max / 2
         range = out_v - min
+        if k == 'pitch':  # Normalize pitch
+            range=range/100;out_v=out_v/100
         rv[k] = out_v
-        rv[k + '_rand_min'] = -range
-        rv[k + '_rand_max'] = range
+        if range != 0:
+            rv[k + '_rand_min'] = -range
+            rv[k + '_rand_max'] = range
         return rv
 
 """
@@ -180,14 +187,14 @@ alert [1]
 hrtf_follow [1]
 """
 
+op_stacks = {}
 def ImportGameSound(asset_path: Path):
-    print(fs.LocalDir(asset_path))
     kv = KV.CollectionFromFile(asset_path)
     kv3 = {}
 
     for gamesound, gs_kv in kv.items():
         
-        out_kv = {}
+        out_kv = dict(type='src1_3d')
         for (i, k), v in gs_kv.items(indexed_keys=True):
             out_k, out_v = k, v
             collect_dev(k, v)
@@ -209,54 +216,100 @@ def ImportGameSound(asset_path: Path):
                         continue
                     out_v.append(fix_wave_resource(rndwave_v))
     
+            elif k == 'channel':  # big ass guess
+                out_k, out_v= 'event_type', float(CHAN.get(v, 0))
+
             elif k in ('volume', 'pitch', 'soundlevel'):
                 if rangekv:=_handle_range(k, v):
                     out_kv.update(rangekv)
                     continue
 
-                if k == 'pitch':
+                if k == 'volume':
+                    if v == 'VOL_NORM': out_v = 1.0  # aka just continue? (default)
+                elif k == 'pitch':
                     if type(v) is str:
                         out_v = PITCH.get(v, 100)
                     # Normalize pitch
                     out_v = out_v / 100
                 elif k == 'soundlevel':
                     if type(v) is str:
-                        out_v = SNDLVL.get(v, 75)
-                        if SNDLVL.get(v) is None:
-                            print(v)
+                        if (out_v:=SNDLVL.get(v)) is None:
+                            out_v = 75
+                            if v.startswith('SNDLVL_'):
+                                try:
+                                    out_v = int(v[7:-2])
+                                except:
+                                    print(v[7:])
+                            else: print(v)
             elif k == 'delay_msec': out_k, out_v = 'delay', v/1000
             elif k == 'ignore_occlusion': out_k, out_v = 'occlusion_scale', (1 if not v else 0)#'sa_enable_occlusion'
-            elif k == 'operator_stacks':
-                print("~~~~~ stack")
-                for opk, opv in v.items():
-                    input(f"{opk} {opv.ToStr()}")
-                    # update stack
+            elif k == 'operator_stacks':  # this only exists in globul offensif
+                ...
+                #print("~~~~~ stack")
+                op_stacks[v.ToStr()] = op_stacks.get(v.ToStr(), 0) + 1
+
+                if mx:=v.get('update_stack', {}).get('mixer', {}).get('mixgroup'):
+                    out_kv['mixgroup'] = mx
+                #for opk, opv in v.items():
+                #    #input(f"{opk} {opv.ToStr()}")
+                #    if opk == 'update_stack':
+                #        for up_k, up_v in opv.items():
+                #            ...
+                            #if isinstance(up_v, dict):
+                            #    if mx:=up_v.get('mixgroup'):
+                            #        out_kv['mixgroup'] = mx
+                # update stack
                     # volume_falloff
                     # {
                     #         input_max       "800"
                     #         input_curve_amount      "0.9"
                     # }
                     # volume_fallof_max/min in out_kv
+                continue
+            elif k in ('soundentry_version', 'alert', 'hrtf_follow','gamedata',): # skiplist
+                continue
             out_kv[out_k] = out_v
         
         kv3[gamesound] = out_kv
 
-    
-    #input(dict_to_kv3_text(kv3))
+    vsndevts_file = EXPORT_CONTENT / "soundevents" / asset_path.relative_to(IMPORT_GAME / "scripts").with_suffix('.vsndevts')
+    vsndevts_file.parent.mkdir(parents=True, exist_ok=True)
+    with open(vsndevts_file, 'w') as fp:
+        fp.write(dict_to_kv3_text(kv3))
+
+    print("+ Saved", vsndevts_file.relative_to(EXPORT_CONTENT))
     return asset_path
 
+if __name__ == '__main__':
+    IMPORT_GAME =    Path(r"D:\Games\steamapps\common\Half-Life Alyx\game\csgo")
+    EXPORT_CONTENT = Path(r"D:\Games\steamapps\common\Half-Life Alyx\content\hlvr_addons\csgo")
+    EXPORT_GAME =    Path(r"D:\Games\steamapps\common\Half-Life Alyx\game\hlvr_addons\csgo")
+    
+    # import soundscapes...
+    fs = sh.Source("scripts", IMPORT_GAME, EXPORT_GAME)
 
-IMPORT_GAME = Path(r'D:\Games\steamapps\common\Half-Life Alyx\game\csgo')
-EXPORT_CONTENT = r"D:\Games\steamapps\common\Half-Life Alyx\content\hlvr_addons\csgo"
+    for vsc in fs.collect_files(".vsc", ".txt", existing = True, customMatch="soundscapes_*.vsc"):
+        ImportSoundscape(vsc)
 
-fs = sh.Source("scripts", IMPORT_GAME, EXPORT_CONTENT)
+    for soundscapes_txt in fs.collect_files(".txt", ".txt", existing = True, customMatch="soundscapes_*.txt"):
+        if soundscapes_txt.name == SOUNDSCAPES_MANIFEST.name:
+            ImportSoundscapeManifest(soundscapes_txt)
+            continue
+        ImportSoundscape(soundscapes_txt)
 
+    # import game sounds...
+    fs = sh.Source("scripts", IMPORT_GAME, EXPORT_CONTENT)
 
-for file in fs.collect_files(".txt", ".vsndevts", existing = True, customMatch="game_sounds*.txt", customPath=(IMPORT_GAME / 'scripts')):
-    ImportGameSound(file)
+    for file in fs.collect_files(".txt", ".vsndevts", existing = True, customMatch="game_sounds*.txt", customPath=(IMPORT_GAME / 'scripts')):
+        ImportGameSound(file)
 
-for k, v in collected.items():
-    print(k, v[1])
+    quit()
+    for k, v in collected.items():
+        print(k, v[1])
+    for opstack, count in op_stacks.items():
+        print()
+        print(count)
+        print(opstack)
 
 def ImportUpdateResourceRefs(asset_path: Path):
     ...
