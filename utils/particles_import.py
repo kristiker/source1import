@@ -1027,7 +1027,7 @@ pcf_to_vpcf = {
             'tint clamp min': 'm_TintMin',
             'tint clamp max': 'm_TintMax',
             'tint update movement threshold': 'm_flUpdateThreshold',
-            'tint blend mode': 'm_nTintBlendMode',
+            'tint blend mode': 'm_nTintBlendMode',  # dmx:int kv3:str
             'light amplification amount': 'm_flLightAmplification',
             'output field': 'm_nFieldOutput',
         }),
@@ -1920,16 +1920,17 @@ def pcfkv_convert(key, value):
                     elif key == 'initializers':
                         subkey = pcf_to_vpcf['__initializer_shared'].get(key2, subkey)
                     
-                    if subkey is None:
-                        un(key2, functionName)
-                    elif isinstance(subkey, Discontinued):
-                        # if subkey.at >= vpcf m_nBehaviorVersion: # TODO,, also maybe this is not here __bool__ -> True
-                        #     continue
-                        continue
-                    elif (rv :=get_for_case_insensitive_key(key2, value, sub_translation)):
-                        subkey, value = rv
-                    else:
-                        subkey, value = guess_key_name(key2, value2)
+                    if not subkey:
+                        if subkey is None:
+                            un(key2, functionName)
+                        elif isinstance(subkey, Discontinued):
+                            # if subkey.at >= vpcf m_nBehaviorVersion: # TODO,, also maybe this is not here __bool__ -> True
+                            #     continue
+                            continue
+                        elif (rv :=get_for_case_insensitive_key(key2, value, sub_translation)):
+                            subkey, value = rv
+                        else:
+                            subkey, value = guess_key_name(key2, value2)
 
                 if not key2 or not subkey:
                     continue
@@ -1985,10 +1986,9 @@ def pcfkv_convert(key, value):
                 subKV[subkey] = value2
 
             outVal.append(subKV)
-    else:
-        return
 
-    return outKey, outVal
+        if outVal != []:
+            return outKey, outVal
 
 class resource:
     def __init__(self, path):
@@ -2016,7 +2016,7 @@ def dict_to_kv3_text(
             return '"' + obj + '"'
         elif isinstance(obj, list):
             s = '['
-            if any(isinstance(item, dict) for item in obj):
+            if any(isinstance(item, dict) for item in obj):  # TODO: only non numbers
                 s = f'\n{preind}[\n'
                 for item in obj:
                     s += (obj_serialize(item, indent+1) + ',\n')
