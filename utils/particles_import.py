@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from shutil import copyfile
 import shared.datamodel as dmx
 if __name__ is None:
     import utils.shared.datamodel as dmx
@@ -2056,10 +2057,15 @@ def un(val, t):
         unt[val] = list()
         unt[val].append(t)
 
-def ImportParticleSnapshotFile():
+def ImportParticleSnapshotFile(psf_path: Path) -> Path:
     # in VRperf (yes) its dmx text
     # either way open and save as text dmx with ext .vsnap on content
-    ...
+    #snap = dmx.load(psf_path)
+    vsnap_out = particles_out / psf_path.relative_to(particles_in).with_suffix('.vsnap')
+    vsnap_out.parent.mkdir(exist_ok=True)
+    #snap.write
+    copyfile(psf_path, vsnap_out)
+    return vsnap_out
 
 
 class VPCF(dict):
@@ -2128,10 +2134,10 @@ def ImportPCFtoVPCF(pcf_path: Path) -> 'set[Path]':
 
 if __name__ == '__main__':
     for pcf_path in particles_in.glob('**/*.pcf'):
-        #print(f"Reading particles/{pcf_path.name}")
-        #if 'portal' in str(pcf_path):
-        #    continue
         ImportPCFtoVPCF(pcf_path)
+
+    for psf_path in particles_in.glob('**/*.psf'):
+        ImportParticleSnapshotFile(psf_path)
 
     print("Looks like we are done!")
     generics = list()
