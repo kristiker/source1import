@@ -17,10 +17,8 @@ SOUNDSCAPES_MANIFEST = Path("scripts/soundscapes_manifest.txt")
 SOUND_OPERATORS_FILE = "scripts/sound_operator_stacks.txt" # TODO.....
 
 def fix_wave_resource(old_value):
-    soundchars = '*?!#><^@~+)(}$' # public\soundchars.h
-    for char in soundchars:
-        while old_value[0] == char:
-            old_value = old_value[1:]
+    soundchars = '*?!#><^@~+)(}$' + '`' # public\soundchars.h
+    old_value = old_value.strip(soundchars)
 
     return f"sounds/{Path(old_value).with_suffix('.vsnd').as_posix()}"
 
@@ -188,12 +186,16 @@ hrtf_follow [1]
 """
 
 op_stacks = {}
+
 def ImportGameSound(asset_path: Path):
     kv = KV.CollectionFromFile(asset_path)
     kv3 = {}
 
     for gamesound, gs_kv in kv.items():
         
+        if gamesound[0].isdigit():
+            gamesound = '_' + gamesound
+
         out_kv = dict(type='src1_3d')
         for (i, k), v in gs_kv.items(indexed_keys=True):
             out_k, out_v = k, v
@@ -208,16 +210,22 @@ def ImportGameSound(asset_path: Path):
                         out_kv['vsnd_files'].append(fix_wave_resource(v))
                     continue
                 out_k, out_v = 'vsnd_files', fix_wave_resource(v)
+
+                if out_v == 'sounds/common/null.vsnd': continue
     
             elif k == 'rndwave':
                 out_k, out_v = 'vsnd_files', []
                 for rndwave_k, rndwave_v in v.items(indexed_keys=True):
                     if rndwave_k[1] != 'wave':
                         continue
-                    out_v.append(fix_wave_resource(rndwave_v))
+                    res = fix_wave_resource(rndwave_v)
+                    if res != 'sounds/common/null.vsnd':
+                        out_v.append(res)
+
+                if not out_v: continue
     
-            elif k == 'channel':  # big ass guess
-                out_k, out_v= 'event_type', float(CHAN.get(v, 0))
+            #elif k == 'channel':  # big ass guess
+            #    out_k, out_v= 'event_type', float(CHAN.get(v, 0))
 
             elif k in ('volume', 'pitch', 'soundlevel'):
                 if rangekv:=_handle_range(k, v):
@@ -226,6 +234,7 @@ def ImportGameSound(asset_path: Path):
 
                 if k == 'volume':
                     if v == 'VOL_NORM': out_v = 1.0  # aka just continue? (default)
+                    out_v = float(out_v)
                 elif k == 'pitch':
                     if type(v) is str:
                         out_v = PITCH.get(v, 100)
@@ -245,6 +254,7 @@ def ImportGameSound(asset_path: Path):
             elif k == 'ignore_occlusion': out_k, out_v = 'occlusion_scale', (1 if not v else 0)#'sa_enable_occlusion'
             elif k == 'operator_stacks':  # this only exists in globul offensif
                 ...
+                continue
                 #print("~~~~~ stack")
                 op_stacks[v.ToStr()] = op_stacks.get(v.ToStr(), 0) + 1
 
@@ -268,10 +278,18 @@ def ImportGameSound(asset_path: Path):
                 continue
             elif k in ('soundentry_version', 'alert', 'hrtf_follow','gamedata',): # skiplist
                 continue
+            else:
+                continue
+            
             out_kv[out_k] = out_v
-        
+        if out_kv == dict(type='src1_3d'):  # empty
+            out_kv = None
         kv3[gamesound] = out_kv
 
+    if True:
+        with open(r"D:\Games\steamapps\common\Half-Life Alyx\content\hlvr_addons\csgo\soundevents\csgo_soundevents.vsndevts", 'a') as fp:
+            #fp.seek(3)
+            fp.write('\n'.join(dict_to_kv3_text(kv3).splitlines()[2:-1]))
     vsndevts_file = EXPORT_CONTENT / "soundevents" / asset_path.relative_to(IMPORT_GAME / "scripts").with_suffix('.vsndevts')
     vsndevts_file.parent.mkdir(parents=True, exist_ok=True)
     with open(vsndevts_file, 'w') as fp:
@@ -301,6 +319,8 @@ if __name__ == '__main__':
     fs = sh.Source("scripts", IMPORT_GAME, EXPORT_CONTENT)
 
     for file in fs.collect_files(".txt", ".vsndevts", existing = True, customMatch="game_sounds*.txt", customPath=(IMPORT_GAME / 'scripts')):
+        if file.name == 'game_sounds_manifest.txt':
+            continue
         ImportGameSound(file)
 
     quit()
