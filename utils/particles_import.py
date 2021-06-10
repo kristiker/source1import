@@ -13,6 +13,8 @@ particles = Path('particles')
 # "!" before path means precache all on map spawn
 # normal paths get 
 
+__all__ = ('ImportPCFtoVPCF', 'ImportParticleSnapshotFile')
+
 BEHAVIOR_VERSION = 8
 
 class dynamicparam(str): pass
@@ -69,11 +71,12 @@ class Multiple:
         self.bare_replacements = args
         self.kw_replacements = kwargs
 
+@dataclass(frozen=True)
 class SingleColour:
+    "Single component for a key of type: vec4"
     default = [255, 255, 255, 255]
-    def __init__(self, t: str, place:int) -> None:
-        self.t = t
-        self.place = place
+    t: str
+    place:int
     def __call__(self, oldval, existing = default):
         rv = existing
         rv[self.place] = oldval
@@ -127,7 +130,7 @@ pcf_to_vpcf = {
             'ignore delta time': 'm_bIgnoreDT',
             'tail color and alpha scale factor': Multiple(
                 m_vecTailColorScale = lambda v: v[:3],
-                m_flTailAlphaScale = lambda v: v[3:]
+                m_flTailAlphaScale = lambda v: v[3]
             ),
             'cull system when CP normal faces away from camera': Discontinued(),
             'cull system starting at this recursion depth': Discontinued(),
@@ -1798,7 +1801,7 @@ def process_material(value):
 
     vmt_path = Path(PATH_TO_CONTENT_ROOT) / value
     vmat_path = Path('materials') / Path(value).with_suffix('.vmat')
-    renderer_base['m_hMaterial'] = resource(vmat_path)
+    vpcf._base_t['m_Renderers']['m_hMaterial'] = resource(vmat_path)
     try:
         vmt = VMT(KV.FromFile(vmt_path))
     except FileNotFoundError:
@@ -1807,9 +1810,9 @@ def process_material(value):
         if (shader_add:=vmtshader.get(vmt.shader)) is not None:
             if not shader_add == '':
                 if isinstance(shader_add, tuple):
-                    renderer_base[shader_add[0]] = shader_add[1]
+                    vpcf._base_t['m_Renderers'][shader_add[0]] = shader_add[1]
                 else:
-                    renderer_base[shader_add] = True
+                    vpcf._base_t['m_Renderers'][shader_add] = True
         else:
             un(vmt.shader, 'VMTSHADER')
         non_opaque_params = ('$addbasetexture2', '$dualsequence', '$sequence_blend_mode', '$maxlumframeblend1', '$maxlumframeblend2', '$extractgreenalpha', '$ramptexture', '$zoomanimateseq2', '$addoverblend', '$addself', '$blendframes', '$depthblend', '$inversedepthblend')
@@ -1824,7 +1827,7 @@ def process_material(value):
             if vmtkey in ('$basetexture', '$material', '$normalmap', '$bumpmap'):
                 vtex_ref = resource((Path('materials') / vmtval).with_suffix('.vtex'))
                 vpcf_replacement_key = 'm_hTexture' if vmtkey in ('$basetexture', '$material') else 'm_hNormalTexture'
-                renderer_base[vpcf_replacement_key] = vtex_ref
+                vpcf._base_t['m_Renderers'][vpcf_replacement_key] = vtex_ref
                 continue
             if vmtkey not in vmt_to_vpcf:
                 #un((vmtkey, vmtval), "VMT")
@@ -1838,7 +1841,7 @@ def process_material(value):
             elif isinstance(add, tuple):
                 add, vmtval = add
             if add:
-                renderer_base[add] = vmtval
+                vpcf._base_t['m_Renderers'][add] = vmtval
         # materials/particle/water/WaterSplash_001a.vtex
 
 
@@ -1861,8 +1864,8 @@ def pcfkv_convert(key, value):
             if not value:
                 return
             if key == 'snapshot':
-                vsnaps[vpcf_localpath] = value
-            return str(vpcf_translation), resource(Path(vpcf_localpath.parent / (value  + '.vpcf')))
+                vsnaps[vpcf.localpath] = value
+            return str(vpcf_translation), resource(Path(vpcf.localpath.parent / (value  + '.vpcf')))
 
         return vpcf_translation, value
     elif isinstance(vpcf_translation, tuple):
@@ -1886,8 +1889,8 @@ def pcfkv_convert(key, value):
             if key != 'children':
                 if (className := sub_translation.get(functionName)):
                     # handle the 2 formats
-                    # {'dmxobj': 'class', 'k':'kt'} <- this one has global subkeys
-                    # {'dmxobj': ('class', {'k':'kt'})}
+                    # {'oldclass': 'newclass', 'oldk':'newk'} <- this one has global subkeys
+                    # {'oldclass': ('newclass', {'oldk':'newk'})}
                     if type(className) is tuple:
                         className, sub_translation = className
 
@@ -1899,9 +1902,8 @@ def pcfkv_convert(key, value):
                 if className is NotImplemented:
                     continue
                 
-                subKV = { '_class': className}
-                if key == 'renderers':
-                    subKV.update(renderer_base)
+                subKV = { '_class': className, **vpcf._base_t.get(outKey, {})}
+
             else:
                 subKV = {}
 
@@ -1942,7 +1944,7 @@ def pcfkv_convert(key, value):
                     if isinstance(value2, dmx.Element):
                         value2 = value2.name
                     else: input(f'Ref not an element {key2}: {value2}')
-                    value2 = resource(Path(vpcf_localpath.parent / (value2  + '.vpcf')))
+                    value2 = resource(Path(vpcf.localpath.parent / (value2  + '.vpcf')))
                 elif isinstance(subkey, (minof, maxof)):
                     bMin = isinstance(subkey, minof)
                     if str(subkey) in subKV:
@@ -2054,51 +2056,82 @@ def un(val, t):
         unt[val] = list()
         unt[val].append(t)
 
+def ImportParticleSnapshotFile():
+    # in VRperf (yes) its dmx text
+    # either way open and save as text dmx with ext .vsnap on content
+    ...
+
+
+class VPCF(dict):
+    header = '<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf26:version{26288658-411e-4f14-b698-2e1e5d00dec6} -->'
+    def __init__(self, **kwargs):
+        self['_class'] = 'CParticleSystemDefinition'
+        self.update(kwargs)
+
+        self._base_t = dict(
+            m_Renderers = dict(
+                m_bFogParticles = True
+            )
+        )
+    def text(self):
+        return dict_to_kv3_text(self, self.header)
+
+vpcf = None
+
+def _import_ParticleSystemDefinition(ParticleSystemDefinition: dmx.Element, pack_root: Path) -> VPCF:
+    global vpcf
+    vpcf = VPCF( m_nBehaviorVersion = BEHAVIOR_VERSION )
+    vpcf.localpath = pack_root / (ParticleSystemDefinition.name + '.vpcf')
+    vpcf.path = particles_out.parent / vpcf.localpath
+    imports.append(vpcf.localpath.as_posix())
+
+    process_material(ParticleSystemDefinition.get('material'))
+
+    for key, value in ParticleSystemDefinition.items():
+        if converted_kv:= pcfkv_convert(key, value):
+            if not converted_kv[0]:
+                print('~ Warning: empty on', key, value)
+            vpcf[converted_kv[0]] = converted_kv[1]
+
+    # fix preoperators
+    for operator in vpcf.get('m_Operators', ()):
+        if not operator.get('_class') in vpcf_PreEmisionOperators:
+            continue
+        vpcf['m_Operators'].remove(operator)
+        vpcf.setdefault('m_PreEmissionOperators', list())
+        vpcf['m_PreEmissionOperators'].append(operator)
+
+    with open(vpcf.path, 'w') as fp:
+        fp.write(vpcf.text())
+
+    print("+ Saved", vpcf.localpath.as_posix())
+
+    return vpcf
+
+def ImportPCFtoVPCF(pcf_path: Path) -> 'set[Path]':
+    "Import `.PCF` particle pack to multiple separated `.VPCF`(s)"
+
+    pcf = dmx.load(pcf_path)
+
+    if not is_valid_pcf(pcf):
+        print("Invalid!!")
+        print(pcf.elements[0].keys())
+        print(pcf.elements[1].type)
+        return
+
+    pack_root = particles / pcf_path.relative_to(particles_in).parent / pcf_path.stem
+    (particles_out.parent / pack_root).mkdir(parents = True, exist_ok=True)
+    out = set()
+    for ParticleSystemDefinition in pcf.find_elements(elemtype='DmeParticleSystemDefinition'):
+        out.add(_import_ParticleSystemDefinition(ParticleSystemDefinition, pack_root).path)
+    return out
+
 if __name__ == '__main__':
     for pcf_path in particles_in.glob('**/*.pcf'):
         #print(f"Reading particles/{pcf_path.name}")
         #if 'portal' in str(pcf_path):
         #    continue
-        pcf = dmx.load(pcf_path)
-        if not is_valid_pcf(pcf):
-            print("Invalid!!")
-            print(pcf.elements[0].keys())
-            print(pcf.elements[1].type)
-            continue
-
-        vpcf_root = pcf_path.relative_to(particles_in).parent / pcf_path.stem
-        (particles_out.parent / particles /vpcf_root).mkdir(parents = True, exist_ok=True)
-        for ParticleSystemDefinition in pcf.find_elements(elemtype='DmeParticleSystemDefinition'):
-            vpcf = dict(
-                _class = "CParticleSystemDefinition",
-                m_nBehaviorVersion = BEHAVIOR_VERSION
-            )
-            vpcf_localpath = particles / vpcf_root / (ParticleSystemDefinition.name + '.vpcf')
-            vpcf_path = particles_out.parent / vpcf_localpath
-            imports.append(vpcf_localpath.as_posix())
-    
-            renderer_base = {'m_bFogParticles': True}
-            process_material(ParticleSystemDefinition.get('material'))
-
-            for key, value in ParticleSystemDefinition.items():
-                if converted_kv:= pcfkv_convert(key, value):
-                    if not converted_kv[0]:
-                        print('empty on', key, value)
-                    vpcf[converted_kv[0]] = converted_kv[1]
-
-            for operator in vpcf.get('m_Operators', ()):
-                if not operator.get('_class') in vpcf_PreEmisionOperators:
-                    continue
-                vpcf['m_Operators'].remove(operator)
-                vpcf.setdefault('m_PreEmissionOperators', list())
-                vpcf['m_PreEmissionOperators'].append(operator)
-
-            header = '<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf26:version{26288658-411e-4f14-b698-2e1e5d00dec6} -->'
-
-            with open(vpcf_path, 'w') as fp:
-                fp.write(dict_to_kv3_text(vpcf, header))
-
-            print("+ Saved", vpcf_localpath.as_posix())
+        ImportPCFtoVPCF(pcf_path)
 
     print("Looks like we are done!")
     generics = list()
