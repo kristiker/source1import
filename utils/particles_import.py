@@ -1,29 +1,37 @@
-from dataclasses import dataclass
-from shutil import copyfile
+import shared.base_utils2 as sh
 import shared.datamodel as dmx
 if __name__ is None:
+    import utils.shared.base_utils2 as sh
     import utils.shared.datamodel as dmx
 
+from dataclasses import dataclass
 from pathlib import Path
-particles = Path('particles')
+
 # https://developer.valvesoftware.com/wiki/Particle_System_Overview
 # https://developer.valvesoftware.com/wiki/Animated_Particles
 # https://developer.valvesoftware.com/wiki/Source_2_Particle_System_Properties
 
-# particles_manifest.txt
-# "!" before path means precache all on map spawn
-# normal paths get 
-
 __all__ = ('ImportPCFtoVPCF', 'ImportParticleSnapshotFile')
+particles = Path('particles')
 
+OVERWRITE_PARTICLES = False
+OVERWRITE_VSNAPS = False
 BEHAVIOR_VERSION = 8
+
+def main():
+    for pcf_path in (sh.IMPORT_GAME/particles).glob('**/*.pcf'):
+        ImportPCFtoVPCF(pcf_path, OVERWRITE_PARTICLES)
+
+    for psf_path in sh.collect(particles, '.pcf', '.vsnap', OVERWRITE_VSNAPS):
+        ImportParticleSnapshotFile(psf_path)
+
+    print("Looks like we are done!")
 
 class dynamicparam(str): pass
 class maxof(dynamicparam): pass # for Random Uniform
 class minof(dynamicparam): pass # for Random Uniform
 
-class Ref(str):
-    "Resource reference"
+class Ref(str): "Resource reference"
 
 class ObjectP:
     def __init__(self, object_name: str, param: str=''):
@@ -1658,8 +1666,6 @@ for key, value in (alternate_names2:= {
         if cls == value:
             pcf_to_vpcf['initializers'][1].setdefault(key, (value, sub))
 
-NotYetFound = ''
-
 # out of scale textures on fountain rings...
 # is this same as hammer texture scale issue
 # vtf scaling -> m_flConstantRadius
@@ -1744,12 +1750,6 @@ vmtshader = {
 
 }
 
-explosions_fx = Path(r'D:\Users\kristi\Documents\GitHub\source1import\utils\shared\particles\explosions_fx.pcf')
-lightning = Path(r'D:\Users\kristi\Documents\GitHub\source1import\utils\shared\particles\lighting.pcf')
-
-particles_in = Path(r'D:\Games\steamapps\common\Half-Life Alyx\game\csgo\particles')
-particles_out = Path(r'D:\Games\steamapps\common\Half-Life Alyx\content\hlvr_addons\csgo\particles')
-#particles_out = Path(r'C:\Users\kristi\Desktop\Source 2\content\hlvr_addons\addon\particles')
 def is_valid_pcf(x: dmx.DataModel):
     return ('particleSystemDefinitions' in x.elements[0].keys() and
             'DmeParticleSystemDefinition' == x.elements[1].type)
@@ -1865,8 +1865,8 @@ def pcfkv_convert(key, value):
             if not value:
                 return
             if key == 'snapshot':
-                vsnaps[vpcf.localpath] = value
-            return str(vpcf_translation), resource(Path(vpcf.localpath.parent / (value  + '.vpcf')))
+                vsnaps[vpcf.path.local] = value
+            return str(vpcf_translation), resource(Path(vpcf.path.local.parent / (value  + '.vpcf')))
 
         return vpcf_translation, value
     elif isinstance(vpcf_translation, tuple):
@@ -1945,7 +1945,7 @@ def pcfkv_convert(key, value):
                     if isinstance(value2, dmx.Element):
                         value2 = value2.name
                     else: input(f'Ref not an element {key2}: {value2}')
-                    value2 = resource(Path(vpcf.localpath.parent / (value2  + '.vpcf')))
+                    value2 = resource(Path(vpcf.path.local.parent / (value2  + '.vpcf')))
                 elif isinstance(subkey, (minof, maxof)):
                     bMin = isinstance(subkey, minof)
                     if str(subkey) in subKV:
@@ -2057,20 +2057,19 @@ def un(val, t):
         unt[val] = list()
         unt[val].append(t)
 
-def ImportParticleSnapshotFile(psf_path: Path) -> Path:
+from shutil import copyfile
+
+@sh.s1import('.vsnap')
+def ImportParticleSnapshotFile(psf_path: Path, vsnap_path: Path) -> Path:
     # in VRperf (yes) its dmx text
     # either way open and save as text dmx with ext .vsnap on content
-    #snap = dmx.load(psf_path)
-    vsnap_out = particles_out / psf_path.relative_to(particles_in).with_suffix('.vsnap')
-    vsnap_out.parent.mkdir(exist_ok=True)
-    #snap.write
-    copyfile(psf_path, vsnap_out)
-    return vsnap_out
-
+    return copyfile(psf_path, vsnap_path)
 
 class VPCF(dict):
     header = '<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf26:version{26288658-411e-4f14-b698-2e1e5d00dec6} -->'
-    def __init__(self, **kwargs):
+
+    def __init__(self, path, **kwargs):
+        self.path = path
         self['_class'] = 'CParticleSystemDefinition'
         self.update(kwargs)
 
@@ -2079,18 +2078,25 @@ class VPCF(dict):
                 m_bFogParticles = True
             )
         )
+
     def text(self):
         return dict_to_kv3_text(self, self.header)
 
 vpcf = None
 
-def _import_ParticleSystemDefinition(ParticleSystemDefinition: dmx.Element, pack_root: Path) -> VPCF:
-    global vpcf
-    vpcf = VPCF( m_nBehaviorVersion = BEHAVIOR_VERSION )
-    vpcf.localpath = pack_root / (ParticleSystemDefinition.name + '.vpcf')
-    vpcf.path = particles_out.parent / vpcf.localpath
-    imports.append(vpcf.localpath.as_posix())
+def _import_single_PartSysDef(ParticleSystemDefinition: dmx.Element, out_root: Path, bOverwrite = True) -> VPCF:
 
+    global vpcf
+    vpcf = VPCF(
+        path = out_root / (ParticleSystemDefinition.name + '.vpcf'),
+        m_nBehaviorVersion = BEHAVIOR_VERSION
+    )
+
+    imports.append(vpcf.path.local.as_posix())
+
+    if not bOverwrite and vpcf.path.exists():
+        return vpcf.path
+    
     process_material(ParticleSystemDefinition.get('material'))
 
     for key, value in ParticleSystemDefinition.items():
@@ -2110,13 +2116,14 @@ def _import_ParticleSystemDefinition(ParticleSystemDefinition: dmx.Element, pack
     with open(vpcf.path, 'w') as fp:
         fp.write(vpcf.text())
 
-    print("+ Saved", vpcf.localpath.as_posix())
+    print("+ Saved", vpcf.path.local.as_posix())
 
-    return vpcf
+    return vpcf.path
 
-def ImportPCFtoVPCF(pcf_path: Path) -> 'set[Path]':
+def ImportPCFtoVPCF(pcf_path: Path, bOverwrite=True) -> 'set[Path]':
     "Import `.PCF` particle pack to multiple separated `.VPCF`(s)"
 
+    sh.status(f'- Reading from pack {pcf_path.local}')
     pcf = dmx.load(pcf_path)
 
     if not is_valid_pcf(pcf):
@@ -2125,21 +2132,20 @@ def ImportPCFtoVPCF(pcf_path: Path) -> 'set[Path]':
         print(pcf.elements[1].type)
         return
 
-    pack_root = particles / pcf_path.relative_to(particles_in).parent / pcf_path.stem
-    (particles_out.parent / pack_root).mkdir(parents = True, exist_ok=True)
-    out = set()
-    for ParticleSystemDefinition in pcf.find_elements(elemtype='DmeParticleSystemDefinition'):
-        out.add(_import_ParticleSystemDefinition(ParticleSystemDefinition, pack_root).path)
-    return out
+    out_root = sh.output(pcf_path.with_suffix(""))
+    out_root.mkdir(parents = True, exist_ok=True)
+
+    return set((
+            _import_single_PartSysDef(
+                ParticleSystemDefinition,
+                out_root,
+                bOverwrite
+            )
+        for ParticleSystemDefinition in pcf.find_elements(elemtype='DmeParticleSystemDefinition')
+    ))
 
 if __name__ == '__main__':
-    for pcf_path in particles_in.glob('**/*.pcf'):
-        ImportPCFtoVPCF(pcf_path)
-
-    for psf_path in particles_in.glob('**/*.psf'):
-        ImportParticleSnapshotFile(psf_path)
-
-    print("Looks like we are done!")
+    main()
     generics = list()
     dd = {}
     for n, nn in unt.items():
@@ -2175,6 +2181,6 @@ if __name__ == '__main__':
         print(f'{snap} `{vsnaps[snap]}`')
     for child in children:
         if str(child.as_posix()) not in imports:
-            print(child, "was not imported...")
+            print(child, "child reference was not imported...")
     for fb in fallbacks:
         print(fb)

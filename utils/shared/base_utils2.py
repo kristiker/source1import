@@ -58,7 +58,7 @@ def local(self):
     except ValueError:
         return self.relative_to(import_context['dest'])
 
-def output(input, out_ext=None, dest=_dest()):
+def output(input, out_ext=None, dest=_dest()) -> Path:
     out = dest / input.local
     if out_ext is not None:
         return out.with_suffix(out_ext)
@@ -146,3 +146,9 @@ def collect(root, inExt, outExt, existing:bool = False, outNameRule = None, sear
         print(' '*4 + f"Skipped: " + f"{skipCountExists} already imported | "*(not existing) +\
                                  f"{skipCountBlacklist} found in blacklist"
         )
+
+__last_status_len = 0
+def status(text):
+    global __last_status_len
+    print(f'{" "*__last_status_len}\r{text}', end='\r')
+    __last_status_len = len(text)
