@@ -10,19 +10,25 @@ panorama_out = Path(r'D:\Games\steamapps\common\Half-Life Alyx\content\hlvr_addo
 code_pbin = panorama_in / "code.pbin"
 
 from functools import wraps
+importdict = {}
 def zipimport(ext):
-    def inner_function(function):
-        @wraps(function)
+    def decorator(func):
+        @wraps(func)
         def wrapper(asset_in: Path, asset_out: Path = None, pre_opened: TextIOWrapper = None, **kwargs):
             if pre_opened is None:
                 pre_opened = open(asset_in, encoding="utf-8")
-            if asset_out is None:
-                asset_out = panorama_out / asset_in.relative_to(panorama_in).with_suffix(ext)
-            asset_out.parent.mkdir(parents=True, exist_ok=True)
-            function(asset_in, asset_out, pre_opened, **kwargs)
-            pre_opened.close()
+            try:
+                if asset_out is None:
+                    asset_out = panorama_out / asset_in.relative_to(panorama_in).with_suffix(ext)
+                asset_out.parent.mkdir(parents=True, exist_ok=True)
+                rv = func(asset_in, asset_out, pre_opened, **kwargs)
+            finally:
+                pre_opened.close()
+            return rv
+         
+        importdict[ext.replace('v', '')] = wrapper
         return wrapper
-    return inner_function
+    return decorator
 
 @zipimport
 def ImportPanoramaVFont(asset_in: Path, pre_opened: TextIOWrapper = None):
@@ -37,7 +43,12 @@ def ImportPanoramaFontConfig(asset_in: Path, pre_opened: TextIOWrapper = None):
 @zipimport('.vxml')
 def ImportPanoramaXml(xml_in: Path, vxml_out: Path = None, pre_opened: TextIOWrapper = None):
     with open(vxml_out, 'w', encoding="utf-8") as out:
-        out.write(pre_opened.read().replace('file://','s2r://'))
+        out.write(pre_opened.read()
+            .replace('file://','s2r://')
+            .replace('.css', '.vcss_c')
+            .replace('.js', '.vjs_c')
+            .replace('.vtf', '.vtex_c') # i guess
+        )
         print("+ Saved", vxml_out.relative_to(panorama_out.parent))
 '''
 <root>
@@ -114,6 +125,9 @@ def ImportCfg(cfg_in: Path, vcfg_out: Path = None, pre_opened: TextIOWrapper = N
         print("+ Saved", vcfg_out.relative_to(panorama_out.parent))
 
 if __name__ == '__main__':
+    if not code_pbin.exists():
+        raise SystemExit()
+
     code = pbin.ZipFile(code_pbin, 'r')
 
     panorama_cfg = {}
@@ -127,15 +141,12 @@ if __name__ == '__main__':
     for file in code.filelist:
         path = panorama_in.parent / file.filename
         fp = TextIOWrapper(code.open(file), encoding="utf-8")
-        if file.filename.endswith('.xml'):
-            ImportPanoramaXml(path, pre_opened = fp)
-        elif file.filename.endswith('.css'):
-            ImportPanoramaCss(path, pre_opened = fp)
-        elif file.filename.endswith('.js'):
-            ImportJS(path, pre_opened = fp)
-        elif file.filename.endswith('.cfg'):
-            if file.filename == 'panorama/panorama.cfg':
-                continue
-            ImportCfg(path, pre_opened = fp)
+
+        if file.filename.endswith('.cfg'):
+            if file.filename == 'panorama/panorama.cfg': continue
+
+        if importfunc := importdict.get(Path(file.filename).suffix):
+            importfunc(path, pre_opened=fp)
         else:
             print("Import me senpai", file.filename)
+            fp.close()
