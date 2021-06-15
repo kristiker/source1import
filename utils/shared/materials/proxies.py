@@ -66,6 +66,9 @@ def sine(sineperiod, sinemin = -1, sinemax = 1, timeoffset = 0, **_):
 def linearramp(rate = 1, initialvalue = 0, **_):
     return f"( {rate} * time() + {initialvalue} )"
 
+def entityrandom(**_): # temporary
+    return "0"
+
 def currenttime(**_):
     return "time()"
 
@@ -153,7 +156,7 @@ def FormDynamicExpression(proxy: str, proxyParams: dict, mainResultVar: str, kno
         except TypeError:
             continue
         except KeyError:
-            print("Missing Key", proxy)
+            print("Missing func", proxy)
             continue
 
         if not mainResult:
@@ -190,7 +193,7 @@ def ProxiesToDynamicParams(vmtProxies: VDFDict, known, KeyValues) -> DynamicPara
 
         dynEx = FormDynamicExpression(proxy, proxyParams, resultvar, known, KeyValues, vmtProxies)
 
-        dpKey = known[resultvar][0] # g_vColorTint
+        dpKey = known[resultvar] # g_vColorTint
         vmatDynamicParams[dpKey] = repr(dynEx).strip("'") # "clamp(random(1), 0.4, 0.6)"
 
     return vmatDynamicParams
@@ -202,7 +205,7 @@ if __name__ == "__main__":
  
     class Test_KeyValues(unittest.TestCase):
         def test1(self):
-            known2 = {"$color": ("g_vColor", ""), "$alpha": ("g_flOpacity", "")}
+            known2 = {"$color": "g_vColor", "$alpha": "g_flOpacity"}
             KeyValue5 = {
                 "$addoutput": 0,
                 "$loeoutput": 0,

@@ -3,13 +3,21 @@ from shutil import copyfile
 from difflib import get_close_matches
 from typing import Optional
 from PIL import Image, ImageOps
+from numpy import isin
 
-if __name__ == "__main__":
+if __name__ is None:
+    from utils.shared import base_utils2 as sh
+    from utils.shared.keyvalue_simple import getKV_tailored as getKeyValues
+    from utils.shared.keyvalues1 import KV
+    from utils.shared.materials.proxies import ProxiesToDynamicParams
+    import utils.materials_import_skybox as sky
+
+elif __name__ == "__main__":
     import materials_import_skybox as sky
 else:
     sky = Optional
 
-from shared import base_utils as sh
+from shared import base_utils2 as sh
 from shared.keyvalue_simple import getKV_tailored as getKeyValues
 from shared.keyvalues1 import KV
 from shared.materials.proxies import ProxiesToDynamicParams
@@ -18,10 +26,7 @@ from shared.materials.proxies import ProxiesToDynamicParams
 LEGACY_SHADER = False
 NEW_SH = not LEGACY_SHADER
 
-# py_shared TODO: use an IN and OUT akin to s1import_txtmap
 # Path to content root, before /materials/
-PATH_TO_CONTENT_ROOT = r""
-PATH_TO_NEW_CONTENT_ROOT = r""
 
 # Set this to True if you wish to overwrite your old vmat files. Same as adding -f to launch parameters
 OVERWRITE_VMAT = True
@@ -37,7 +42,6 @@ USE_SUGESTED_DEFAULT_ROUGHNESS = True
 SURFACEPROP_AS_IS = False
 
 #from shared.base_utils import msg, DEBUG
-DEBUG = True
 sh.DEBUG = False
 msg = sh.msg
 # File format of the textures. Needs to be lowercase
@@ -52,7 +56,7 @@ VMAT_DEFAULT_PATH = Path("materials/default")
 materials = Path("materials")
 skyboxmaterials = materials / "skybox"
 
-fs = sh.Source(materials, PATH_TO_CONTENT_ROOT, PATH_TO_NEW_CONTENT_ROOT)
+sh.importing = materials
 
 skybox = Path("skybox")
 
@@ -167,29 +171,29 @@ shaderDict = {
 }
 
 def chooseShader():
-    sh = {x:0 for x in list(shaderDict.values())}
+    d = {x:0 for x in list(shaderDict.values())}
 
     if vmt.shader not in shaderDict:
-        if DEBUG:
+        if sh.DEBUG:
             failureList.add(f"{vmt.shader} unsupported shader", vmt.path)
         return "vr_black_unlit"
 
-    if LEGACY_SHADER:   sh["generic"] += 1
-    else:               sh[shaderDict[vmt.shader]] += 1
+    if LEGACY_SHADER:   d["generic"] += 1
+    else:               d[shaderDict[vmt.shader]] += 1
 
-    if vmt.KeyValues['$decal'] == 1: sh["vr_projected_decals"] += 10
+    if vmt.KeyValues['$decal'] == 1: d["vr_projected_decals"] += 10
 
     if vmt.shader == "worldvertextransition":
-        if vmt.KeyValues['$basetexture2']: sh["vr_simple_2way_blend"] += 10
+        if vmt.KeyValues['$basetexture2']: d["vr_simple_2way_blend"] += 10
 
     elif vmt.shader == "lightmappedgeneric":
-        if vmt.KeyValues['$newlayerblending'] == 1: sh["vr_simple_2way_blend"] += 10
+        if vmt.KeyValues['$newlayerblending'] == 1: d["vr_simple_2way_blend"] += 10
         #if vmt.KeyValues['$decal'] == 1: sh["vr_projected_decals"] += 10
 
     elif vmt.shader == "":
         pass
     # TODO: vr_complex -> vr simple if no selfillum tintmask detailtexture specular
-    return max(sh, key = sh.get)
+    return max(d, key = d.get)
 
 ignoreList = [ "dx9", "dx8", "dx7", "dx6", "proxies"]
 
@@ -197,80 +201,62 @@ def default(texture_type):
     return VMAT_DEFAULT_PATH.as_posix() + "/default" + texture_type + ".tga"
 
 def OutName(path: Path) -> Path:
-    #if fs.LocalDir(path).is_relative_to(materials/skybox/) and path.stem[-2:] in sky.skyboxFaces:
-    #    return fs.NoSpace(fs.Output(path).with_suffix(OUT_EXT))
-    return fs.NoSpace(fs.Output(path).with_suffix(OUT_EXT))
+    #if path.local.is_relative_to(materials/skybox/) and path.stem[-2:] in sky.skyboxFaces:
+    #    sh.output(path).without_spaces().with_suffix(OUT_EXT)
+    return sh.output(path).without_spaces().with_suffix(OUT_EXT)
 
 # "environment maps\metal_generic_002.vtf" -> "materials/environment maps/metal_generic_002.tga"
 def fixVmtTextureDir(localPath, fileExt = TEXTURE_FILEEXT) -> str:
     if localPath == "" or not isinstance(localPath, str):
         return ""
-    return fs.FixLegacyLocal(Path(localPath).with_suffix(fileExt)).as_posix()
+    return (materials / localPath.lstrip('\\/')).with_suffix(fileExt).as_posix()
 
 # TODO: renameee, remap table etc...
 def formatNewTexturePath(vmtPath, textureType = TEXTURE_FILEEXT, noRename = False, forReal = True):
 
-    #vmtPath = fs.Input(fixVmtTextureDir(vmtPath)) + "." + textureType.split(".", 1)[1] or ''
+    #vmtPath = sh.src(fixVmtTextureDir(vmtPath)) + "." + textureType.split(".", 1)[1] or ''
 
     #if USE_DEFAULT_FOR_MISSING_TEXTURE and not os.path.exists(vmtPath):
     #    return default(textureType)
 
-    #return fs.LocalDir(vmtPath)
+    #return vmtPath.local
     return str(fixVmtTextureDir(vmtPath))
 
-def getTexture(vmtParam):
-    """
-    Returns full texture path of given vmt Param or vmt Path\n
-    $basetexture              -> C:/../materials/as/seen/in/basetexture/tex_color.tga\n
-    path/to/texture_color.tga -> C:/../materials/path/to/texture_color.tga\n
-    """
-    if type(vmtParam) is str:
-        if value := vmt.KeyValues[vmtParam]:
-            if (path := fs.Output(fixVmtTextureDir(value))).exists():
-                return path
-        elif (path := fs.Output(fixVmtTextureDir(vmtParam))).exists():
-                return path
-        elif (path := fs.Output(Path(vmtParam))).exists():
-                return path
-
-    elif isinstance(vmtParam, Path):
-        if not vmtParam.exists():
-            if (path := fs.Output(vmtParam)).exists():
-                return path
-        return vmtParam
-
+def getTexture(vtf_path):
+    "get vtf source"
     # TODO: if still not found check for vtf in input
     # if exists, use vtf_to_tga to extract it to output
     # source1import does the same
-
     return None
 
-def createMask(vmtTexture, copySub = '_mask', channel = 'A', invert = False, queue = True):
+def createMask(image_path, copySub = '_mask', channel = 'A', invert = False, queue = True):
 
-    imagePath = getTexture(vmtTexture)
-    #msg("createMask with", fs.LocalDir(vmtTexture), copySub, channel, invert, queue)
-
-    if not imagePath:
-        msg("No input for createMask.", imagePath)
-        if vmtTexture in vmt_to_vmat['textures']:
-            failureList.add(f"{vmtTexture} not found", vmt.path) # FIXME ALL OF ME vmtTexture
-        else:
-            failureList.add(f"createMask not found", f'{vmt.path} - {vmtTexture}')
+    if not (image_path:=fixVmtTextureDir(image_path)):
         return default(copySub)
+    image_path = sh.output(Path(image_path))
 
-    if invert:  newMask = imagePath.stem + '_' + channel[:3].lower() + '-1' + copySub
-    else:       newMask = imagePath.stem + '_' + channel[:3].lower()        + copySub
-    newMaskPath = imagePath.parent / Path(newMask).with_suffix(imagePath.suffix)
+    newMaskPath = image_path.parent /\
+        f"{image_path.stem}_{channel[:3].lower()}{'-1' if invert else ''}{copySub + image_path.suffix}"
+
+    msg(f"createMask{image_path.local.relative_to(materials).as_posix(), copySub, channel, invert, queue} -> {newMaskPath.local}")
 
     if newMaskPath.exists(): #and not DEBUG:
-        return fs.LocalDir(newMaskPath)
+        return newMaskPath.local
 
-    if not imagePath.is_file() or not imagePath.exists():
-        failureList.add('createMask image not found', vmt.path)
-        print(f"~ ERROR: Couldn't find requested image ({imagePath}). Please check.")
+    if not image_path.exists():
+        msg("Couldn't find image", image_path)
+        failureList.add(f"createMask not found", f'{vmt.path} - {image_path}')
+        #if vmtTexture in vmt_to_vmat['textures']:
+        #    failureList.add(f"{vmtTexture} not found", vmt.path) # FIXME ALL OF ME vmtTexture
+        #else:
         return default(copySub)
 
-    image = Image.open(imagePath).convert('RGBA')
+    if not image_path.is_file() or not image_path.exists():
+        failureList.add('createMask image not found', vmt.path)
+        print(f"~ ERROR: Couldn't find requested image ({image_path}). Please check.")
+        return default(copySub)
+
+    image = Image.open(image_path).convert('RGBA')
 
     if channel == 'L':
         imgChannel = image.convert('L')
@@ -293,13 +279,13 @@ def createMask(vmtTexture, copySub = '_mask', channel = 'A', invert = False, que
 
     bg.convert('L').save(newMaskPath, optimize=True)  #.convert('P', palette=Image.ADAPTIVE, colors=8)
     bg.close()
-    print("+ Saved mask to", fs.LocalDir(newMaskPath))
+    print("+ Saved mask to", newMaskPath.local)
 
-    return fs.LocalDir(newMaskPath)
+    return newMaskPath.local
 
 def flipNormalMap(localPath):
 
-    image_path = fs.Output(localPath)
+    image_path = sh.output(localPath)
     if not image_path.exists(): return False
 
     if NORMALMAP_G_VTEX_INVERT:
@@ -460,15 +446,14 @@ EXPORT_MOD = "hlvr"
 
 vmt_to_vmat = {
 
-#'shader': { '$_vmat_shader':    ('shader',  'generic.vfx', [ext, SOURCE2_SHADER_EXT]),},
-
+# http://counter-strike.net/workshop/workshopmaps#hammer
 'f_keys': {
 
     '$translucent':     ('F_TRANSLUCENT',           '1'),  # "F_BLEND_MODE 0" for "vr_projected_decals"
     '$alphatest':       ('F_ALPHA_TEST',            '1'),
     '$phong':           ('F_SPECULAR',              '1'), # why did i do this
     '$envmap':          ('F_SPECULAR',              '1', [fix_envmap]),  # in "environment maps/metal" | "env_cubemap" F_SPECULAR_CUBE_MAP 1 // In-game Cube Map
-    '$envmapanisotropy':('F_SPECULAR_CUBE_MAP_ANISOTROPIC_WARP', '1'), # requires F_ANISOTROPIC_GLOSS 1 (which sounds like anisotropic phong)
+    '$envmapanisotropy':('F_SPECULAR_CUBE_MAP_ANISOTROPIC_WARP', '1'), # requires F_ANISOTROPIC_GLOSS 1
     '$selfillum':       ('F_SELF_ILLUM',            '1'),
     '$additive':        ('F_ADDITIVE_BLEND',        '1'),
     '$ignorez':         ('F_DISABLE_Z_BUFFERING',   '1'),
@@ -682,14 +667,16 @@ vmt_to_vmat = {
 
 KNOWN = {}  # for proxies; when $color is known as g_vTintColor, proxies yielding to $color can be translated
 for d in vmt_to_vmat.values():
-    for k, v in d.items(): KNOWN[k] = v
+    for k, v in d.items():
+        if isinstance(v, tuple): v = v[0]
+        KNOWN[k] = v
 
 def convertVmtToVmat():
 
     # For each key-value in the vmt file...
     for vmtKey, vmtVal in vmt.KeyValues.iteritems():
 
-        outKey = outVal  = ''
+        outKey = outVal = ''
 
         vmtKey = vmtKey.lower()
         vmtVal = str(vmtVal).strip().strip('"' + "'").strip(' \n\t"') # FIXME temp str
@@ -842,7 +829,7 @@ def convertVmtToVmat():
                 # both versions are provided just in case for 'non models'
                 #if not str(vmt.KeyValues['$model']).strip('"') != '0': invert
 
-                outVal =  createMask(sourceTexture, sourceSubString, sourceChannel, shouldInvert)
+                outVal =  createMask(vmt.KeyValues[sourceTexture], sourceSubString, sourceChannel, shouldInvert)
 
             elif keyType == 'SystemAttributes':
                 if not vmat.KeyValues['SystemAttributes']:
@@ -895,7 +882,7 @@ def convertSpecials():
             if val[1] == '$phongmask' and vmt.KeyValues[key]:
                 bHasPhongMask = True
                 break
-        if fs.LocalDir(vmt.path).is_relative_to(materials/ "models/weapons/shared/scope"):
+        if vmt.path.local.is_relative_to(materials/"models/weapons/shared/scope"):
             bHasPhongMask = False
         if not bHasPhongMask:  # normal map Alpha acts as a phong mask by default
             vmt.KeyValues['$normalmapalphaphongmask'] = 1
@@ -923,22 +910,22 @@ def convertSpecials():
     # csgo viewmodels
     # if not mod == csgo: return
     viewmodels = materials / "models/weapons/v_models"
-    if fs.LocalDir(vmt.path).is_relative_to(viewmodels):
+    if vmt.path.local.is_relative_to(viewmodels):
         # use _ao texture in \weapons\customization
         wpn_name = vmt.path.parent.name
         if (vmt.path.stem == wpn_name or vmt.path.stem == wpn_name.split('_')[-1]):
             vm_customization = viewmodels.parent / "customization"
-            ao_path = fs.Output(vm_customization/wpn_name/ (str(wpn_name) + "_ao"+ TEXTURE_FILEEXT))
+            ao_path = sh.output(vm_customization/wpn_name/ (str(wpn_name) + "_ao"+ TEXTURE_FILEEXT))
             if ao_path.exists():
-                ao_path_new = fs.Output(materials/viewmodels/wpn_name/ao_path.name)
+                ao_path_new = sh.output(materials/viewmodels/wpn_name/ao_path.name)
                 try:
                     if not ao_path_new.exists() and ao_path_new.parent.exists():
                         copyfile(ao_path, ao_path_new)
                         print("+ Succesfully moved AO texture for weapon material:", wpn_name)
-                    vmt.KeyValues["$aotexture"] = str(fs.LocalDir_Legacy(fs.LocalDir(ao_path_new)))
+                    vmt.KeyValues["$aotexture"] = str(ao_path_new.local.relative_to(materials))
                     print("+ Using ao:", ao_path.name)
                 except FileNotFoundError:
-                    failureList.add("AOfix FileNotFoundError", f"{ao_path_new.name}, {fs.LocalDir(ao_path)}")
+                    failureList.add("AOfix FileNotFoundError", f"{ao_path_new.name}, {ao_path.local}")
 
         #vmt.KeyValues.setdefault("$envmap", "0")  # specular looks ugly on viewmodels so disable it. does not affect scope lens
         if vmt.KeyValues["$envmap"]: del vmt.KeyValues["$envmap"]
@@ -959,6 +946,7 @@ def _ImportVMTtoExtraVMAT(vmt_path: Path, shader = None, path = None):
     rv = ImportVMTtoVMAT(vmt_path, preset_vmat = True)
     if rv:
         import_extra+=1
+    return rv
 
 def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False) -> Optional[Path]:
 
@@ -983,7 +971,7 @@ def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False) -> Optional[Path]:
             print("+ Retrieving material properties from include:", includePath, end='')
             
             try:
-                vmt.shader, vmt.KeyValues = getKeyValues(fs.Input(includePath), ignoreList) # TODO: kv1read
+                vmt.shader, vmt.KeyValues = getKeyValues(sh.src(includePath), ignoreList) # TODO: kv1read
             except FileNotFoundError:
                 print(" ...Did not find")
                 failureList.add("Include not found", f'{vmt.path} -- {includePath}' )
@@ -1004,7 +992,7 @@ def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False) -> Optional[Path]:
         else:
             print("~ WARNING: No include was provided on material with type 'Patch'. Is it a weapon skin?")
 
-    if fs.LocalDir(vmt.path).is_relative_to(skyboxmaterials):
+    if vmt.path.local.is_relative_to(skyboxmaterials):
         name, face = vmt.path.stem[:-2], vmt.path.stem[-2:]
         if face in sky.skyboxFaces:
             faceCollection = sky.collectSkybox(vmt.path, vmt.KeyValues)
@@ -1023,33 +1011,22 @@ def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False) -> Optional[Path]:
 
     vmat.path.parent.MakeDir()
 
-    if not fs.ShouldOverwrite(vmat.path, OVERWRITE_VMAT):
-        print(f'+ File already exists. Skipping! {vmat.path}')
-        return
-
     convertSpecials()
     convertVmtToVmat()
 
     if proxies:= vmt.KeyValues["proxies"]:
-        dynamicParams = ProxiesToDynamicParams(proxies, KNOWN, vmt.KeyValues)
-        if dynamicParams:
-            vmat.KeyValues['DynamicParams'] = {}
-            for key, val in dynamicParams.items():
-                vmat.KeyValues['DynamicParams'][key] = val
+        vmat.KeyValues['DynamicParams'] = ProxiesToDynamicParams(proxies, KNOWN, vmt.KeyValues)
+        print(vmat.KeyValues['DynamicParams'])
 
     with open(vmat.path, 'w') as vmatFile:
-        vmatFile.write('// Converted with vmt_to_vmat.py\n')
-        vmatFile.write('// From: ' + str(vmt.path) + '\n\n')
+        vmatFile.write('// Converted with materials_import.py\n')
+        vmatFile.write('// [s1import] ' + str(vmt.path) + '\n\n')
         msg(vmt.shader + " => " + vmat.shader, "\n")#, vmt.KeyValues)
         #vmatFile.write('Layer0\n{\n\tshader "' + vmat.shader + '.vfx"\n\n')
         vmatFile.write(vmat.KeyValues.ToStr()) ###############################
 
-    #f_KeyVal = '\t{}\t{}\n'
-    #f_KeyValQuoted = '\t{}\t"{}"\n'
-    #f_KeyQuotedValQuoted = '\t"{}"\t"{}"\n'
-
     if sh.DEBUG: print("+ Saved", vmat.path)
-    else: print("+ Saved", fs.LocalDir(vmat.path))
+    else: print("+ Saved", vmat.path.local)
 
     if vmat.shader == "vr_projected_decals":
         _ImportVMTtoExtraVMAT(vmt_path, shader="vr_static_overlay",
@@ -1077,18 +1054,25 @@ def main():
     print('\nSource 2 Material Converter!')
     print('----------------------------------------------------------------------------')
 
-    vmtFileList = fs.collect_files(IN_EXT, OUT_EXT, existing=OVERWRITE_VMAT, outNameRule = OutName)
     global total, import_total, import_invalid
-    for vmt_path in vmtFileList:
+    for vmt_path in sh.collect(
+            "materials",
+            IN_EXT, OUT_EXT,
+            existing=OVERWRITE_VMAT,
+            outNameRule=OutName,
+            # proxies vec3 special materials/lights/camera.vmt
+            match=None): # "test/test.vmt"
+
         total += 1
         if ImportVMTtoVMAT(vmt_path):
             import_total += 1
         else:
+            sh.status(f"- skipping [invalid]: {vmt_path.local}")
             import_invalid += 1
 
     print("\nSkybox materials...")
 
-    skyCollections = sky.collect_files_skycollections(r"D:\Games\steamapps\common\Half-Life Alyx\content\hlvr_addons\csgo\materials") #OVERWRITE_SKYBOX_MATS
+    skyCollections = sky.collect_files_skycollections(sh.EXPORT_CONTENT / materials) #OVERWRITE_SKYBOX_MATS
     for jsonCollection in skyCollections:
         #print(f"Attempting to import {jsonCollection}")
         sky.ImportSkyVMTtoVMAT(jsonCollection)

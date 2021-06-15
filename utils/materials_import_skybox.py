@@ -6,7 +6,7 @@ from PIL import Image
 import numpy as np
 
 import shared.PFM as PFM
-from vmt_to_vmat import TexTransform, OUT_EXT, TEXTURE_FILEEXT
+from materials_import import TexTransform, OUT_EXT, TEXTURE_FILEEXT
 
 COLLECTION_EXT = ".json"
 skyboxFaces = ['up', 'dn', 'lf', 'rt', 'bk', 'ft']
@@ -132,6 +132,8 @@ def createSkyCubemap(skyName: str, faceP: dict, maxFaceRes: int = 0) -> Path:
     img_ext = '.pfm' if hdrType else TEXTURE_FILEEXT
     sky_cubemap_path =  fs.Output( materials/skybox/ Path(skyName + '_cube').with_suffix(img_ext) )
 
+    # BlendCubeMapFaceCorners, BlendCubeMapFaceEdges
+    
     if not fs.ShouldOverwrite(sky_cubemap_path, OVERWRITE_SKYCUBES):
         return sky_cubemap_path
 
@@ -144,6 +146,7 @@ def createSkyCubemap(skyName: str, faceP: dict, maxFaceRes: int = 0) -> Path:
             faceRotate = int(faceParams[face].get('rotate') or 0)
             if not (faceImage := Image.open(facePath).convert(image_mode)): continue
 
+            pasteCoord = (cube_w/2, cube_h/2)
             if face == 'up':
                 pasteCoord = ( cube_w - (maxFaceRes * 3) , cube_h - (maxFaceRes * 3) ) # (1, 2)
                 faceRotate += 90
@@ -223,7 +226,7 @@ def ImportSkyVMTtoVMAT(jsonFile: Path) -> Path:
 
     if fs.ShouldOverwrite(vmatFile, True):
         with open(vmatFile, 'w') as fp:
-            fp.write('// Sky material and cubemap created by vmt_to_vmat.py\n\n')
+            fp.write('// Sky material and cubemap created by materials_import.py\n\n')
             fp.write('Layer0\n{\n\tshader "sky.vfx"\n\n')
             fp.write(f'\tSkyTexture\t"{sky_cubemap_path}"\n\n}}\n')
 
@@ -244,9 +247,12 @@ if __name__ == "__main__":
     main()
 elif __name__ == "materials_import_skybox":
     import shared.base_utils as sh
-    from vmt_to_vmat import PATH_TO_CONTENT_ROOT, PATH_TO_NEW_CONTENT_ROOT
+    from materials_import import PATH_TO_CONTENT_ROOT, PATH_TO_NEW_CONTENT_ROOT
     from shared.base_utils import msg, DEBUG
     fs = sh.Source(materials, PATH_TO_CONTENT_ROOT, PATH_TO_NEW_CONTENT_ROOT)
+elif __name__ is None:
+    import utils.shared.PFM as PFM
+    from utils.materials_import import TexTransform, OUT_EXT, TEXTURE_FILEEXT
 
 xd = {
   "_hdrtype": "uncompressed",
