@@ -110,8 +110,10 @@ class IO:
         json_path = self.currentDir / Path("import_blacklist.json")
         try:
             with open(json_path, "r+") as fp:
-                return json.load(fp)[str( self.SCRIPT_SCOPE)]
-        except: return []
+                return json.load(fp).get(str(self.SCRIPT_SCOPE), [])
+        except Exception as ex:
+            print(type(ex), "COULDNT GET BLACKLIST", json_path)
+            return []
 
 class Source(IO):
 

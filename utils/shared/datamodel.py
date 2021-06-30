@@ -21,6 +21,7 @@
 #  THE SOFTWARE.
 
 import struct, array, io, binascii, collections, uuid
+from typing import Iterable, Optional
 from struct import unpack,calcsize
 
 header_format = "<!-- dmx encoding {:s} {:d} format {:s} {:d} -->"
@@ -592,7 +593,7 @@ class DataModel:
 		if len(self.elements) == 1: self.root = elem
 		return elem
 		
-	def find_elements(self,name=None,id=None,elemtype=None):
+	def find_elements(self,name=None,id=None,elemtype=None) -> Optional[Iterable[Element]]:
 		out = []
 		if isinstance(id, str): id = uuid.UUID(id)
 		for elem in self.elements:

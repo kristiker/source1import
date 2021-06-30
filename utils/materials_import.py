@@ -1061,7 +1061,11 @@ def main():
             existing=OVERWRITE_VMAT,
             outNameRule=OutName,
             # proxies vec3 special materials/lights/camera.vmt
-            match=None): # "test/test.vmt"
+            # "models/player/**/*.vmt"
+            # "de_nuke/nukwater_movingplane.vmt"
+            # "models/weapons/v_models/rif_ak47/ak47.vmt"
+            # "test/test.vmt"
+            match=None):
 
         total += 1
         if ImportVMTtoVMAT(vmt_path):

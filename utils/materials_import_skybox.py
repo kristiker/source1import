@@ -7,6 +7,7 @@ import numpy as np
 
 import shared.PFM as PFM
 from materials_import import TexTransform, OUT_EXT, TEXTURE_FILEEXT
+import shared.base_utils2 as sh2
 
 COLLECTION_EXT = ".json"
 skyboxFaces = ['up', 'dn', 'lf', 'rt', 'bk', 'ft']
@@ -17,9 +18,9 @@ OVERWRITE_SKYBOX_MATS = True
 
 SKYBOX_CREATE_LDR_FALLBACK = True
 
-# materials/skybox/legacy_faces/sky_example.json -> materials/skybox/sky_example.vmat
 def OutName(path: Path) -> Path:
-    return fs.NoSpace(path.parents[1] / Path(path.with_suffix(OUT_EXT).name))
+    "materials/skybox/legacy_faces/sky_example.json -> materials/skybox/sky_example.vmat"
+    return path.parents[1] / path.without_spaces().with_suffix(OUT_EXT).name
 
 def collect_files_skycollections(path: Path, existing: bool = OVERWRITE_SKYBOX_MATS):
     search_path = path / skybox / legacy_faces

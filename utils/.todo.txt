@@ -19,6 +19,16 @@ you also got specular toggle
 
 phong is specular -- compared to envmap its positionally accurate, but limited to light sources
 
+inferno barel metalic part has specular in s1 but not in s2
+
+this looks like a s1 imported mat
+its used as a default *material* ('s2 particle renderers use compiled textures usually')
+for render_blob particle renderer (portal2)
+D:\Games\steamapps\common\Half-Life Alyx\content\core\materials\dev\roomwalls_white.vmat
+
+inverted roughness
+materials/models/props_lab/monitor02.vmat
+
 ---
 one materials detail is anothers normal (for some reason)
 they shouldnt share it as the detail cannot have inverted green
