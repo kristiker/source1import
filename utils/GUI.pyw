@@ -2,6 +2,7 @@ import shared.base_utils as sh
 from pathlib import Path
 from tkinter import filedialog, messagebox
 from tkinter import *
+import sys
 from winsound import MessageBeep
 from subprocess import run as subrun, STDOUT, PIPE
 import json

@@ -34,6 +34,7 @@ class minof(dynamicparam): pass # for Random Uniform
 class Ref(str): "Resource reference"
 
 class ObjectP:
+    "`{object_name}.{param}` parameter. E.g. `m_PathParams.m_flBulge`"
     def __init__(self, object_name: str, param: str=''):
         self.mother = object_name
         self.name = param
@@ -66,7 +67,7 @@ class BoolToSetKV:
 
 @dataclass(frozen=True)
 class Discontinued:
-    "This parameter worked on particle systems with behaviour versions lower than `self.at"
+    "This parameter worked on particle systems with behaviour versions < `self.at`"
     t: str = ''
     at: int = -1
     def __bool__(self): return False # FIXME
@@ -91,6 +92,7 @@ class SingleColour:
         rv[self.place] = oldval
         return self.t, rv
 
+# These Operators are now PreOperators in Source2
 vpcf_PreEmisionOperators = (
     'C_OP_RemapSpeedtoCP',
     'C_OP_SetControlPointPositions',
@@ -1796,12 +1798,12 @@ children = []
 vsnaps = {}
 fallbacks = []
 
-def process_material(value):
+def process_material(value: str):
     if not value:
         return
 
-    vmt_path = Path(PATH_TO_CONTENT_ROOT) / value
-    vmat_path = Path('materials') / Path(value).with_suffix('.vmat')
+    vmt_path = sh.IMPORT_CONTENT / value
+    vmat_path = (Path('materials') / value).with_suffix('.vmat')
     vpcf._base_t['m_Renderers']['m_hMaterial'] = resource(vmat_path)
     try:
         vmt = VMT(KV.FromFile(vmt_path))
@@ -1846,7 +1848,7 @@ def process_material(value):
         # materials/particle/water/WaterSplash_001a.vtex
 
 
-from materials_import import VMT, PATH_TO_CONTENT_ROOT
+from materials_import import VMT
 from shared.keyvalues1 import KV
 def pcfkv_convert(key, value):
 
@@ -1980,7 +1982,7 @@ def pcfkv_convert(key, value):
                     continue
                 elif callable(subkey):
                     if subkey is repr:
-                        input("HEJ @",className, key2, value2)
+                        #input("HEJ @",className, key2, value2)
                         continue
                     try:
                         subkey, value2 = subkey(value2)
@@ -2085,7 +2087,7 @@ class VPCF(dict):
 vpcf = None
 
 def _import_single_PartSysDef(ParticleSystemDefinition: dmx.Element, out_root: Path, bOverwrite = True) -> VPCF:
-
+    "Import Source1 Particle System Definition DMX Element into Source2 KV3 Particle file"
     global vpcf
     vpcf = VPCF(
         path = out_root / (ParticleSystemDefinition.name + '.vpcf'),
@@ -2120,11 +2122,15 @@ def _import_single_PartSysDef(ParticleSystemDefinition: dmx.Element, out_root: P
 
     return vpcf.path
 
-def ImportPCFtoVPCF(pcf_path: Path, bOverwrite=True) -> 'set[Path]':
-    "Import `.PCF` particle pack to multiple separated `.VPCF`(s)"
+def ImportPCFtoVPCF(pcf_path: Path, bOverwrite=True):
+    "Import `.PCF` particle package into a folder w/ multiple separated `.VPCF` particles"
 
     sh.status(f'- Reading from pack {pcf_path.local}')
-    pcf = dmx.load(pcf_path)
+    try:
+        pcf = dmx.load(pcf_path)
+    except Exception as e:
+        print("Couldn't open PCF.", e)
+        return
 
     if not is_valid_pcf(pcf):
         print("Invalid!!")
@@ -2134,7 +2140,6 @@ def ImportPCFtoVPCF(pcf_path: Path, bOverwrite=True) -> 'set[Path]':
 
     out_root = sh.output(pcf_path.with_suffix(""))
     out_root.mkdir(parents = True, exist_ok=True)
-
     return set((
             _import_single_PartSysDef(
                 ParticleSystemDefinition,

@@ -74,6 +74,11 @@ def legacy_local(self):
 def without_spaces(self, repl = '_') -> Path:
     return self.parent / self.name.replace(' ', repl)
 
+@add_method(Path)
+def MakeDir(self):
+    "parents=True, exist_ok=True"
+    self.mkdir(parents=True, exist_ok=True)
+
 def src(local_path) -> Path:
     return _src() / local_path
 
@@ -130,28 +135,28 @@ def collect(root, inExt, outExt, existing:bool = False, outNameRule = None, sear
             match = ('**/'*_recurse()) + '*' + inExt  
 
         for filePath in searchPath.glob(match):
-            bSkipThis = False
+            skip_reason = ''
             if outNameRule:
                 possibleNameList = outNameRule(filePath)
             else: possibleNameList = filePath
             if not isinstance(possibleNameList, (list, GeneratorType)): possibleNameList = [possibleNameList] # support multiple output names
 
             for filePath2 in possibleNameList: # try a number of possible outputs. default is list() which will give one output
-                if bSkipThis: break
+                if skip_reason: break
                 for outExt_ in outExt:
-                    if bSkipThis: break
+                    if skip_reason: break
                     if not existing and output(filePath2, outExt_, import_context['dest']).exists():
                         skipCountExists += 1
-                        bSkipThis = True
+                        skip_reason = 'already-exist'
 
             for skip_match in skiplist:
-                if bSkipThis: break
+                if skip_reason: break
                 if (skip_match.replace("\\", "/") in filePath2.as_posix()) or filePath2.match(skip_match):
                     skipCountBlacklist += 1
-                    bSkipThis = True
+                    skip_reason = 'blacklist'
 
-            if bSkipThis:
-                status(f"- skipping [blacklist]: {filePath2.local.as_posix()}")
+            if skip_reason:
+                status(f"- skipping [{skip_reason}]: {filePath2.local.as_posix()}")
                 continue #del files_with_ext[files_with_ext.index(filePath)]
             yield filePath
 

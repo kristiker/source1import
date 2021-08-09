@@ -3,19 +3,6 @@ from shutil import copyfile
 from difflib import get_close_matches
 from typing import Optional
 from PIL import Image, ImageOps
-from numpy import isin
-
-if __name__ is None:
-    from utils.shared import base_utils2 as sh
-    from utils.shared.keyvalue_simple import getKV_tailored as getKeyValues
-    from utils.shared.keyvalues1 import KV
-    from utils.shared.materials.proxies import ProxiesToDynamicParams
-    import utils.materials_import_skybox as sky
-
-elif __name__ == "__main__":
-    import materials_import_skybox as sky
-else:
-    sky = Optional
 
 from shared import base_utils2 as sh
 from shared.keyvalue_simple import getKV_tailored as getKeyValues
@@ -30,8 +17,10 @@ NEW_SH = not LEGACY_SHADER
 
 # Set this to True if you wish to overwrite your old vmat files. Same as adding -f to launch parameters
 OVERWRITE_VMAT = True
-sky.OVERWRITE_SKYCUBES = True
-sky.OVERWRITE_SKYBOX_MATS = True
+#if __name__ == "__main__":
+#    import materials_import_skybox as sky
+#    sky.OVERWRITE_SKYCUBES = True
+#    sky.OVERWRITE_SKYBOX_MATS = True
 
 # True to let vtex handle the inverting of the normalmap.
 NORMALMAP_G_VTEX_INVERT = True
@@ -992,14 +981,14 @@ def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False) -> Optional[Path]:
         else:
             print("~ WARNING: No include was provided on material with type 'Patch'. Is it a weapon skin?")
 
-    if vmt.path.local.is_relative_to(skyboxmaterials):
-        name, face = vmt.path.stem[:-2], vmt.path.stem[-2:]
-        if face in sky.skyboxFaces:
-            faceCollection = sky.collectSkybox(vmt.path, vmt.KeyValues)
-            #if not faceCollection in jsonSkyCollection:
-            print(f"+ Collected face {face.upper()} of {name}")
-            #    jsonSkyCollection.append(faceCollection)
-            validMaterial = False
+    #if vmt.path.local.is_relative_to(skyboxmaterials):
+    #    name, face = vmt.path.stem[:-2], vmt.path.stem[-2:]
+    #    if face in sky.skyboxFaces:
+    #        faceCollection = sky.collectSkybox(vmt.path, vmt.KeyValues)
+    #        #if not faceCollection in jsonSkyCollection:
+    #        print(f"+ Collected face {face.upper()} of {name}")
+    #        #    jsonSkyCollection.append(faceCollection)
+    #        validMaterial = False
 
     if not validMaterial:
         return
@@ -1076,10 +1065,10 @@ def main():
 
     print("\nSkybox materials...")
 
-    skyCollections = sky.collect_files_skycollections(sh.EXPORT_CONTENT / materials) #OVERWRITE_SKYBOX_MATS
-    for jsonCollection in skyCollections:
-        #print(f"Attempting to import {jsonCollection}")
-        sky.ImportSkyVMTtoVMAT(jsonCollection)
+    #skyCollections = sky.collect_files_skycollections(sh.EXPORT_CONTENT / materials) #OVERWRITE_SKYBOX_MATS
+    #for jsonCollection in skyCollections:
+    #    #print(f"Attempting to import {jsonCollection}")
+    #    sky.ImportSkyVMTtoVMAT(jsonCollection)
 
     if failureList:
         print("\n\t<<<< THESE MATERIALS HAVE ERRORS >>>>")
