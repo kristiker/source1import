@@ -61,13 +61,13 @@ FORCE_SKYBOX_2ND_VTF2TGA = True
 
 # Add your vtf2tga.exe here. Accepts full (C:/) and relative paths (./). Priority is top to bottom
 PATHS_VTF2TGA = [
-    r"./vtf2tga/2013/vtf2tga.exe",
-    r"./vtf2tga/csgo/vtf2tga.exe", # FORCE_SKYBOX_2ND_VTF2TGA
+    r"./shared/bin/vtf2tga/2013/vtf2tga.exe",
+    r"./shared/bin/vtf2tga/csgo/vtf2tga.exe", # FORCE_SKYBOX_2ND_VTF2TGA
     r"C:\Program Files (x86)\Steam\steamapps\common\Team Fortress 2\bin\vtf2tga.exe",
     #r"C:\Program Files (x86)\Steam\steamapps\common\Source SDK Base 2013 Multiplayer\bin\vtf2tga.exe",
     #r"D:\Games\steamapps\common\Team Fortress 2\bin\vtf2tga.exe",
-    #r".\vtf2tga\tf2\vtf2tga.exe",
-    #r".\vtf2tga\hl2\vtf2tga.exe",
+    #r"./shared/bin/vtf2tga/tf2/vtf2tga.exe",
+    #r"./shared/bin/vtf2tga/hl2/vtf2tga.exe",
 ]
 tags = []
 
