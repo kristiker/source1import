@@ -37,8 +37,6 @@ they shouldnt share it as the detail cannot have inverted green
 split shared maps after all??
 ---
 use hl2_water as water shader??
----
-base_utils refactor
 
 [ W Source1Import ]: WARNING: Failed to find source 2 file for particle system ambient_smokestack
 [ W Source1Import ]: WARNING: Failed to find source 2 file for particle system water_splash_leakypipe_vertical

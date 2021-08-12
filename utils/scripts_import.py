@@ -4,10 +4,6 @@
 # "wave" ambient\dust2\wind_sand_01.wav" -> "wave" "sounds\ambient\dust2\wind_sand_01.vsnd" 
 #
 # surfaceprop need processing
-if __name__ != "__main__":
-    from utils.shared import base_utils as sh
-    from pathlib import Path
-    from utils.shared.keyvalues1 import KV, VDFDict
 
 from shared import base_utils2 as sh
 from pathlib import Path
