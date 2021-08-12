@@ -5,18 +5,106 @@ from enum import Enum
 from types import GeneratorType
 
 
+import argparse
+arg_parser = argparse.ArgumentParser(usage = "-src1gameinfodir <s1gameinfodir> -game <s2 mod> [<src1 file or folder>]") # -filter <substring> [optional] Filter for matching files
+arg_parser.add_argument("-src1gameinfodir", "-i", help="An absolute path to S1 mod gameinfo.txt.")
+arg_parser.add_argument("-game", "-e", help="Specify the S2 mod/addon to import into (ie. left4dead2_source2 or C:/../ep2).")
+#arg_parser.add_argument("-filter", "-filelist_filter", help="Apply a substring filter to the import filelist")
+
+_args_known, args_unknown = arg_parser.parse_known_args()
+
+'-src1gameinfodir "D:/Games/steamapps/common/Half-Life Alyx/game/csgo" -game hlvr_addons/csgo'
+
+from enum import Enum
+class eEngineFolder(Enum):
+    "Source 2 main folders"
+    ROOT = Path()
+    CONTENTROOT = Path("content")
+    GAMEROOT = Path("game")
+    SRC = Path("src")
+    BIN = GAMEROOT / "bin"
+    CORE_GAME = GAMEROOT / "core"
+
+def update_root(s2_root):
+    "Update ROOT, as well as paths deriving from it (GAMEROOT, CONTENTROOT, SRC...)"
+    for folder in eEngineFolder:
+        if s2_root is None:
+            globals()[folder.name] = None
+            continue
+        globals()[folder.name] = s2_root / folder.value
+
+update_root(None)  # Add ROOT, CONTENTROOT, CORE_GAME... to globals() as None
 IMPORT_CONTENT = None
 IMPORT_GAME = None
-EXPORT_GAME = None
 EXPORT_CONTENT = None
+EXPORT_GAME = None
+#IMPORT_LEAFIEST_GAME,IMPORT_LEAFIEST_CONTENT,EXPORT_LEAFIEST_GAME,EXPORT_LEAFIEST_CONTENT
+search_scope = None
 
-IMPORT_CONTENT =    Path(r'D:\Games\steamapps\common\Half-Life Alyx\content\csgo')
-IMPORT_GAME =       Path(r'D:\Games\steamapps\common\Half-Life Alyx\game\csgo')
-EXPORT_CONTENT =    Path(r'D:\Games\steamapps\common\Half-Life Alyx\content\hlvr_addons\csgo')
-EXPORT_GAME =       Path(r'D:\Games\steamapps\common\Half-Life Alyx\game\hlvr_addons\csgo')
+def in_source2_environment():
+    return ROOT is not None
 
+def parse_paths():
+    global IMPORT_CONTENT, IMPORT_GAME, EXPORT_CONTENT, EXPORT_GAME
+    global search_scope
+    def error(*args, **kwargs):
+        print("ERROR:", *args, **kwargs)
+        raise SystemExit(1)
+    if not _args_known.src1gameinfodir:
+        raise SystemExit(1)
+    in_path = Path(_args_known.src1gameinfodir)
+    if not in_path.exists():
+       error("src1 game path not found")
+    if in_path.is_file() and in_path.name == 'gameinfo.txt':
+        in_path = in_path.parent
+    if not (in_path / 'gameinfo.txt').is_file():
+        error(f"gameinfo.txt not found for src1 mod `{in_path.name}`")
+    IMPORT_GAME = in_path
+    if IMPORT_GAME.parent.name == 'game':  # Source 2 dir
+        update_root(IMPORT_GAME.parents[1])
+        IMPORT_CONTENT = CONTENTROOT / IMPORT_GAME.name
+    if not _args_known.game:
+        error(f"Missing required argument: -o\nUsage: {arg_parser.usage}")
+    source2_mod = Path(_args_known.game)
+    if source2_mod.is_absolute():
+        if source2_mod.is_file():
+            error("Cannot specify file as export game")
+        for possible_rel in (GAMEROOT, CONTENTROOT):#, ROOT):
+            if possible_rel is not None and source2_mod.is_relative_to(possible_rel):
+                source2_mod = source2_mod.relative_to(possible_rel)
+        if source2_mod.is_absolute():  # Relativity loop above didnt work
+            for p_index, p in enumerate(source2_mod.parts[-3:-1]):
+                if p in ('content', 'game'):  # has game/content at -2 or -3
+                    p_index+=len(source2_mod.parts)-3
+                    # Importing from a source 2 app into different source 2 app.
+                    # Makes more sense to consider this as more appropriate root
+                    update_root(Path(*source2_mod.parts[:p_index]))
+                    source2_mod = Path(*source2_mod.parts[p_index:])
+                    break
+            if p not in ('content', 'game'):  # Export game has no game-content structure (sbox?)
+                EXPORT_GAME = EXPORT_CONTENT = source2_mod
+    elif not in_source2_environment():
+        error("Please use absolute path as export path.")
+    if len(source2_mod.parts) in (1, 2):
+        EXPORT_GAME = GAMEROOT / source2_mod
+        EXPORT_CONTENT = CONTENTROOT / source2_mod
+    elif EXPORT_GAME is EXPORT_CONTENT is None:
+        error("Invalid export game", source2_mod)
+
+    # Optionals
+
+    # Unknowns
+    if args_unknown:
+        search_scope = Path(args_unknown[0])
+
+if __name__ == '__main__':
+    print(f"{parse_paths()}\n{ROOT=}\n{IMPORT_CONTENT=}\n{IMPORT_GAME=}\n{EXPORT_CONTENT=}\n{EXPORT_GAME=}")
+    raise SystemExit
+
+parse_paths()
 importing = Path()
 
+# default import context
 import_context = {
     'mod': None,
     'recurse': True,
@@ -119,6 +207,10 @@ def collect(root, inExt, outExt, existing:bool = False, outNameRule = None, sear
     if searchPath is None:  searchPath = (_src() / root)
     if skiplist is None:    skiplist = _get_blacklist(root)
 
+    if search_scope is not None:
+        try: searchPath = searchPath / search_scope.relative_to(root)
+        except Exception: searchPath = searchPath / search_scope
+
     if searchPath.is_file():
         if searchPath.suffix == inExt:
             yield searchPath
@@ -163,6 +255,8 @@ def collect(root, inExt, outExt, existing:bool = False, outNameRule = None, sear
         print(' '*4 + f"Skipped: " + f"{skipCountExists} already imported | "*(not existing) +\
                                  f"{skipCountBlacklist} found in blacklist"
         )
+    else:
+        print("ERROR while searching: Does not exist:", searchPath)
 
 DEBUG = False
 def msg(*args, **kwargs):
