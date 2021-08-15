@@ -172,7 +172,7 @@ def src(local_path) -> Path:
 
 def output(input, out_ext=None, dest=_dest()) -> Path:
     try: out = dest / input.local
-    except: out = dest / input
+    except Exception: out = dest / input
     if out_ext is not None:
         return out.with_suffix(out_ext)
     return out
@@ -204,12 +204,12 @@ def collect(root, inExt, outExt, existing:bool = False, outNameRule = None, sear
     if not isinstance(outExt, (set, tuple, list)):
         outExt = ((outExt),) # support multiple output extensions
 
-    if searchPath is None:  searchPath = (_src() / root)
+    if searchPath is None:
+        searchPath = (_src() / root)
+        if search_scope is not None:
+            try: searchPath = searchPath / search_scope.relative_to(root)
+            except Exception: searchPath = searchPath / search_scope
     if skiplist is None:    skiplist = _get_blacklist(root)
-
-    if search_scope is not None:
-        try: searchPath = searchPath / search_scope.relative_to(root)
-        except Exception: searchPath = searchPath / search_scope
 
     if searchPath.is_file():
         if searchPath.suffix == inExt:
@@ -252,6 +252,7 @@ def collect(root, inExt, outExt, existing:bool = False, outNameRule = None, sear
                 continue #del files_with_ext[files_with_ext.index(filePath)]
             yield filePath
 
+        print()
         print(' '*4 + f"Skipped: " + f"{skipCountExists} already imported | "*(not existing) +\
                                  f"{skipCountBlacklist} found in blacklist"
         )
@@ -290,7 +291,8 @@ def _get_blacklist(root):
 
 def GetJson(jsonPath: Path, bCreate: bool = False) -> dict:
     if not jsonPath.exists():
-        if bCreate: open(jsonPath, 'a').close()
+        if bCreate:
+            open(jsonPath, 'a').close()
         return {}
     with open(jsonPath) as fp:
         try:

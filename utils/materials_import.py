@@ -1,13 +1,17 @@
 from pathlib import Path
 from shutil import copyfile
 from difflib import get_close_matches
-from typing import Optional
 from PIL import Image, ImageOps
 
 from shared import base_utils2 as sh
 from shared.keyvalue_simple import getKV_tailored as getKeyValues
 from shared.keyvalues1 import KV
 from shared.materials.proxies import ProxiesToDynamicParams
+
+import time
+import shared.materials.skybox as sky
+import numpy as np
+from shared import PFM
 
 # generic, blend instead of vr_complex, vr_simple_2wayblend etc...
 LEGACY_SHADER = False
@@ -17,10 +21,8 @@ NEW_SH = not LEGACY_SHADER
 
 # Set this to True if you wish to overwrite your old vmat files. Same as adding -f to launch parameters
 OVERWRITE_VMAT = True
-#if __name__ == "__main__":
-#    import materials_import_skybox as sky
-#    sky.OVERWRITE_SKYCUBES = True
-#    sky.OVERWRITE_SKYBOX_MATS = True
+OVERWRITE_SKYBOX_VMATS = True
+OVERWRITE_SKYCUBES = True
 
 # True to let vtex handle the inverting of the normalmap.
 NORMALMAP_G_VTEX_INVERT = True
@@ -30,12 +32,11 @@ MISSING_TEXTURE_SET_DEFAULT = True
 USE_SUGESTED_DEFAULT_ROUGHNESS = True
 SURFACEPROP_AS_IS = False
 
-#from shared.base_utils import msg, DEBUG
 sh.DEBUG = False
 msg = sh.msg
 # File format of the textures. Needs to be lowercase
 # source 2 supports all kinds: tga jpeg png gif psd exr tiff pfm...
-TEXTURE_FILEEXT = '.tga'
+TEXTURE_FILEEXT = ".tga"
 IN_EXT = ".vmt"
 OUT_EXT = ".vmat"
 SOURCE2_SHADER_EXT = ".vfx"
@@ -44,10 +45,12 @@ VMAT_DEFAULT_PATH = Path("materials/default")
 
 materials = Path("materials")
 skyboxmaterials = materials / "skybox"
+legacy_skyfaces = skyboxmaterials / "legacy_faces"
 
 sh.importing = materials
 
 skybox = Path("skybox")
+SKY_FACES = ('up', 'dn', 'lf', 'rt', 'bk', 'ft')
 
 class ValveMaterial:
     def __init__(self, shader, kv):
@@ -194,6 +197,10 @@ def OutName(path: Path) -> Path:
     #    sh.output(path).without_spaces().with_suffix(OUT_EXT)
     return sh.output(path).without_spaces().with_suffix(OUT_EXT)
 
+def OutName_Sky(path: Path) -> Path:
+    "materials/skybox/legacy_faces/sky_example.json -> materials/skybox/sky_example.vmat"
+    return path.parents[1] / path.without_spaces().with_suffix(OUT_EXT).name
+
 # "environment maps\metal_generic_002.vtf" -> "materials/environment maps/metal_generic_002.tga"
 def fixVmtTextureDir(localPath, fileExt = TEXTURE_FILEEXT) -> str:
     if localPath == "" or not isinstance(localPath, str):
@@ -271,6 +278,118 @@ def createMask(image_path, copySub = '_mask', channel = 'A', invert = False, que
     print("+ Saved mask to", newMaskPath.local)
 
     return newMaskPath.local
+
+########################################################################
+# Build sky cubemap from sky faces
+# (blue_sky_up.tga, blue_sky_ft.tga, ...) -> blue_sky_cube.tga
+# https://developer.valvesoftware.com/wiki/File:Skybox_Template.jpg
+# https://learnopengl.com/img/advanced/cubemaps_skybox.png
+# ----------------------------------------------------------------------
+def createSkyCubemap(skyName: str, faceP: dict, maxFaceRes: int = 0) -> Path:
+
+    # read friendly json -> code friendly data
+    faceList, faceParams = {}, {}
+
+    hdrType = faceP.get('_hdrtype')
+
+    for face in SKY_FACES:
+        if not (v := faceP.get(face)): continue
+        facePath = v.get('path') if isinstance(v, dict) else v
+        if not facePath:
+            continue
+        if not ( facePath := sh.output(facePath) ).is_file():
+            del faceP[face]
+            continue
+        faceList[face] = facePath
+        faceParams[face] = {}
+        if isinstance(faceP[face], dict):
+            faceParams[face].update(faceP[face])
+        if (hdrType == 'uncompressed'):
+            size = PFM.read_pfm(facePath)[2]
+        else:
+            size = Image.open(facePath).size
+        faceParams[face]['size'] = size
+        # the largest face determines the resolution of the full image
+        maxFaceRes = max(maxFaceRes, max(size[0], size[1]))
+
+    cube_w = 4 * maxFaceRes
+    cube_h = 3 * maxFaceRes
+
+    # skyName = skyName.rstrip('_')
+    img_ext = '.pfm' if hdrType else TEXTURE_FILEEXT
+    sky_cubemap_path =  sh.output( skyboxmaterials / (skyName + '_cube' + img_ext))
+
+    # BlendCubeMapFaceCorners, BlendCubeMapFaceEdges
+    
+    if OVERWRITE_SKYCUBES and sky_cubemap_path.is_file():
+        return sky_cubemap_path
+
+    if hdrType in (None, 'compressed'):
+        image_mode = 'RGBA' if (hdrType == 'compressed') else 'RGB'
+        SkyCubemapImage = Image.new(image_mode, (cube_w, cube_h), color = (0, 0, 0))
+
+        for face, facePath in faceList.items():
+            faceScale = faceParams[face].get('scale')
+            faceRotate = int(faceParams[face].get('rotate') or 0)
+            if not (faceImage := Image.open(facePath).convert(image_mode)): continue
+
+            pasteCoord = (cube_w/2, cube_h/2)
+            if face == 'up':
+                pasteCoord = ( cube_w - (maxFaceRes * 3) , cube_h - (maxFaceRes * 3) ) # (1, 2)
+                faceRotate += 90
+            elif face == 'ft': pasteCoord = ( cube_w - (maxFaceRes * 1) , cube_h - (maxFaceRes * 2) ) # (2, 3) -> (2, 4) #2)
+            elif face == 'lf': pasteCoord = ( cube_w - (maxFaceRes * 4) , cube_h - (maxFaceRes * 2) ) # (2, 4) -> (2, 1) #1)
+            elif face == 'bk': pasteCoord = ( cube_w - (maxFaceRes * 3) , cube_h - (maxFaceRes * 2) ) # (2, 1) -> (2, 2) #4)
+            elif face == 'rt': pasteCoord = ( cube_w - (maxFaceRes * 2) , cube_h - (maxFaceRes * 2) ) # (2, 2) -> (2, 3) #3)
+            elif face == 'dn':
+                pasteCoord = ( cube_w - (maxFaceRes * 3) , cube_h - (maxFaceRes * 1) ) # (3, 2)
+                faceRotate += 90
+
+            # scale to fit on the y axis
+            if faceImage.width != maxFaceRes:
+                faceImage = faceImage.resize((maxFaceRes, round(faceImage.height * maxFaceRes/faceImage.width)), Image.BICUBIC)
+
+            if faceRotate:
+                faceImage = faceImage.rotate(faceRotate)
+
+            SkyCubemapImage.paste(faceImage, pasteCoord)
+            faceImage.close()
+
+        # for hdr compressed: uncompress the whole tga map we just created and paste to pfm
+        if (hdrType == 'compressed'):
+            compressedPixels = SkyCubemapImage.load()
+            stamp = time.time()
+            hdrImageData = [0] * (cube_w * cube_h * 3) # TODO: numpy array
+            cell = 0
+            for x in range(cube_w):
+                for y in range(cube_h):
+                    R, G, B, A = compressedPixels[x,y] # image.getpixel( (x,y) )
+                    hdrImageData[cell    ] = (R * (A * 16)) / 262144
+                    hdrImageData[cell + 1] = (G * (A * 16)) / 262144
+                    hdrImageData[cell + 2] = (B * (A * 16)) / 262144
+                    cell += 3
+            SkyCubemapImage.close()
+            # questionable 90deg rotations
+            HDRImageDataArray = np.rot90(np.array(hdrImageData, dtype='float32').reshape((cube_w, cube_h, 3)))
+            PFM.write_pfm(sky_cubemap_path, HDRImageDataArray)
+            print(f"It took: {time.time()-stamp} seconds!")
+        else:
+            SkyCubemapImage.save(sky_cubemap_path)
+            #print('+ Successfuly created sky cubemap:', sky_cubemap_path.name)
+
+    # hdr uncompressed: join the pfms same way as tgas TODO: ...
+    elif hdrType == 'uncompressed':
+        #emptyData = [0] * (cube_w * cube_h)
+        #emptyArray = np.array(emptyData, dtype='float32').reshape((maxFace_h, maxFace_w, 3)
+        #for face in skyboxFaces:
+        #    if not (facePath := os.path.join("materials\\skybox", vmtSkybox[skyName][face].get('path'))): continue
+        #    floatData, scale, _ = PFM.read_pfm(fs.Output(facePath))
+        #for i in range(12):
+        #    pass
+        #    # paste each
+        return
+
+    return sky_cubemap_path
 
 def flipNormalMap(localPath):
 
@@ -922,6 +1041,56 @@ def convertSpecials():
         #"$envmaplightscale"       "1"
         #"$envmaplightscaleminmax" "[0 .3]"     metalness modifier?
 
+def collectSkybox(name:str, face: str, vmt: VMT):
+
+    ldr_tex = vmt.KeyValues.get('$basetexture')
+    hdr_tex = vmt.KeyValues.get('$hdrbasetexture')
+    hdr_compressed_tex = vmt.KeyValues.get('$hdrcompressedtexture')
+
+    if (texture:= hdr_tex or hdr_compressed_tex or ldr_tex) is not None:
+        face_collect_path = sh.output(legacy_skyfaces/name).with_suffix(".json")
+        Collect = sh.GetJson(face_collect_path, bCreate = True)
+
+        # First vmt to have $hdr decides hdr-ness
+        if not Collect.setdefault('_hdrtype'):
+            if hdr_tex:
+                Collect['_hdrtype'] = 'uncompressed'
+            elif hdr_compressed_tex:
+                Collect['_hdrtype'] = 'compressed'
+
+        src_extension = '.pfm' if Collect['_hdrtype'] == 'uncompressed' else TEXTURE_FILEEXT
+        face_path = sh.output(fixVmtTextureDir(texture, src_extension))
+        if face_path.is_relative_to(sh.output(skyboxmaterials)):
+            # Move annoying face files into a folder 'legacy_faces'
+            # Not deleting just incase they are needed somewhere separately, and to save time on future imports
+            face_path_new = sh.output(legacy_skyfaces / face_path.name)
+            if face_path.is_file():
+                face_path.parent.MakeDir()
+                face_path.rename(face_path_new)
+            face_path = face_path_new
+
+        if face_path.is_file():
+            path = face_path.local.as_posix()
+            Collect[face] = {}  # Dict won't be used if it won't have anything other than path
+
+            faceTransform = TexTransform(vmt.KeyValues.get('$basetexturetransform'))
+            if(faceTransform.rotate != 0):  # Hillarious. 
+                Collect[face]['rotate'] = faceTransform.rotate
+                msg("Collecting", face, "transformation: rotate", Collect[face]['rotate'], 'degrees')
+
+            if Collect[face]:
+                Collect[face]['path'] = path
+            else:
+                Collect[face] = path
+            print(f"    + Collected face {face.upper()} for {name}_cube{src_extension}")
+            sh.UpdateJson(face_collect_path, Collect)
+
+        return face_collect_path
+
+    if False: #bHasLDRFallback: TODO
+        ldr_vmtPath = "1"
+        ldr_vmtKeyValues = "2"
+        collectSkybox(ldr_vmtPath, ldr_vmtKeyValues)
 
 def _ImportVMTtoExtraVMAT(vmt_path: Path, shader = None, path = None):
     global vmat, import_extra
@@ -937,9 +1106,24 @@ def _ImportVMTtoExtraVMAT(vmt_path: Path, shader = None, path = None):
         import_extra+=1
     return rv
 
-def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False) -> Optional[Path]:
+def ImportSkyJSONtoVMAT(json_collection: Path):
+    vmat_path = sh.output( materials/skybox/(json_collection.stem + OUT_EXT))
+    sky_cubemap_path = VMAT_DEFAULT_PATH / "default_cube.tga"
 
-    global vmt, vmat, jsonSkyCollection
+    cubemap = createSkyCubemap(json_collection.stem, sh.GetJson(json_collection))
+    if cubemap:
+        sky_cubemap_path = cubemap.local
+
+    with open(vmat_path, 'w') as fp:
+        fp.write('Layer0\n{\n\tshader "sky.vfx"\n' +
+            f'\tSkyTexture\t"{sky_cubemap_path.as_posix()}"\n}}'
+        )
+    print("+ Saved", vmat_path.local)
+    return vmat_path
+
+def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False):
+
+    global vmt, vmat
     validMaterial = False
 
     vmt = VMT(KV.FromFile(vmt_path))
@@ -957,38 +1141,30 @@ def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False) -> Optional[Path]:
             patchKeyValues = vmt.KeyValues.copy()
             vmt.KeyValues.clear()
 
-            print("+ Retrieving material properties from include:", includePath, end='')
-            
+            print("+ Retrieving material properties from include:", includePath, end=' ... ')
             try:
                 vmt.shader, vmt.KeyValues = getKeyValues(sh.src(includePath), ignoreList) # TODO: kv1read
             except FileNotFoundError:
-                print(" ...Did not find")
+                print("Did not find.")
                 failureList.add("Include not found", f'{vmt.path} -- {includePath}' )
                 return
-            else:
-                if not any(wd in vmt.shader for wd in shaderDict):
-                    vmt.KeyValues.clear()
-                    print(" ... Include has unsupported shader.")
-                    return
-
-                print(" ... Done!")
-                vmt.KeyValues.update(patchKeyValues)
-                if vmt.KeyValues['insert']:
-                    vmt.KeyValues.update(vmt.KeyValues['insert']) # TODO: kv1.update(override=True)
-                    del vmt.KeyValues['insert']
-    
-                del vmt.KeyValues['include']
+            if not any(wd in vmt.shader for wd in shaderDict):
+                vmt.KeyValues.clear()
+                print("Include has unsupported shader.")
+                return
+            print("Done!")
+            vmt.KeyValues.update(patchKeyValues)
+            if vmt.KeyValues['insert']:
+                vmt.KeyValues.update(vmt.KeyValues['insert']) # TODO: kv1.update(override=True)
+                del vmt.KeyValues['insert']
+            del vmt.KeyValues['include']
         else:
             print("~ WARNING: No include was provided on material with type 'Patch'. Is it a weapon skin?")
 
-    #if vmt.path.local.is_relative_to(skyboxmaterials):
-    #    name, face = vmt.path.stem[:-2], vmt.path.stem[-2:]
-    #    if face in sky.skyboxFaces:
-    #        faceCollection = sky.collectSkybox(vmt.path, vmt.KeyValues)
-    #        #if not faceCollection in jsonSkyCollection:
-    #        print(f"+ Collected face {face.upper()} of {name}")
-    #        #    jsonSkyCollection.append(faceCollection)
-    #        validMaterial = False
+    if vmt.path.local.is_relative_to(skyboxmaterials):
+        name, face = vmt.path.stem[:-2], vmt.path.stem[-2:]
+        if face in SKY_FACES:
+            return collectSkybox(name, face, vmt)
 
     if not validMaterial:
         return
@@ -1008,10 +1184,7 @@ def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False) -> Optional[Path]:
         print(vmat.KeyValues['DynamicParams'])
 
     with open(vmat.path, 'w') as vmatFile:
-        vmatFile.write('// Converted with materials_import.py\n')
-        vmatFile.write('// [s1import] ' + str(vmt.path) + '\n\n')
         msg(vmt.shader + " => " + vmat.shader, "\n")#, vmt.KeyValues)
-        #vmatFile.write('Layer0\n{\n\tshader "' + vmat.shader + '.vfx"\n\n')
         vmatFile.write(vmat.KeyValues.ToStr()) ###############################
 
     if sh.DEBUG: print("+ Saved", vmat.path)
@@ -1035,7 +1208,6 @@ class Failures(dict):
     #    return len(self.data) > 0
 
 failureList = Failures()
-jsonSkyCollection = set()
 
 total=import_total=import_invalid=import_extra = 0
 
@@ -1045,7 +1217,7 @@ def main():
 
     global total, import_total, import_invalid
     for vmt_path in sh.collect(
-            "materials",
+            materials,
             IN_EXT, OUT_EXT,
             existing=OVERWRITE_VMAT,
             outNameRule=OutName,
@@ -1060,15 +1232,15 @@ def main():
         if ImportVMTtoVMAT(vmt_path):
             import_total += 1
         else:
-            sh.status(f"- skipping [invalid]: {vmt_path.local}")
+            #sh.status(f"- skipping [invalid]: {vmt_path.local}")
             import_invalid += 1
 
     print("\nSkybox materials...")
 
-    #skyCollections = sky.collect_files_skycollections(sh.EXPORT_CONTENT / materials) #OVERWRITE_SKYBOX_MATS
-    #for jsonCollection in skyCollections:
-    #    #print(f"Attempting to import {jsonCollection}")
-    #    sky.ImportSkyVMTtoVMAT(jsonCollection)
+    for skyfaces_json in sh.collect(
+            None, '.json', OUT_EXT, OVERWRITE_SKYBOX_VMATS,
+            outNameRule=OutName_Sky, searchPath=sh.EXPORT_CONTENT/legacy_skyfaces):
+        ImportSkyJSONtoVMAT(skyfaces_json)
 
     if failureList:
         print("\n\t<<<< THESE MATERIALS HAVE ERRORS >>>>")
@@ -1084,12 +1256,10 @@ def main():
         print(f"Total errors :\t{len(failureList)} / {total}\t| " + "{:.2f}".format((len(failureList)/total) * 100) + f" % Had Errors")
         print(f"Total extra :\t{import_extra}")
 
-    except: pass
-    # csgo -> 206 / 14792 | 1.39 % Error rate -- 4637 / 14792 | 31.35 % Skip rate
+    except Exception: pass
+    # csgo -> 206 / 14792 | 1.39 % Error rate -- 4681 / 15308 | 30.58 % Skip rate
     # l4d2 -> 504 / 3675 | 13.71 % Error rate -- 374 / 3675 | 10.18 % Skip rate
     print("\nFinished! Your materials are now ready.")
-
-    # D:\Games\steamapps\common\Half-Life Alyx\game\bin\win64>resourcecompiler.exe -game hlvr -r -i "D:\Games\steamapps\common\Half-Life Alyx\content\csgo_imported\materials\*"
 
 if __name__ == "__main__":
     main()

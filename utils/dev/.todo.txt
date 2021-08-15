@@ -7,8 +7,7 @@ models/player/custom_player/animset_ct.vagrp
 
 I had these compile before, maybe missing dependencies? caused by different s1import method?
 
-Merge _skybox why did i split on in the first place
-
+Speed up createSkyCubemap compressed, implement uncompressed
 ----
 modeldoc import from old vmdl?? looks like it fixes things, & maybe gives you proper 'content' modifyable assets
 ----
