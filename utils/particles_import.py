@@ -1,9 +1,5 @@
 import shared.base_utils2 as sh
 import shared.datamodel as dmx
-if __name__ is None:
-    import utils.shared.base_utils2 as sh
-    import utils.shared.datamodel as dmx
-
 from dataclasses import dataclass
 from pathlib import Path
 

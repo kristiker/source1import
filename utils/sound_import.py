@@ -1,6 +1,7 @@
 
 
-
+print("Copy the files yourself, but please on a new folder named /sounds (not /sound)\n")
+input("Press any key to exit...")
 
 from pathlib import Path
 

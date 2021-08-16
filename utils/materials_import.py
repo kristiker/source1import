@@ -9,7 +9,6 @@ from shared.keyvalues1 import KV
 from shared.materials.proxies import ProxiesToDynamicParams
 
 import time
-import shared.materials.skybox as sky
 import numpy as np
 from shared import PFM
 
@@ -285,8 +284,13 @@ def createMask(image_path, copySub = '_mask', channel = 'A', invert = False, que
 # https://developer.valvesoftware.com/wiki/File:Skybox_Template.jpg
 # https://learnopengl.com/img/advanced/cubemaps_skybox.png
 # ----------------------------------------------------------------------
-def createSkyCubemap(skyName: str, faceP: dict, maxFaceRes: int = 0) -> Path:
+def createSkyCubemap(json_collection: Path, maxFaceRes: int = 0):
 
+    cube_name = None
+    faceP = sh.GetJson(json_collection)
+    
+    if len(faceP) < 2:  # sky_l4d_rural02_ldr and co.
+        return 
     # read friendly json -> code friendly data
     faceList, faceParams = {}, {}
 
@@ -309,19 +313,20 @@ def createSkyCubemap(skyName: str, faceP: dict, maxFaceRes: int = 0) -> Path:
         else:
             size = Image.open(facePath).size
         faceParams[face]['size'] = size
-        # the largest face determines the resolution of the full image
-        maxFaceRes = max(maxFaceRes, max(size[0], size[1]))
+        maxFaceRes = max(maxFaceRes, max(size[0], size[1]))  # the largest face determines the resolution of the full image
+        if cube_name is None:  # Derive _cube name from face name. Dont get duplicates alla nukeblank_cube, dustblank_cube
+            cube_name = facePath.stem[:-2]  # BUG WATCH: facePath.stem isn't .lower()'ed
 
     cube_w = 4 * maxFaceRes
     cube_h = 3 * maxFaceRes
 
     # skyName = skyName.rstrip('_')
     img_ext = '.pfm' if hdrType else TEXTURE_FILEEXT
-    sky_cubemap_path =  sh.output( skyboxmaterials / (skyName + '_cube' + img_ext))
+    sky_cubemap_path =  sh.output( skyboxmaterials / (cube_name + '_cube' + img_ext))
 
     # BlendCubeMapFaceCorners, BlendCubeMapFaceEdges
     
-    if OVERWRITE_SKYCUBES and sky_cubemap_path.is_file():
+    if not OVERWRITE_SKYCUBES and sky_cubemap_path.is_file():
         return sky_cubemap_path
 
     if hdrType in (None, 'compressed'):
@@ -1110,7 +1115,7 @@ def ImportSkyJSONtoVMAT(json_collection: Path):
     vmat_path = sh.output( materials/skybox/(json_collection.stem + OUT_EXT))
     sky_cubemap_path = VMAT_DEFAULT_PATH / "default_cube.tga"
 
-    cubemap = createSkyCubemap(json_collection.stem, sh.GetJson(json_collection))
+    cubemap = createSkyCubemap(json_collection)
     if cubemap:
         sky_cubemap_path = cubemap.local
 
@@ -1118,7 +1123,9 @@ def ImportSkyJSONtoVMAT(json_collection: Path):
         fp.write('Layer0\n{\n\tshader "sky.vfx"\n' +
             f'\tSkyTexture\t"{sky_cubemap_path.as_posix()}"\n}}'
         )
+
     print("+ Saved", vmat_path.local)
+
     return vmat_path
 
 def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False):

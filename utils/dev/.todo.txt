@@ -8,6 +8,7 @@ models/player/custom_player/animset_ct.vagrp
 I had these compile before, maybe missing dependencies? caused by different s1import method?
 
 Speed up createSkyCubemap compressed, implement uncompressed
+D:\Games\steamapps\common\Half-Life Alyx\game\bin\win64>resourcecompiler.exe -game hlvr -r -i "D:\Games\steamapps\common\Half-Life Alyx\content\csgo_imported\materials\*"
 ----
 modeldoc import from old vmdl?? looks like it fixes things, & maybe gives you proper 'content' modifyable assets
 ----
@@ -18,12 +19,8 @@ vr_projected_decals is close to generic with glossiness and stuff, also sheets
 g_flGlossiness "0.000" is inverse of roughness (=255)
 you also got specular toggle
 
-phong is specular -- compared to envmap its positionally accurate, but limited to light sources
-
-inferno barel metalic part has specular in s1 but not in s2
-
 this looks like a s1 imported mat
-its used as a default *material* ('s2 particle renderers use compiled textures usually')
+its used as a default *material* (s2 particle renderers use compiled textures usually)
 for render_blob particle renderer (portal2)
 D:\Games\steamapps\common\Half-Life Alyx\content\core\materials\dev\roomwalls_white.vmat
 
@@ -35,8 +32,6 @@ one materials detail is anothers normal (for some reason)
 they shouldnt share it as the detail cannot have inverted green
 split shared maps after all??
 ---
-use hl2_water as water shader??
-
 [ W Source1Import ]: WARNING: Failed to find source 2 file for particle system ambient_smokestack
 [ W Source1Import ]: WARNING: Failed to find source 2 file for particle system water_splash_leakypipe_vertical
 [ W Source1Import ]: WARNING: Failed to find source 2 file for particle system water_splash_leakypipe_vertical
@@ -49,6 +44,8 @@ use hl2_water as water shader??
 [ W Source1Import ]: WARNING: Failed to find source 2 file for particle system impact_physics_dust
 [ W Source1Import ]: WARNING: Failed to find source 2 file for particle system impact_physics_dust
 [ W Source1Import ]: WARNING: Failed to find source 2 file for particle system impact_physics_dust
+
+These error because need ResourceRemapTable ^^ 
 
 [ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/WALL_PAPER/HR_WP/HR_WALL_PAPER_D.vmt"
 [ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/TOOLS/TOOLSNODRAW.vmt"
