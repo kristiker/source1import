@@ -10,6 +10,8 @@ I had these compile before, maybe missing dependencies? caused by different s1im
 Speed up createSkyCubemap compressed, implement uncompressed
 D:\Games\steamapps\common\Half-Life Alyx\game\bin\win64>resourcecompiler.exe -game hlvr -r -i "D:\Games\steamapps\common\Half-Life Alyx\content\csgo_imported\materials\*"
 ----
+pano - import svg to vsvg, vtf to vtex, etcetraa
+----
 modeldoc import from old vmdl?? looks like it fixes things, & maybe gives you proper 'content' modifyable assets
 ----
 add vr_static_overlay alongside vr_projected_decals

@@ -337,7 +337,7 @@ class KVType(IntEnum):
     TYPE_UINT64 = 7,
 
 class KeyValues:
-    "Key that holds a Value. Value can be a list holding other KeyValues"
+    "Key that holds a Value `('k', 'v')`. Value can be a list holding other KeyValues `('k', [...])`"
 
 
     def __init__(self, k: Optional[str] = None, v: Union[int, float, str, KVCollection] = None, case_sensitive = False, escape = False):

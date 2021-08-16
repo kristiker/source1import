@@ -3,14 +3,16 @@
 # cppkeyvalues is nice for parsing, but we need an actual python object to work efficiently
 
 from collections import Counter
-from typing import Any, Generator, Optional, Sequence
+from typing import Any, Optional, Union
+from pathlib import Path
 try:
-    from cppkeyvalues import KeyValues, _dec_subkeyvalue
-except:
-    from shared.cppkeyvalues import KeyValues, _dec_subkeyvalue
+    from .cppkeyvalues import KeyValues, CUtlBuffer, CKeyValuesTokenReader
+except ImportError:
+    from shared.cppkeyvalues import KeyValues, CUtlBuffer, CKeyValuesTokenReader
 
 
 class VDFDict(dict):
+    "Slightly modified ValvePython.VDFDict"
     def __init__(self, data=None):
         """
         This is a dictionary that supports duplicate keys and preserves insert order
@@ -235,18 +237,29 @@ def _NoneOnException(func):
 class KV(VDFDict):
 
     @classmethod
-    def FromFile(cls, file, case_sensitive=False, escape=False):
-        #breakpoint()
-        cppkv = KeyValues(case_sensitive = case_sensitive, escape = escape)
-        cppkv.LoadFromFile(file)
-        return cls(cppkv.keyName, cppkv.value.ToBuiltin())
+    def FromFile(cls, file: Union[str, bytes, Path], case_sensitive=False, escape=False, **params):
+        with open(file, 'r') as f:
+            return cls.FromBuffer(f.read(), case_sensitive, escape, **params)
 
     @classmethod
-    def CollectionFromFile(cls, file, case_sensitive=False, escape=False):
-        keyName = file.name
-        cppkv = KeyValues(keyName, case_sensitive = case_sensitive, escape = escape)
-        cppkv.RecursiveLoadFromFile(file)
-        return cls(keyName, cppkv.value.ToBuiltin())
+    def CollectionFromFile(cls, file: Path, case_sensitive=False, escape=False, **params):
+        with open(file, 'r') as f:
+            return cls.CollectionFromBuffer(f.read(), file, case_sensitive, escape, **params)
+
+    @classmethod
+    def FromBuffer(cls, buf: str, resourceName: Union[str, bytes, Path] = None, case_sensitive=False, escape=False, **params):
+        cppkv = KeyValues(case_sensitive = case_sensitive, escape = escape)
+        cppkv.LoadFromBuffer(resourceName, buf = CUtlBuffer(buf), **params)
+        return cls(cppkv.keyName, cppkv.value.ToBuiltin())
+    
+    @classmethod
+    def CollectionFromBuffer(cls, buf: str, resourceName: Path = None, case_sensitive=False, escape=False, **params):
+        cppkv = KeyValues(
+            k="" if resourceName is None else resourceName.name,
+            case_sensitive = case_sensitive, escape = escape
+        )
+        cppkv.RecursiveLoadFromBuffer(resourceName, CKeyValuesTokenReader(CUtlBuffer(buf)), True)
+        return cls(cppkv.keyName, cppkv.value.ToBuiltin())
 
     def __init__(self, keyName, value) -> None:
         self.keyName = keyName
@@ -283,20 +296,3 @@ class KV(VDFDict):
             else:
                 kv.value.append(KeyValues(k, v))
         return kv
-
-if __name__ == "__main__": # tests
-
-    vmt = KV.FromFile(r'D:\Users\kristi\Desktop\WORK\test\materials\test_proxy.vmt', case_sensitive=True)
-    #vmt['proxies'] = "kar"
-    #vmt['proxies'] = "kar2"
-    vmt.add('kar', "pidh")
-    vmt.add('Proxies', "kar")
-
-    for k, v in vmt.items():
-        print(k)
-        if isinstance(v, VDFDict):
-            print("^^ was kv")
-
-    z = zip(((k, v) for ((_, k), v) in vmt.items(True)), ((k, v) for (k, v) in vmt.items()))
-    for r1, r2 in z:
-        assert r1 == r2

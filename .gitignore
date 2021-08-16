@@ -1,6 +1,3 @@
 \.vscode/
 *.pyc
-utils/convert.bat
-utils/lesh.py
-utils/test.py
-utils/test3.py
+ 

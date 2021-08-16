@@ -1,16 +1,20 @@
 # import csgo source1 panorama into source2
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import zipfile as pbin
 from io import TextIOWrapper
+import re
 
-panorama_in = Path(r'D:\Games\steamapps\common\Half-Life Alyx\game\csgo\panorama')
-panorama_out = Path(r'D:\Games\steamapps\common\Half-Life Alyx\content\hlvr_addons\csgo\panorama')
+import shared.keyvalues1 as kv1
+import shared.base_utils2 as sh
+sh.importing = Path("panorama")
 
-code_pbin = panorama_in / "code.pbin"
+REPLACE_NAMEDPATHS = True
+
+CODE_PBIN = sh.IMPORT_GAME / sh.importing / "code.pbin"
+IMPORT_FUNC = {}  # IMPORT_FUNC['.vxml']() is ImportPanoramaXml()
 
 from functools import wraps
-importdict = {}
 def zipimport(ext):
     def decorator(func):
         @wraps(func)
@@ -19,14 +23,14 @@ def zipimport(ext):
                 pre_opened = open(asset_in, encoding="utf-8")
             try:
                 if asset_out is None:
-                    asset_out = panorama_out / asset_in.relative_to(panorama_in).with_suffix(ext)
+                    asset_out = sh.output(asset_in).with_suffix(ext)
                 asset_out.parent.mkdir(parents=True, exist_ok=True)
                 rv = func(asset_in, asset_out, pre_opened, **kwargs)
             finally:
                 pre_opened.close()
             return rv
          
-        importdict[ext.replace('v', '')] = wrapper
+        IMPORT_FUNC[ext.replace('v', '')] = wrapper
         return wrapper
     return decorator
 
@@ -42,66 +46,43 @@ def ImportPanoramaFontConfig(asset_in: Path, pre_opened: TextIOWrapper = None):
 
 @zipimport('.vxml')
 def ImportPanoramaXml(xml_in: Path, vxml_out: Path = None, pre_opened: TextIOWrapper = None):
+    
+    def fix_src_paths(src_path: re.Match):
+        'file://{resources}/styles/dotastyles.css -> s2r://panorama/styles/dotastyles.vcss_c'
+        EXTENSIONS = {
+            '.xml': '.vxml_c',
+            '.css': '.vcss_c',
+            '.js': '.vjs_c',
+            '.vtf': '.vtex_c',
+            '.svg': '.vsvg_c',
+            # webm and png as is
+        }
+
+        full_match, path_match = src_path.group(0, 1)
+        if not path_match:
+            return full_match
+
+        source2_path: str = path_match
+
+        if source2_path.startswith('file://'):
+            if REPLACE_NAMEDPATHS:
+                for namedpath in panorama_cfg.get('namedpaths', ()):
+                    namedpath_curly = '{' + namedpath + '}'
+                    if namedpath_curly in source2_path:
+                        source2_path = source2_path.replace(namedpath_curly, panorama_cfg['namedpaths'][namedpath])
+        
+            source2_path = PurePosixPath(source2_path.removeprefix('file://'))
+            source2_path = source2_path.with_suffix( EXTENSIONS.get( source2_path.suffix, source2_path.suffix ) )
+            source2_path = f"s2r://{source2_path}"
+    
+        return full_match.replace(path_match, source2_path)  # needs to be a better way
+
     with open(vxml_out, 'w', encoding="utf-8") as out:
-        out.write(pre_opened.read()
-            .replace('file://','s2r://')
-            .replace('.css', '.vcss_c')
-            .replace('.js', '.vjs_c')
-            .replace('.vtf', '.vtex_c') # i guess
+        xml_content = pre_opened.read()
+        out.write(
+            re.sub(r'src\s*=\s*"?(.+?)["|\s]', fix_src_paths, xml_content)
         )
-        print("+ Saved", vxml_out.relative_to(panorama_out.parent))
-'''
-<root>
-	<styles>
-		<include src="s2r://panorama/styles/dotastyles.vcss_c" />
-		<include src="s2r://panorama/styles/popups/popups_shared.vcss_c" />
-		<include src="s2r://panorama/styles/popups/popup_custom_test.vcss_c" />
-	</styles>
-	
-	<script>
-		var SetupPopup = function()
-		{
-			var strPopupValue = $.GetContextPanel().GetAttributeString( "popupvalue", "(not found)" );
-			$.GetContextPanel().SetDialogVariable( "popupvalue", strPopupValue );
-		};
-	</script>
-
-	<PopupCustomLayout class="PopupPanel Hidden" popupbackground="dim" oncancel="UIPopupButtonClicked()" onload="SetupPopup()">
-		<Label class="PopupTitle" text="Test Popup" />
-
-		<Label class="PopupMessage" text="popupvalue: {s:popupvalue}" />	
-
-		<Panel class="PopupButtonRow">
-			<TextButton class="PopupButton" text="OK" onactivate="UIPopupButtonClicked()" />
-		</Panel>
-	
-	</PopupCustomLayout>
-</root>
-'''
-'''
-<root>
-	<styles>
-		<include src="file://{resources}/styles/gamestyles.css" />
-        <include src="file://{resources}/styles/popups/popups_shared.css" />
-	</styles>
-	
-	<scripts>
-		<include src="file://{resources}/scripts/popups/popup_navdrawer.js" />
-	</scripts>
-
-	<PopupCustomLayout class="PopupPanel Hidden" popupbackground="dim" onload="SetupPopup()">
-		<Label class="PopupTitle" text="Test Custom Layout Popup" />
-
-		<Label class="PopupMessage" text="popupvalue: {s:popupvalue}" />	
-
-		<Panel class="PopupButtonRow">
-			<TextButton class="PopupButton" text="OK" onactivate="OnOKPressed()" />
-            <TextButton class="PopupButton" text="Cancel" onactivate="UIPopupButtonClicked()" />
-		</Panel>
-	
-	</PopupCustomLayout>
-</root>
-'''
+        print("+ Saved", vxml_out.local)
 
 """GenerateNameMappingFromAssetList: Unknown extension for "panorama/images/tooltips/tooltip_arrow_left.vtf"""
 
@@ -109,44 +90,43 @@ def ImportPanoramaXml(xml_in: Path, vxml_out: Path = None, pre_opened: TextIOWra
 def ImportPanoramaCss(css_in: Path, vcss_out: Path = None, pre_opened: TextIOWrapper = None):
     with open(vcss_out, 'w', encoding="utf-8") as out:
         out.write(pre_opened.read()) # .replace('file://','s2r://')
-        print("+ Saved", vcss_out.relative_to(panorama_out.parent))
+        print("+ Saved", vcss_out.local)
     
 
 @zipimport('.vjs')
 def ImportJS(js_in: Path, vjs_out: Path = None, pre_opened: TextIOWrapper = None):
     with open(vjs_out, 'w', encoding="utf-8") as out:
         out.write(pre_opened.read())
-        print("+ Saved", vjs_out.relative_to(panorama_out.parent))
+        print("+ Saved", vjs_out.local)
 
 @zipimport('.vcfg')
 def ImportCfg(cfg_in: Path, vcfg_out: Path = None, pre_opened: TextIOWrapper = None):
     with open(vcfg_out, 'w', encoding="utf-8") as out:
         out.write(pre_opened.read())
-        print("+ Saved", vcfg_out.relative_to(panorama_out.parent))
+        print("+ Saved", vcfg_out.local)
 
 if __name__ == '__main__':
-    if not code_pbin.exists():
-        raise SystemExit()
+    if not CODE_PBIN.exists():
+        raise SystemExit(0)
 
-    code = pbin.ZipFile(code_pbin, 'r')
+    code = pbin.ZipFile(CODE_PBIN, 'r')
 
     panorama_cfg = {}
-
     try:
         with TextIOWrapper(code.open('panorama/panorama.cfg'), encoding="utf-8") as cfg:
-            ... # kv1 read
+            panorama_cfg = kv1.KV.FromBuffer(cfg.read())
     except KeyError:
         print("panorama.cfg not found")
 
     for file in code.filelist:
-        path = panorama_in.parent / file.filename
+        path_extract = sh.IMPORT_GAME / file.filename
         fp = TextIOWrapper(code.open(file), encoding="utf-8")
 
         if file.filename.endswith('.cfg'):
             if file.filename == 'panorama/panorama.cfg': continue
 
-        if importfunc := importdict.get(Path(file.filename).suffix):
-            importfunc(path, pre_opened=fp)
+        if importfunc := IMPORT_FUNC.get(path_extract.suffix):
+            importfunc(path_extract, pre_opened=fp)
         else:
             print("Import me senpai", file.filename)
             fp.close()
