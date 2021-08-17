@@ -7,7 +7,7 @@ models/player/custom_player/animset_ct.vagrp
 
 I had these compile before, maybe missing dependencies? caused by different s1import method?
 
-Speed up createSkyCubemap compressed, implement uncompressed
+, implement uncompressed
 D:\Games\steamapps\common\Half-Life Alyx\game\bin\win64>resourcecompiler.exe -game hlvr -r -i "D:\Games\steamapps\common\Half-Life Alyx\content\csgo_imported\materials\*"
 ----
 pano - import svg to vsvg, vtf to vtex, etcetraa

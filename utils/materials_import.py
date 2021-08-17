@@ -360,27 +360,16 @@ def createSkyCubemap(json_collection: Path, maxFaceRes: int = 0):
             SkyCubemapImage.paste(faceImage, pasteCoord)
             faceImage.close()
 
-        # for hdr compressed: uncompress the whole tga map we just created and paste to pfm
+        # for hdr compressed: uncompress the whole <compressed> tga map we just created into a pfm
         if (hdrType == 'compressed'):
-            compressedPixels = SkyCubemapImage.load()
-            stamp = time.time()
-            hdrImageData = [0] * (cube_w * cube_h * 3) # TODO: numpy array
-            cell = 0
-            for x in range(cube_w):
-                for y in range(cube_h):
-                    R, G, B, A = compressedPixels[x,y] # image.getpixel( (x,y) )
-                    hdrImageData[cell    ] = (R * (A * 16)) / 262144
-                    hdrImageData[cell + 1] = (G * (A * 16)) / 262144
-                    hdrImageData[cell + 2] = (B * (A * 16)) / 262144
-                    cell += 3
-            SkyCubemapImage.close()
-            # questionable 90deg rotations
-            HDRImageDataArray = np.rot90(np.array(hdrImageData, dtype='float32').reshape((cube_w, cube_h, 3)))
-            PFM.write_pfm(sky_cubemap_path, HDRImageDataArray)
-            print(f"It took: {time.time()-stamp} seconds!")
+            # https://developer.valvesoftware.com/wiki/Valve_Texture_Format#:~:text=RGB%20%3D%20(RGB%20*%20(A%20*%2016))%20/%20262144
+            # Huge thanks to https://stackoverflow.com/questions/59990455/
+            compressed_array = np.asarray( SkyCubemapImage, dtype='uint8' )
+            uncompress = ((compressed_array[:,:,:3] / 262144 * 16) * compressed_array[:,:,[-1]]).astype(np.float32)
+            uncompress = np.flipud(uncompress)
+            PFM.write_pfm(sky_cubemap_path, uncompress)
         else:
             SkyCubemapImage.save(sky_cubemap_path)
-            #print('+ Successfuly created sky cubemap:', sky_cubemap_path.name)
 
     # hdr uncompressed: join the pfms same way as tgas TODO: ...
     elif hdrType == 'uncompressed':
