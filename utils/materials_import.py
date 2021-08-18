@@ -366,7 +366,8 @@ def createSkyCubemap(json_collection: Path, maxFaceRes: int = 0):
             # Huge thanks to https://stackoverflow.com/questions/59990455/
             compressed_array = np.asarray( SkyCubemapImage, dtype='uint8' )
             uncompress = ((compressed_array[:,:,:3] / 262144 * 16) * compressed_array[:,:,[-1]]).astype(np.float32)
-            uncompress = np.flipud(uncompress)
+            #-- one between source2 and GIMP is reading the PFM flipped upside down. uncomment to display correctly on GIMP
+            #uncompress = np.flipud(uncompress)
             PFM.write_pfm(sky_cubemap_path, uncompress)
         else:
             SkyCubemapImage.save(sky_cubemap_path)

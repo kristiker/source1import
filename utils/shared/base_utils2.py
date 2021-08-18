@@ -292,6 +292,7 @@ def _get_blacklist(root):
 def GetJson(jsonPath: Path, bCreate: bool = False) -> dict:
     if not jsonPath.exists():
         if bCreate:
+            jsonPath.parent.MakeDir()
             open(jsonPath, 'a').close()
         return {}
     with open(jsonPath) as fp:
