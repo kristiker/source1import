@@ -324,7 +324,7 @@ if __name__ == '__main__':
             continue
         ImportGameSound(file)
 
-    if (boss:=sh._src()/'scripts'/'level_sounds_general.txt').exists():
+    if (boss:=sh._src()/'scripts'/'level_sounds_general.txt').is_file():
         ImportGameSound(boss)
     
     

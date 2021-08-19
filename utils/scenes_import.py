@@ -20,7 +20,7 @@ ResourceManifest_t
 
 def _ensure_scenes_vrman():
     scenes_vrman = sh._dest() / 'scenes/scenes.vrman'
-    if not scenes_vrman.exists():
+    if not scenes_vrman.is_file():
         scenes_vrman.parent.mkdir(exist_ok=True, parents=True)
         with open(scenes_vrman, 'w') as fp:
             fp.write(scenes_content)
@@ -35,14 +35,14 @@ def ImportVCD(vcd_in: Path, vcd_out: Path, to='_root.vcdlist'):
     vcdlist = sh._dest() / 'scenes' / to
     vcdlist.parent.mkdir(exist_ok=True, parents=True)
 
-    if not vcd_out.exists():
+    if not vcd_out.is_file():
         copyfile(vcd_in, vcd_out)
 
     vcd_local = vcd_out.local.relative_to('scenes').as_posix()
 
     vcdlist_entries_cache.setdefault(to, [])
 
-    if vcdlist.exists():
+    if vcdlist.is_file():
         if not vcdlist_entries_cache.get(to):
             with open(vcdlist) as fp:
                 # TODO: forward slashes, whitelines, etc

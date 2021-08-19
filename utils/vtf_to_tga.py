@@ -3,19 +3,14 @@ import subprocess
 import threading, multiprocessing
 import shutil
 from pathlib import Path
-import shared.base_utils as sh
+import shared.base_utils2 as sh
 
 # https://developer.valvesoftware.com/wiki/VTF2TGA
 # Runs vtf2tga.exe on every vtf file
 # Same thing as `VTFCmd.exe -folder "<dir>\materials\*.vtf" -recurse`
 
 
-# Path to content root, before /materials/
-PATH_TO_CONTENT_ROOT = r""
-PATH_TO_NEW_CONTENT_ROOT = r""
-
-
-fs = sh.Source("materials", PATH_TO_CONTENT_ROOT, PATH_TO_NEW_CONTENT_ROOT)
+sh.importing = Path("materials")
 
 OVERWRITE = False
 IGNORE_WORLD_CUBEMAPS = True
@@ -76,7 +71,7 @@ for i, path in enumerate(PATHS_VTF2TGA):
     if not path.is_absolute():
         path = currentDir / path
 
-    if path.exists():
+    if path.is_file():
         print("+ Using:", path)
         PATHS_VTF2TGA [i] = path
         tags.append( [ part for part in path.parts[::-1] if part not in ("vtf2tga.exe", "bin") ] [0])
@@ -113,7 +108,7 @@ def ImportVTFtoTGA(vtfFile, force_2nd = False):
 
             bCreated = False
             for outPath in OutputList(vtfFile, True):
-                if not outPath.exists(): continue
+                if not outPath.is_file(): continue
                 bCreated = True
                 totalFiles +=1
                 outImages: list[Path] = []
@@ -125,35 +120,34 @@ def ImportVTFtoTGA(vtfFile, force_2nd = False):
                     if ttype == "": # default
                         if (outPath.stem == vtfFile.stem):
                             outImages.append(outPath)
-                            print(f"[{tag}] Sucessfully created: {fs.LocalDir(outPath)}")
+                            print(f"[{tag}] Sucessfully created:", outPath.local)
                             break
 
                     elif ttype == 'up': # cubemap
                         for face in ('up', 'dn', 'lf', 'rt', 'bk', 'ft'):
                             nextPath = vtfFile.parent / Path(vtfFile.stem + face + outPath.suffix)
-                            if nextPath.exists():
+                            if nextPath.is_file():
                                 outImages.append(nextPath)
                         faces = "[ " + ", ".join([str(path.stem[-2:]) for path in outImages ]) + " ]"
-                        print(f"[{tag}] Sucessfully created: {fs.LocalDir(outPath)} {faces} cubemap faces")
+                        print(f"[{tag}] Sucessfully created: {outPath.local} {faces} cubemap faces")
 
                     else: # frame sequence & depth slice
                         for i in range(1000):
                             nextPath = vtfFile.parent / Path(vtfFile.stem + f"{i:03}" + outPath.suffix)
-                            if nextPath.exists():
+                            if nextPath.is_file():
                                 outImages.append(nextPath)
                             else: break
 
-                        print(f"[{tag}] Sucessfully created: {fs.LocalDir(outPath)} [ 000 -- {(len(outImages)-1):03} ] image stack")
 
 
                 # shitty workaround to vtf2tga not being able to output properly
                 for path in outImages:
-                    movePath = fs.Output(path)
+                    movePath = sh.output(path)
                     os.makedirs(movePath.parent, exist_ok=True) #fs.MakeDir(movePath)
                     shutil.move(path, movePath)
 
             if not bCreated:
-                print(f"[{tag}] uhm...? {fs.LocalDir(vtfFile)}")
+                print(f"[{tag}] uhm...?", vtfFile.local)
 
             break # Output file created. Onto the next VTF.
 
@@ -203,9 +197,9 @@ def txt_import(txtFile):
 
  
 def main():
-    threads = []
-    vtfFileList = fs.collect_files(IN_EXT, OUT_EXT_LIST, existing = OVERWRITE, outNameRule = OutputList)
-    txtFileList = fs.collect_files(VTEX_PARAMS_EXT, VTEX_PARAMS_EXT, existing = True)
+    THREADS = []
+    vtfFileList = sh.collect(sh.importing, IN_EXT, OUT_EXT_LIST, existing = OVERWRITE, outNameRule = OutputList)
+    txtFileList = sh.collect(sh.importing, VTEX_PARAMS_EXT, VTEX_PARAMS_EXT, existing = True)
 
     for vtfFile in vtfFileList:
         if threading.active_count() > (multiprocessing.cpu_count()) *15:
@@ -227,28 +221,28 @@ def main():
         if MULTITHREAD:
             semaphore.acquire()
 
-            threads.append(threading.Thread(target=ImportVTFtoTGA,  args=(vtfFile, force_2nd)))
-            startThread = threads[-1]
+            THREADS.append(threading.Thread(target=ImportVTFtoTGA,  args=(vtfFile, force_2nd)))
+            startThread = THREADS[-1]
             startThread.start()
             semaphore.release()
         else:
             ImportVTFtoTGA(vtfFile, force_2nd)
 
-    for unfinished_thread in threads:
+    for unfinished_thread in THREADS:
         unfinished_thread.join() # wait for the final threads to finish
 
     for txtFile in txtFileList:
         print(f"Found vtex compile param file {txtFile}")
         #txt_import() blah blah
 
-    for unfinished_thread in threads:
+    for unfinished_thread in THREADS:
         unfinished_thread.join() # wait for the final threads to finish
 
     if erroredFileList:
         print("\tNo vtf2tga could export the following files:")
 
         for erroredFile in erroredFileList:
-            print(fs.LocalDir(erroredFile))
+            print(erroredFile.local)
 
         print(f"\tTotal: {len(erroredFileList)} / {len(vtfFileList)}  |  " + "{:.2f}".format((len(erroredFileList)/len(vtfFileList)) * 100) + f" % Error rate\n")
 

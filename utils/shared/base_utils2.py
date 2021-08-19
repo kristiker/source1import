@@ -88,6 +88,10 @@ def parse_paths():
     if len(source2_mod.parts) in (1, 2):
         EXPORT_GAME = GAMEROOT / source2_mod
         EXPORT_CONTENT = CONTENTROOT / source2_mod
+    elif len(source2_mod.parts) == 3:
+        # TEMP FIX FOR hlvr_addons
+        EXPORT_GAME = GAMEROOT / source2_mod
+        EXPORT_CONTENT = CONTENTROOT / source2_mod.relative_to(eEngineFolder.CONTENTROOT.value)
     elif EXPORT_GAME is EXPORT_CONTENT is None:
         error("Invalid export game", source2_mod)
 
@@ -290,7 +294,7 @@ def _get_blacklist(root):
         return set()
 
 def GetJson(jsonPath: Path, bCreate: bool = False) -> dict:
-    if not jsonPath.exists():
+    if not jsonPath.is_file():
         if bCreate:
             jsonPath.parent.MakeDir()
             open(jsonPath, 'a').close()

@@ -238,16 +238,12 @@ def createMask(image_path, copySub = '_mask', channel = 'A', invert = False, que
     if newMaskPath.exists(): #and not DEBUG:
         return newMaskPath.local
 
-    if not image_path.exists():
+    if not image_path.is_file():
         msg("Couldn't find image", image_path)
         failureList.add(f"createMask not found", f'{vmt.path} - {image_path}')
         #if vmtTexture in vmt_to_vmat['textures']:
         #    failureList.add(f"{vmtTexture} not found", vmt.path) # FIXME ALL OF ME vmtTexture
         #else:
-        return default(copySub)
-
-    if not image_path.is_file() or not image_path.exists():
-        failureList.add('createMask image not found', vmt.path)
         print(f"~ ERROR: Couldn't find requested image ({image_path}). Please check.")
         return default(copySub)
 
@@ -392,7 +388,7 @@ def flipNormalMap(localPath):
     if not image_path.exists(): return False
 
     if NORMALMAP_G_VTEX_INVERT:
-        if (settings_file := image_path.with_suffix(".txt")).exists():
+        if (settings_file := image_path.with_suffix(".txt")).is_file():
             if sh.get_crc(settings_file) != '69D57F2B':
                 settKV = KV.FromFile(settings_file)
                 if settKV.keyName != 'settings':
@@ -1019,10 +1015,10 @@ def convertSpecials():
         if (vmt.path.stem == wpn_name or vmt.path.stem == wpn_name.split('_')[-1]):
             vm_customization = viewmodels.parent / "customization"
             ao_path = sh.output(vm_customization/wpn_name/ (str(wpn_name) + "_ao"+ TEXTURE_FILEEXT))
-            if ao_path.exists():
+            if ao_path.is_file():
                 ao_path_new = sh.output(materials/viewmodels/wpn_name/ao_path.name)
                 try:
-                    if not ao_path_new.exists() and ao_path_new.parent.exists():
+                    if not ao_path_new.is_file() and ao_path_new.parent.exists():
                         copyfile(ao_path, ao_path_new)
                         print("+ Succesfully moved AO texture for weapon material:", wpn_name)
                     vmt.KeyValues["$aotexture"] = str(ao_path_new.local.relative_to(materials))
