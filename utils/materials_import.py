@@ -50,6 +50,7 @@ sh.importing = materials
 
 skybox = Path("skybox")
 SKY_FACES = ('up', 'dn', 'lf', 'rt', 'bk', 'ft')
+HDRCOMPRESS_FIX_MUL = 1.8 # 1.6 to 2.2
 
 class ValveMaterial:
     def __init__(self, shader, kv):
@@ -311,12 +312,12 @@ def createSkyCubemap(json_collection: Path, maxFaceRes: int = 0):
         faceParams[face]['size'] = size
         maxFaceRes = max(maxFaceRes, max(size[0], size[1]))  # the largest face determines the resolution of the full image
         if cube_name is None:  # Derive _cube name from face name. Dont get duplicates alla nukeblank_cube, dustblank_cube
-            cube_name = facePath.stem[:-2]  # BUG WATCH: facePath.stem isn't .lower()'ed
+            cube_name = facePath.stem[:-2].lower()
 
-    cube_w = 4 * maxFaceRes
-    cube_h = 3 * maxFaceRes
+    if not len(faceList):
+        return
 
-    # skyName = skyName.rstrip('_')
+    # cube_name = cube_name.rstrip('_')
     img_ext = '.pfm' if hdrType else TEXTURE_FILEEXT
     sky_cubemap_path =  sh.output( skyboxmaterials / (cube_name + '_cube' + img_ext))
 
@@ -325,60 +326,66 @@ def createSkyCubemap(json_collection: Path, maxFaceRes: int = 0):
     if not OVERWRITE_SKYCUBES and sky_cubemap_path.is_file():
         return sky_cubemap_path
 
-    if hdrType in (None, 'compressed'):
+    cube_w = 4 * maxFaceRes
+    cube_h = 3 * maxFaceRes
+
+    def get_transform(face, faceRotate):
+        pasteCoord = (cube_w/2, cube_h/2)
+        if face == 'up':
+            pasteCoord = ( cube_w - (maxFaceRes * 3) , cube_h - (maxFaceRes * 3) ) # (1, 2)
+            faceRotate += 90
+        elif face == 'ft': pasteCoord = ( cube_w - (maxFaceRes * 1) , cube_h - (maxFaceRes * 2) ) # (2, 3) -> (2, 4) #2)
+        elif face == 'lf': pasteCoord = ( cube_w - (maxFaceRes * 4) , cube_h - (maxFaceRes * 2) ) # (2, 4) -> (2, 1) #1)
+        elif face == 'bk': pasteCoord = ( cube_w - (maxFaceRes * 3) , cube_h - (maxFaceRes * 2) ) # (2, 1) -> (2, 2) #4)
+        elif face == 'rt': pasteCoord = ( cube_w - (maxFaceRes * 2) , cube_h - (maxFaceRes * 2) ) # (2, 2) -> (2, 3) #3)
+        elif face == 'dn':
+            pasteCoord = ( cube_w - (maxFaceRes * 3) , cube_h - (maxFaceRes * 1) ) # (3, 2)
+            faceRotate += 90
+        return pasteCoord, faceRotate
+
+    if hdrType != 'uncompressed':
         image_mode = 'RGBA' if (hdrType == 'compressed') else 'RGB'
         SkyCubemapImage = Image.new(image_mode, (cube_w, cube_h), color = (0, 0, 0))
+    else:
+        SkyCubemapImage = np.zeros((cube_h, cube_w, 3), dtype='float32')
 
-        for face, facePath in faceList.items():
-            faceScale = faceParams[face].get('scale')
-            faceRotate = int(faceParams[face].get('rotate') or 0)
+    for face, facePath in faceList.items():
+        #faceScale = faceParams[face].get('scale')
+        if hdrType != 'uncompressed':
             if not (faceImage := Image.open(facePath).convert(image_mode)): continue
+        else:
+            try: faceImage, scale, _ = PFM.read_pfm(facePath)
+            except Exception: continue
 
-            pasteCoord = (cube_w/2, cube_h/2)
-            if face == 'up':
-                pasteCoord = ( cube_w - (maxFaceRes * 3) , cube_h - (maxFaceRes * 3) ) # (1, 2)
-                faceRotate += 90
-            elif face == 'ft': pasteCoord = ( cube_w - (maxFaceRes * 1) , cube_h - (maxFaceRes * 2) ) # (2, 3) -> (2, 4) #2)
-            elif face == 'lf': pasteCoord = ( cube_w - (maxFaceRes * 4) , cube_h - (maxFaceRes * 2) ) # (2, 4) -> (2, 1) #1)
-            elif face == 'bk': pasteCoord = ( cube_w - (maxFaceRes * 3) , cube_h - (maxFaceRes * 2) ) # (2, 1) -> (2, 2) #4)
-            elif face == 'rt': pasteCoord = ( cube_w - (maxFaceRes * 2) , cube_h - (maxFaceRes * 2) ) # (2, 2) -> (2, 3) #3)
-            elif face == 'dn':
-                pasteCoord = ( cube_w - (maxFaceRes * 3) , cube_h - (maxFaceRes * 1) ) # (3, 2)
-                faceRotate += 90
-
-            # scale to fit on the y axis
-            if faceImage.width != maxFaceRes:
+        pasteCoord, faceRotate = get_transform(face, int(faceParams[face].get('rotate') or 0))
+        if hdrType != 'uncompressed':
+            if faceImage.width != maxFaceRes:  # scale to fit on the y axis
                 faceImage = faceImage.resize((maxFaceRes, round(faceImage.height * maxFaceRes/faceImage.width)), Image.BICUBIC)
-
             if faceRotate:
                 faceImage = faceImage.rotate(faceRotate)
 
             SkyCubemapImage.paste(faceImage, pasteCoord)
-            faceImage.close()
-
-        # for hdr compressed: uncompress the whole <compressed> tga map we just created into a pfm
-        if (hdrType == 'compressed'):
-            # https://developer.valvesoftware.com/wiki/Valve_Texture_Format#:~:text=RGB%20%3D%20(RGB%20*%20(A%20*%2016))%20/%20262144
-            # Huge thanks to https://stackoverflow.com/questions/59990455/
-            compressed_array = np.asarray( SkyCubemapImage, dtype='uint8' )
-            uncompress = ((compressed_array[:,:,:3] / 262144 * 16) * compressed_array[:,:,[-1]]).astype(np.float32)
-            #-- one between source2 and GIMP is reading the PFM flipped upside down. uncomment to display correctly on GIMP
-            #uncompress = np.flipud(uncompress)
-            PFM.write_pfm(sky_cubemap_path, uncompress)
         else:
-            SkyCubemapImage.save(sky_cubemap_path)
+            if faceImage.shape[1] != maxFaceRes:
+                ...  # https://stackoverflow.com/questions/41879104/upsample-and-interpolate-a-numpy-array
+            if faceRotate:
+                faceImage = np.rot90(faceImage, -1)
 
-    # hdr uncompressed: join the pfms same way as tgas TODO: ...
-    elif hdrType == 'uncompressed':
-        #emptyData = [0] * (cube_w * cube_h)
-        #emptyArray = np.array(emptyData, dtype='float32').reshape((maxFace_h, maxFace_w, 3)
-        #for face in skyboxFaces:
-        #    if not (facePath := os.path.join("materials\\skybox", vmtSkybox[skyName][face].get('path'))): continue
-        #    floatData, scale, _ = PFM.read_pfm(fs.Output(facePath))
-        #for i in range(12):
-        #    pass
-        #    # paste each
-        return
+            SkyCubemapImage[pasteCoord[1]:pasteCoord[1]+faceImage.shape[0],
+                            pasteCoord[0]:pasteCoord[0]+faceImage.shape[1]] = np.flipud(faceImage)
+        
+    if hdrType is None:
+        SkyCubemapImage.save(sky_cubemap_path)
+    elif hdrType == 'compressed':
+        # https://developer.valvesoftware.com/wiki/Valve_Texture_Format#:~:text=RGB%20%3D%20(RGB%20*%20(A%20*%2016))%20/%20262144
+        # Huge thanks to https://stackoverflow.com/questions/59990455/
+        compressed_array = np.asarray( SkyCubemapImage, dtype='uint8' )
+        uncompress = ((compressed_array[:,:,:3] / 262144 * 16 * HDRCOMPRESS_FIX_MUL) * compressed_array[:,:,[-1]]).astype(np.float32)
+        # one between source2 and GIMP is reading the PFM flipped upside down. uncomment to display correctly on GIMP
+        #uncompress = np.flipud(uncompress)
+        PFM.write_pfm(sky_cubemap_path, uncompress)
+    else:
+        PFM.write_pfm(sky_cubemap_path, SkyCubemapImage)
 
     return sky_cubemap_path
 
