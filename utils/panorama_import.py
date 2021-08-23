@@ -106,7 +106,7 @@ def ImportCfg(cfg_in: Path, vcfg_out: Path = None, pre_opened: TextIOWrapper = N
         print("+ Saved", vcfg_out.local)
 
 if __name__ == '__main__':
-    if not CODE_PBIN.exists():
+    if not CODE_PBIN.is_file():
         raise SystemExit(0)
 
     code = pbin.ZipFile(CODE_PBIN, 'r')

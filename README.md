@@ -1,5 +1,5 @@
 # source1import
-Set of scripts for importing Source 1 assets such as materials, models, and particle effects into Source 2. Inspired by Valve's own [source1import.exe](https://www.youtube.com/watch?v=ZnY82mVJi9w) (written in Perl), this one is in Python.
+Set of scripts for importing Source 1 assets such as materials, models, and particle effects into Source 2. Inspired by Valve's own [source1import.exe](https://www.youtube.com/watch?v=ZnY82mVJi9w) (written in C++ and Perl), this one is in Python.
 
 [![made-with-python](https://img.shields.io/badge/Made%20with-Python-1f425f.svg)](https://www.python.org/downloads/release/python-386/)
 ## Requires:

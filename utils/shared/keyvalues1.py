@@ -278,6 +278,9 @@ class KV(VDFDict):
     def __str__(self):
         return self.ToStr()
 
+    def as_value(self):
+        return VDFDict({self.keyName:self})
+
     def ToStr(self, level=0):
         line_indent = "\t" * level
         return line_indent + f'"{self.keyName}"{super().ToStr(level)}'

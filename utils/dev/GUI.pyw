@@ -1,4 +1,4 @@
-import shared.base_utils as sh
+#import shared.base_utils as sh
 from pathlib import Path
 from tkinter import filedialog, messagebox
 from tkinter import *
@@ -154,7 +154,6 @@ class SampleApp(Tk):
 
     def main_msg(self):
         print("Welcome to the", self.APP_TITLE)
-        #print(f"Files will be exported in either content/{Path(self.EXPORT_GAME.get()).name}, or game/{Path(self.EXPORT_GAME.get()).name}, depending on its type.")
         print(f"Files will be exported on either the /content/ or /game/ directory, depending on its type.")
 
     def poll(self):
@@ -178,11 +177,9 @@ class SampleApp(Tk):
         if (not Path(self.IMPORT_GAME.get()).exists()) or (not Path(self.EXPORT_GAME.get()).exists()):
             return
 
-        self.fs = sh.Source("", self.IMPORT_GAME.get(), self.EXPORT_GAME.get())
-        if self.fs:
-            self.IMPORT_GAME.set(self.fs.IMPORT_GAME.as_posix())
-            self.EXPORT_GAME.set(self.fs.EXPORT_GAME.as_posix())
-            return True
+        self.IMPORT_GAME.set(self.IMPORT_GAME.as_posix())
+        self.EXPORT_GAME.set(self.EXPORT_GAME.as_posix())
+        return True
 
     def pick_path(self, what):
         if what in (0, 1):
@@ -191,8 +188,8 @@ class SampleApp(Tk):
             if path:
                 self.IMPORT_GAME.set(Path(path).as_posix())
                 #self.widgets[3].configure(show = path.split("/Half-Life Alyx/", 1)[-1])
-                self.widgets[4].configure(font='Helvetica 10 bold' if self.isSingle else 'Helvetica 10')
-                self.widgets[5].configure(font='Helvetica 10' if self.isSingle else 'Helvetica 10 bold')
+                self.widgets[4].configure(font=f'Helvetica 10{" bold"*self.isSingle}')
+                self.widgets[5].configure(font=f'Helvetica 10{" bold"*(not self.isSingle)}')
 
         elif what == 2:
             path = filedialog.askdirectory()
@@ -224,7 +221,7 @@ class SampleApp(Tk):
             self.isRunning = True
 
             commandList = []
-            i, o = self.fs.IMPORT_GAME, self.fs.EXPORT_CONTENT
+            i, o = self.IMPORT_GAME, self.EXPORT_CONTENT
             overwrite = ' -f' if self.Overwrite else ''
 
             if textures:

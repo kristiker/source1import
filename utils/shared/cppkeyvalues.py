@@ -327,14 +327,14 @@ class ColorValue(collections.UserList, KVValue): ... # unsigned char [4]
 class GenericValue(KVValue): ... # int, float, char*, wchar*, ptr,
 
 class KVType(IntEnum):
-    TYPE_NONE = 0, # hasChild
-    TYPE_STRING = 1,
-    TYPE_INT = 2,
-    TYPE_FLOAT = 3,
-    TYPE_PTR = 4,
-    TYPE_WSTRING = 5,
-    TYPE_COLOR = 6,
-    TYPE_UINT64 = 7,
+    TYPE_NONE = 0 # hasChild
+    TYPE_STRING = 1
+    TYPE_INT = 2
+    TYPE_FLOAT = 3
+    TYPE_PTR = 4
+    TYPE_WSTRING = 5
+    TYPE_COLOR = 6
+    TYPE_UINT64 = 7
 
 class KeyValues:
     "Key that holds a Value `('k', 'v')`. Value can be a list holding other KeyValues `('k', [...])`"
@@ -346,9 +346,9 @@ class KeyValues:
         self.KeyNameCaseSensitive2: bool = case_sensitive
         self.HasEscapeSequences: bool = escape
 
+        self.keyName = str(k)
         if not self.KeyNameCaseSensitive2 and k is not None:
-            k = k.lower()
-        self.keyName = k
+            self.keyName= self.keyName.lower()
 
         self.value = KVValue(v)
 
@@ -490,7 +490,7 @@ class KeyValues:
                 if previousKey:
                     previousKey.SetNextKey(currentKey)
             else:
-                currentKey.SetName(s)
+                currentKey.SetName(str(s))
 
             s = tokenReader.ReadToken()
 
@@ -526,7 +526,7 @@ class KeyValues:
             if name[0] == '}' and not name.wasQuoted: # top level closed, stop reading
                 break
 
-            dat = KeyValues(str(name), case_sensitive=self.KeyNameCaseSensitive2)
+            dat = KeyValues(name, case_sensitive=self.KeyNameCaseSensitive2)
             self.value.append(dat)
             del name
             value = tokenReader.ReadToken()
@@ -644,7 +644,6 @@ if __name__ == "__main__":
         #KeyValues().LoadFromFile(file)
         #updateTestOutpt(file)
     import unittest
-    from functools import wraps
     from time import time, sleep
     def measure(func):
         @wraps(func)

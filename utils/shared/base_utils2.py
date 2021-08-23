@@ -167,6 +167,10 @@ def without_spaces(self, repl = '_') -> Path:
     return self.parent / self.name.replace(' ', repl)
 
 @add_method(Path)
+def lowercase(self) -> Path:
+    return Path(*(str(part).lower() for part in self.parts))
+
+@add_method(Path)
 def MakeDir(self):
     "parents=True, exist_ok=True"
     self.mkdir(parents=True, exist_ok=True)

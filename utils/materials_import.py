@@ -30,6 +30,7 @@ BASIC_PBR = True
 MISSING_TEXTURE_SET_DEFAULT = True
 USE_SUGESTED_DEFAULT_ROUGHNESS = True
 SURFACEPROP_AS_IS = False
+PRINT_LEGACY_IMPORT = False  # Print vmt inside vmat for debug? purposes. Increases file size.
 
 sh.DEBUG = False
 msg = sh.msg
@@ -71,12 +72,16 @@ class VMT(ValveMaterial):
     shader = ValveMaterial.shader
     KeyValues = ValveMaterial._KV
 
-    def __init__(self, kv=None):
+    def __init__(self, kv: KV = None):
 
         if kv is None:
             kv = KV(*self.__defaultkv)
         if kv.keyName == '':
             kv.keyName = 'Wireframe_DX9'
+
+        if bumpmap := kv['$bumpmap']:
+            kv["$normalmap"] = bumpmap
+            del kv['$bumpmap']
 
         super().__init__(kv.keyName, kv)
 
@@ -114,8 +119,8 @@ class VMAT(ValveMaterial):
     ver = 2   # materialsystem2
     __defaultkv = ('Layer0', {'shader': 'error.vfx'})  # unescaped, keys case sensitive
 
-    shader = ValveMaterial.shader
-    KeyValues = ValveMaterial._KV
+    shader: str = ValveMaterial.shader
+    KeyValues: dict = ValveMaterial._KV
 
     def __init__(self, kv=None):
         if kv is None:
@@ -148,7 +153,6 @@ shaderDict = {
     "refract":              "refract",
     "worldvertextransition":"vr_simple_2way_blend",
     "lightmapped_4wayblend":"vr_simple_2way_blend",
-    "cables":               "cables",
     "lightmappedtwotexture":"vr_complex",  # 2 multiblend $texture2 nocull scrolling, model, additive.
     "unlittwotexture":      "vr_complex",  # 2 multiblend $texture2 nocull scrolling, model, additive.
     "cable":                "cables",
@@ -160,6 +164,19 @@ shaderDict = {
     #"subrect":              "spritecard",  # should we just cut? $Pos "256 0" $Size "256 256" $decalscale 0.25 decals\blood1_subrect.vmt
     #"weapondecal": weapon sticker
     "patch":                "vr_complex", # fallback if include doesn't have one
+    #grass
+    #customweapon
+    #decalbasetimeslightmapalphablendselfillum
+    #screenspace_general
+    #sprite
+    #nodraw
+    #particlesphere
+    #shadow
+    #weapondecal
+    #eyes
+    #flashlight_shadow_decal
+    #modulate
+    #weapondecal_dx9
 }
 
 def chooseShader():
@@ -172,6 +189,8 @@ def chooseShader():
 
     if LEGACY_SHADER:   d["generic"] += 1
     else:               d[shaderDict[vmt.shader]] += 1
+
+    if vmt.KeyValues['$beachfoam']: return "csgo_beachfoam"
 
     if vmt.KeyValues['$decal'] == 1: d["vr_projected_decals"] += 10
 
@@ -368,6 +387,16 @@ def createSkyCubemap(json_collection: Path, maxFaceRes: int = 0):
         else:
             if faceImage.shape[1] != maxFaceRes:
                 ...  # https://stackoverflow.com/questions/41879104/upsample-and-interpolate-a-numpy-array
+                rpt = round(faceImage.height * maxFaceRes/faceImage.shape[1]) / faceImage.shape[1]
+                print("HDR integer scaling  x ", rpt, faceImage.shape[1], maxFaceRes, round(faceImage.height * maxFaceRes/faceImage.shape[1]))
+                try:
+                    assert rpt % 2 == 0
+                    faceImage = faceImage[0].repeat(rpt, axis = 0).repeat(rpt, axis = 1)
+                except AssertionError:
+                    print(".pfm face image is non power-of-two sized")
+                except Exception as ex:
+                    print("Exception while upsampling .pfm face image:", ex)
+                
             if faceRotate:
                 faceImage = np.rot90(faceImage, -1)
 
@@ -484,6 +513,7 @@ def fix_envmap(vmtVal):
     return 1  # presence()
 
 
+# TODO: [int_val, True] -> int_val(bInvert=False)()
 def int_val(vmtVal, bInvert = False):
     if bInvert: vmtVal = not int(vmtVal)
         #return str(int(not int(vmtVal)))
@@ -569,9 +599,10 @@ vmt_to_vmat = {
     '$detailblendmode': ('F_DETAIL_TEXTURE',        '1', [mapped_val, {'0':'1', '1':'2', '12':'0'} ]),  # https://developer.valvesoftware.com/wiki/$detail#Parameters_and_Effects
     '$decalblendmode':  ('F_DETAIL_TEXTURE',        '1', [mapped_val, {'0':'1', '1':'2', '12':'0'} ]),  # materialsystem\stdshaders\BaseVSShader.h#L26
     '$sequence_blend_mode': ('F_FAST_SEQUENCE_BLEND_MODE', '1', [mapped_val, {'0':'1', '1':'2', '2':'3'}]),
-
+    '$gradientmodulation':  ('F_GRADIENTMODULATION', '1'),
     '$selfillum_envmapmask_alpha': ('F_SELF_ILLUM', '1'),
-
+    '$forceenvmap':     ('F_REFLECTION_TYPE', 1),  # Water reflection type
+    '$addbumpmaps':     ('F_ADDBUMPMAPS',     1),
     "$masks1": ('F_MASKS_1',    '1') if EXPORT_MOD == "dota" else None,  #
     "$masks2": ('F_MASKS_2',    '1') if EXPORT_MOD == "dota" else None,  #
 
@@ -601,6 +632,7 @@ vmt_to_vmat = {
                         ('TextureLayer1RevealMask', '_blend',  [createMask, 'G', False], ('F_BLEND', 1)),
     ## Layer 1
     '$basetexture2':    ('TextureColorB' if NEW_SH else 'TextureLayer1Color',  '_color',  [formatNewTexturePath]),
+    # There is also Texture2Color, F_TWOTEXTURE, Texture2Translucency, g_vTexCoord2
     '$texture2':        ('TextureColorB' if NEW_SH else 'TextureLayer1Color',   '_color',  [formatNewTexturePath]),  # UnlitTwoTexture
     '$bumpmap2':        ('TextureNormalB' if NEW_SH else 'TextureLayer1Normal', '_normal', [formatNewTexturePath], None if NEW_SH else ('F_BLEND_NORMALS',  1)),
 
@@ -643,31 +675,42 @@ vmt_to_vmat = {
     },
 },
 
-'transform': {
-    '$basetexturetransform':    ('g_vTex'),  # g_vTexCoordScale "[1.000 1.000]"g_vTexCoordOffset "[0.000 0.000]"
-    '$detailtexturetransform':  ('g_vDetailTex'),  # g_flDetailTexCoordRotation g_vDetailTexCoordOffset g_vDetailTexCoordScale g_vDetailTexCoordXform
-    '$bumptransform':           ('g_vNormalTex'),
-    #'$bumptransform2':         (''),
-    #'$basetexturetransform2':  (''),   #
-    #'$texture2transform':      (''),   #
-    #'$blendmasktransform':     (''),   #
-    #'$envmapmasktransform':    (''),   #
-    #'$envmapmasktransform2':   (''),   #
-
+'transform': {  # Center Scale Rotation Offset F_TEXTURETRANSFORMS
+    '$basetexturetransform':    ('g_vTexCoord'),  # g_vLayer1TexCoord for blends F_LAYERS
+    '$detailtexturetransform':  ('g_vDetailTexCoord'),  #  g_vDetailTexCoordXform
+    '$bumptransform':           ('g_vNormalTexCoord'),  # g_vLayer1NormalTexCoord for blends F_LAYERS
+    '$blendmodulatetransform':  ('g_vBlendModulateTexCoord'),
+    '$bumptransform2':          ('g_vLayer2NormalTexCoord'),
+    '$basetexturetransform2':   ('g_vLayer2TexCoord'),
+    '$texture2transform':       ('g_vTexCoord2'),
+    #'$blendmasktransform':      (''),
+    #'$envmapmasktransform':     (''),
+    #'$envmapmasktransform2':    (''),
 },
 
 'settings': {
 
-    '$detailblendfactor':   ('g_flDetailBlendFactor',   '1.000',                    [float_val]), #'$detailblendfactor2', '$detailblendfactor3'
-    '$detailscale':         ('g_vDetailTexCoordScale',  '[1.000 1.000]',            [fixVector, False]),
+    '$detailblendfactor':   ('g_flDetailBlendFactor',   '1.000', [float_val]), #'$detailblendfactor2', '$detailblendfactor3'
+    '$detailscale':         ('g_vDetailTexCoordScale',  '[1.000 1.000]', [fixVector, False]),
+    '$detailscale2':        ('g_vLayer2DetailScale',    '[1.000 1.000]', [fixVector, False]),
 
     '$color':               ('g_vColorTint',        '[1.000 1.000 1.000 0.000]',    [fixVector, True]),
     '$color2':              ('g_vColorTint',        '[1.000 1.000 1.000 0.000]',    [fixVector, True]),
     '$selfillumtint':       ('g_vSelfIllumTint',    '[1.000 1.000 1.000 0.000]',    [fixVector, True]),
     '$envmaptint':          ('g_vSpecularColor',    '[1.000 1.000 1.000 0.000]',    [fixVector, True]),
     '$emissiveblendtint':   ('g_vEmissiveTint',     '[1.000 1.000 1.000 0.000]',    [fixVector, True]),
+    '$layertint1':          ('g_vLayer1Tint',       '[1.000 1.000 1.000 0.000]',    [fixVector, True]),
+    '$layertint2':          ('g_vLayer2Tint',       '[1.000 1.000 1.000 0.000]',    [fixVector, True]),
+    '$reflecttint':         ('g_vReflectionTint',   '[1.000 1.000 1.000 0.000]',    [fixVector, True]),
+    '$refracttint':         ('g_vRefractionTint',   '[1.000 1.000 1.000 0.000]',    [fixVector, True]),
+    '$fogcolor':            ('g_vWaterFogColor',    '[1.000 1.000 1.000 0.000]',    [fixVector, True]),    
 
-    # s1 channels relative to each other "[0 0 0]" = "[1 1 1]" (lum preserving) -> s2 is color so it has a birghtness factor within it
+    '$gradientcolorstop0':  ('g_vGradientColorStop0', '[1.000 1.000 1.000 0.000]',  [fixVector, True]),
+    '$gradientcolorstop1':  ('g_vGradientColorStop1', '[1.000 1.000 1.000 0.000]',  [fixVector, True]),
+    '$gradientcolorstop2':  ('g_vGradientColorStop2', '[1.000 1.000 1.000 0.000]',  [fixVector, True]),
+
+    
+    # s1 channels relative to each other "[0 0 0]" = "[1 1 1]" (lum preserving) -> s2 is color so it has a brightness factor within it
     # perhaps default to 0.5 0.5 0.5 and scale it with $phongboost, etc
     '$phongtint':           ('g_vSpecularColor',    '[1.000 1.000 1.000 0.000]',    [fixVector, True]),
 
@@ -679,10 +722,21 @@ vmt_to_vmat = {
     '$phongboost':          ('g_flPhongBoost',          '1.000',    [float_val]),  #
     '$metalness':           ('g_flMetalness',           '0.000',    [float_val]),
     '$_metalness2':         ('g_flMetalnessB',          '0.000',    [float_val]),
-    '$refractamount':       ('g_flRefractScale',        '0.200',    [float_val]),
+    '$reflectamount':       ('g_flReflectionAmount',    '',         [float_val]),
+    '$refractamount':       ('g_flRefractionAmount',    '',         [float_val]),
+    #'$refractamount':       ('g_flRefractScale',        '0.200',    [float_val]),
     '$flow_worlduvscale':   ('g_flWorldUvScale',        '1.000',    [float_val]),
     '$flow_noise_scale':    ('g_flNoiseUvScale',        '0.010',    [float_val]),  # g_flNoiseStrength?
-    '$flow_bumpstrength':   ('g_flnormalmap_listtrength',   '1.000',    [float_val]),
+    '$flow_bumpstrength':   ('g_flBumpStrength',        '',         [float_val]),
+    '$flow_timescale':      ('g_flFlowTimeScale',       '',         [float_val]),
+    '$flow_normaluvscale':  ('g_flNormalUvScale',       '',         [float_val]),
+    '$flow_timeintervalinseconds': ('g_flNormalFlowTimeIntervalInSeconds', '', [float_val]),
+    '$flow_uvscrolldistance':      ('g_flNormalFlowUvScrollDistance', '', [float_val]),
+    
+    '$forcefresnel':('g_flReflectance', '', [float_val]), # requires F_FRESNEL
+    '$fogend':      ('g_flWaterDepth',  '', [float_val]),
+    '$fogstart':    ('g_flWaterStart',  '', [float_val]),
+
 
     '$nofog':   ('g_bFogEnabled',       '0',        [int_val, True]),
     "$notint":  ('g_flModelTintAmount', '1.000',    [int_val, True]),
@@ -698,6 +752,21 @@ vmt_to_vmat = {
     '$layerborderoffset':   ('g_flLayer1BorderOffset',  '0.000',    [float_val]),
     '$layerbordersoftness': ('g_flLayer1BorderSoftness','0.500',    [float_val]),
     '$layerbordertint':     ('g_vLayer1BorderColor',    '[1.000000 1.000000 1.000000 0.000000]', [fixVector, True]),
+
+    # Diferent names in source1import.exe why?
+    ('$newlayerblending', 1): {  # F_FANCY_BLENDING
+        '$layerbordertint':     ('g_vLayerBorderTint',      '[1.000000 1.000000 1.000000 0.000000]', [fixVector, True]),
+        '$blendsoftness':       ('g_flBlendSoftness',       '0.500',    [float_val]),
+        '$layerborderstrength': ('g_flLayerBorderStrength', '0.500',    [float_val]),
+        '$layerborderoffset':   ('g_flLayerBorderOffset',   '0.000',    [float_val]),
+        '$layerbordersoftness': ('g_flLayerBorderSoftness', '0.500',    [float_val]),
+#F_TEXTURETRANSFORMS TextureLayer1Detail g_vLayer1DetailScale $detailtint     
+# $bumpdetailscale1       $bumpdetailscale2       g_vLayer1DetailTintAndBlend     
+# $detail2        TextureLayer2Detail     $detailScale2   g_vLayer2DetailScale    
+# $detailtint2    g_vLayer2DetailTintAndBlend     F_DETAILTEXTURE 
+# $detailblendmode F_DETAILBLENDMODE 
+# F_SPECULAR F_SPECULAR_CUBE_MAP DecalColor DecalTranslucency       [1.000000 1.000000 1.000000 1.000000]
+    }
 },
 
 'channeled_masks': {  # 1-X will extract and invert channel X // M_1-X to only invert on models
@@ -735,6 +804,9 @@ vmt_to_vmat = {
 
 'SystemAttributes': {
     '$surfaceprop':     ('PhysicsSurfaceProperties', 'default', [fixSurfaceProp])
+    #'$surfaceprop2'
+    #'$surfaceprop3'
+    #'$surfaceprop4'
 },
 
 'texture_settings': {
@@ -890,13 +962,13 @@ def convertVmtToVmat():
 
                 # scale 5 5 -> g_vTexCoordScale "[5.000 5.000]"
                 if(transform.scale != (1.000, 1.000)):
-                    outKey = vmatReplacement + 'CoordScale'
+                    outKey = vmatReplacement + 'Scale'
                     outVal = fixVector(transform.scale, False)
                     vmat.KeyValues[outKey] = outVal
 
                 # translate .5 2 -> g_vTexCoordOffset "[0.500 2.000]"
                 if(transform.translate != (0.000, 0.000)):
-                    outKey = vmatReplacement + 'CoordOffset'
+                    outKey = vmatReplacement + 'Offset'
                     outVal = fixVector(transform.translate, False)
                     vmat.KeyValues[outKey] = outVal
 
@@ -938,10 +1010,7 @@ def convertVmtToVmat():
                 outVal =  createMask(vmt.KeyValues[sourceTexture], sourceSubString, sourceChannel, shouldInvert)
 
             elif keyType == 'SystemAttributes':
-                if not vmat.KeyValues['SystemAttributes']:
-                    vmat.KeyValues['SystemAttributes'] = {}
-
-                vmat.KeyValues['SystemAttributes'][outKey] = outVal
+                vmat.KeyValues.setdefault('SystemAttributes', {})[outKey] = outVal
                 continue
 
             try:
@@ -960,24 +1029,16 @@ def convertVmtToVmat():
         ## if f_specular use this else use "[1.000000 1.000000 1.000000 0.000000]"
         # 2way blend has specular force enabled so maxing the rough should minimize specularity TODO
         if not vmat.shader == "vr_simple_2way_blend":
-            if "TextureRoughness" not in vmat.KeyValues:
-                vmat.KeyValues["TextureRoughness"] = "materials/default/default_rough_s1import.tga"
+            vmat.KeyValues.setdefault("TextureRoughness", "materials/default/default_rough_s1import.tga")
         else:
             default_rough = "materials/default/default_rough_s1import.tga"
             if vmat.KeyValues['F_SPECULAR'] == 1: # TODO: phong2 envmap2 and those sorts of stuff
                 default_rough = "[1.000000 1.000000 1.000000 0.000000]"
 
-            if "TextureRoughnessA" not in vmat.KeyValues:
-                vmat.KeyValues["TextureRoughnessA"] = default_rough
-
-            if "TextureRoughnessB" not in vmat.KeyValues:
-                vmat.KeyValues["TextureRoughnessB"] = default_rough
+            vmat.KeyValues.setdefault("TextureRoughnessA", default_rough)
+            vmat.KeyValues.setdefault("TextureRoughnessB", default_rough)
 
 def convertSpecials():
-
-    if bumpmap := vmt.KeyValues["$bumpmap"]:
-        vmt.KeyValues["$normalmap"] = bumpmap
-        del vmt.KeyValues["$bumpmap"]
 
     # fix phongmask logic
     if vmt.KeyValues["$phong"] == 1 and not vmt.KeyValues["$phongmask"]:
@@ -1182,6 +1243,9 @@ def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False):
     if proxies:= vmt.KeyValues["proxies"]:
         vmat.KeyValues['DynamicParams'] = ProxiesToDynamicParams(proxies, KNOWN, vmt.KeyValues)
         print(vmat.KeyValues['DynamicParams'])
+
+    if PRINT_LEGACY_IMPORT:
+        vmat.KeyValues['legacy_import'] = vmt.KeyValues.as_value()
 
     with open(vmat.path, 'w') as vmatFile:
         msg(vmt.shader + " => " + vmat.shader, "\n")#, vmt.KeyValues)
