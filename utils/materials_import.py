@@ -51,7 +51,11 @@ sh.importing = materials
 
 skybox = Path("skybox")
 SKY_FACES = ('up', 'dn', 'lf', 'rt', 'bk', 'ft')
-HDRCOMPRESS_FIX_MUL = 1.8 # 1.6 to 2.2
+
+# Higher values increase brightness
+HDRCOMPRESS_FIX_MUL = 4  # 1 to 16
+# Higher values increase vibrance and contrast
+HDRCOMPRESS_FIX_EXP = 1.6  # 1 to 2.2
 
 class ValveMaterial:
     def __init__(self, shader, kv):
@@ -402,19 +406,20 @@ def createSkyCubemap(json_collection: Path, maxFaceRes: int = 0):
 
             SkyCubemapImage[pasteCoord[1]:pasteCoord[1]+faceImage.shape[0],
                             pasteCoord[0]:pasteCoord[0]+faceImage.shape[1]] = np.flipud(faceImage)
-        
+
     if hdrType is None:
         SkyCubemapImage.save(sky_cubemap_path)
-    elif hdrType == 'compressed':
+    elif hdrType == 'uncompressed':
+        PFM.write_pfm(sky_cubemap_path, SkyCubemapImage)
+    else:
         # https://developer.valvesoftware.com/wiki/Valve_Texture_Format#:~:text=RGB%20%3D%20(RGB%20*%20(A%20*%2016))%20/%20262144
-        # Huge thanks to https://stackoverflow.com/questions/59990455/
-        compressed_array = np.asarray( SkyCubemapImage, dtype='uint8' )
-        uncompress = ((compressed_array[:,:,:3] / 262144 * 16 * HDRCOMPRESS_FIX_MUL) * compressed_array[:,:,[-1]]).astype(np.float32)
+        compressed_array = np.asarray( SkyCubemapImage, dtype='uint32')
+        RGB = compressed_array[:,:,:3]
+        A = compressed_array[:,:,[-1]]
+        uncompress = (((RGB * (A * 16) / 262144) * HDRCOMPRESS_FIX_MUL) ** HDRCOMPRESS_FIX_EXP).astype(np.float32)
         # one between source2 and GIMP is reading the PFM flipped upside down. uncomment to display correctly on GIMP
         #uncompress = np.flipud(uncompress)
         PFM.write_pfm(sky_cubemap_path, uncompress)
-    else:
-        PFM.write_pfm(sky_cubemap_path, SkyCubemapImage)
 
     return sky_cubemap_path
 
@@ -1125,6 +1130,7 @@ def collectSkybox(name:str, face: str, vmt: VMT):
             face_path_new = sh.output(legacy_skyfaces / face_path.name)
             if face_path.is_file():
                 face_path.parent.MakeDir()
+                face_path_new.unlink(missing_ok=True)
                 face_path.rename(face_path_new)
             face_path = face_path_new
 
