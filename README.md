@@ -19,7 +19,7 @@ All set. Use `python materials_import.py --help` or read below examples to get s
 Scripts are launched via command line, and as such need command line arguments:
 
 **-i** \<dir\> This should be an absolute path pointing into a source1 game directory containing gameinfo.txt  
-**-e** \<dir/modname\> Path to source2 mod. Dir may or may not contain gameinfo.gi defining `Source1Import { }`. Modname (e.g. `-e portal2_imported`) instead of absolute path allowed if **-i** points to a dir set into a source2 /game/ environment that contains modname).
+**-e** \<dir/modname\> Path to source2 mod. Dir may or may not contain gameinfo.gi defining `Source1Import { }`. Modname (e.g. `-e portal2_imported`) instead of absolute path allowed only if **-i** points to a dir set into a source2 /game/ environment that contains modname).
 
 ### Usage examples:
 ```bash

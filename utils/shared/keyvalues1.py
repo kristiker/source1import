@@ -6,7 +6,7 @@ from collections import Counter
 from typing import Any, Optional, Union
 from pathlib import Path
 try:
-    from .cppkeyvalues import KeyValues, CUtlBuffer, CKeyValuesTokenReader
+    from cppkeyvalues import KeyValues, CUtlBuffer, CKeyValuesTokenReader
 except ImportError:
     from shared.cppkeyvalues import KeyValues, CUtlBuffer, CKeyValuesTokenReader
 
@@ -70,7 +70,7 @@ class VDFDict(dict):
             if key not in self:
                 raise KeyError("%s doesn't exist" % repr(key))
         else:
-            raise TypeError("Expected either a str or tuple for key")
+            raise TypeError("Expected either a str or tuple for key, got %s, %s" % (type(key), key))
         if isinstance(value, dict):
             value = VDFDict(value)
         super().__setitem__(key, value)
@@ -216,13 +216,15 @@ class VDFDict(dict):
             return False
 
         return dict_recurse(self)
-    def ToStr(self, level = 0):
+    def ToStr(self, level = 0, quoteKeys=False):
         line_indent = '\t' * level
         s = ""
         s += "\n" + line_indent + '{\n'
         for key, value in self.items():
+            if quoteKeys:
+                key = '"'+key+'"'
             if isinstance(value, VDFDict):
-                s += line_indent + f"\t{key}{value.ToStr(level+1)}"
+                s += line_indent + f"\t{key}{value.ToStr(level+1, quoteKeys)}"
             else:
                 s += line_indent + f'\t{key}\t"{value}"\n'
         s += line_indent + "}\n"
@@ -239,7 +241,7 @@ class KV(VDFDict):
     @classmethod
     def FromFile(cls, file: Union[str, bytes, Path], case_sensitive=False, escape=False, **params):
         with open(file, 'r') as f:
-            return cls.FromBuffer(f.read(), case_sensitive, escape, **params)
+            return cls.FromBuffer(f.read(), file, case_sensitive, escape, **params)
 
     @classmethod
     def CollectionFromFile(cls, file: Path, case_sensitive=False, escape=False, **params):
@@ -261,7 +263,7 @@ class KV(VDFDict):
         cppkv.RecursiveLoadFromBuffer(resourceName, CKeyValuesTokenReader(CUtlBuffer(buf)), True)
         return cls(cppkv.keyName, cppkv.value.ToBuiltin())
 
-    def __init__(self, keyName, value) -> None:
+    def __init__(self, keyName, value = {}) -> None:
         self.keyName = keyName
         super().__init__(value)
 
@@ -272,6 +274,18 @@ class KV(VDFDict):
         except KeyError:
             return
 
+    def setdef_instance(self, key, obj):
+        raise NotImplementedError
+        "setdefault but with type (dict, genericvalue)"
+        get = self[key]
+        if get is None:
+            self.add(key, obj)
+            return obj
+        elif not isinstance(get, type(obj)):
+            self[key] = obj
+            return obj
+        return get
+
     def __repr__(self):
         return f"{self.__class__.__name__}({self.keyName!r}, {list(self.iteritems())!r})"
 
@@ -281,16 +295,16 @@ class KV(VDFDict):
     def as_value(self):
         return VDFDict({self.keyName:self})
 
-    def ToStr(self, level=0):
+    def ToStr(self, level=0, quoteKeys=False):
         line_indent = "\t" * level
-        return line_indent + f'"{self.keyName}"{super().ToStr(level)}'
+        return line_indent + f'"{self.keyName}"{super().ToStr(level, quoteKeys)}'
 
-    def save(self, path):
+    def save(self, path, quoteKeys=False):
         with open(path, 'w') as fp:
-            fp.write(self.ToStr())
+            fp.write(self.ToStr(quoteKeys=quoteKeys))
 
     def ToKeyValues(self):
-        raise NotImplemented
+        raise NotImplementedError
         kv = KeyValues(self.keyName)
         kv.Sub = []
         for k, v in self.items():

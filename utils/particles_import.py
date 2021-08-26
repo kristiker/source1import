@@ -39,14 +39,6 @@ class ObjectP:
     def __repr__(self):
         return f"{self.__class__.__name__}('{self.mother}', '{self.name}')"
 
-class watch:
-    def __init__(self, t):
-        self.key = t
-    def __call__(self,oldval):
-        print(self.key, oldval)
-        input()
-        return self.key, oldval
-
 class remap:
     def __init__(self, t, map):
         self.key = t
@@ -2033,7 +2025,7 @@ def dict_to_kv3_text(
                 s +=  ind + f"{key} = {obj_serialize(value, indent+1, dictKey=True)}\n"
             return s + preind + '}'
         else: # likely an int, float
-            # round off inaccurate dmx floats TODO: does this make any diff
+            # round off inaccurate dmx floats
             if type(obj) == float:
                 obj = round(obj, 6)
             return str(obj)
@@ -2073,7 +2065,7 @@ class VPCF(dict):
 
         self._base_t = dict(
             m_Renderers = dict(
-                m_bFogParticles = True
+                #m_bFogParticles = True
             )
         )
 
@@ -2082,14 +2074,15 @@ class VPCF(dict):
 
 vpcf = None
 
-def _import_single_PartSysDef(ParticleSystemDefinition: dmx.Element, out_root: Path, bOverwrite = True) -> VPCF:
+def ImportPSD(ParticleSystemDefinition: dmx.Element, out_root: Path, bOverwrite = True) -> VPCF:
     "Import Source1 Particle System Definition DMX Element into Source2 KV3 Particle file"
     global vpcf
     vpcf = VPCF(
-        path = out_root / (ParticleSystemDefinition.name + '.vpcf'),
+        path = sh.source2namefixup(out_root / (ParticleSystemDefinition.name + '.vpcf')),
         m_nBehaviorVersion = BEHAVIOR_VERSION
     )
 
+    sh.RemapTable.remap('vpcf', ParticleSystemDefinition.name, vpcf.path.local.as_posix())
     imports.append(vpcf.path.local.as_posix())
 
     if not bOverwrite and vpcf.path.exists():
@@ -2129,21 +2122,22 @@ def ImportPCFtoVPCF(pcf_path: Path, bOverwrite=True):
         return
 
     if not is_valid_pcf(pcf):
-        print("Invalid!!")
-        print(pcf.elements[0].keys())
-        print(pcf.elements[1].type)
+        print("Invalid!!", pcf.elements[0].keys(), pcf.elements[1].type)
         return
 
     out_root = sh.output(pcf_path.with_suffix(""))
-    out_root.mkdir(parents = True, exist_ok=True)
-    return set((
-            _import_single_PartSysDef(
+    out_root.MakeDir()
+    rv =  set((
+            ImportPSD(
                 ParticleSystemDefinition,
                 out_root,
                 bOverwrite
             )
         for ParticleSystemDefinition in pcf.find_elements(elemtype='DmeParticleSystemDefinition')
     ))
+    
+    sh.RemapTable.save()  # RebuildParticleNameRemapTable
+    return rv
 
 if __name__ == '__main__':
     main()

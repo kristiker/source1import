@@ -8,7 +8,6 @@ from shared.keyvalue_simple import getKV_tailored as getKeyValues
 from shared.keyvalues1 import KV
 from shared.materials.proxies import ProxiesToDynamicParams
 
-import time
 import numpy as np
 from shared import PFM
 
@@ -624,6 +623,7 @@ vmt_to_vmat = {
     '$basetexture':     ('TextureColor',        '_color',   [formatNewTexturePath]),
     '$painttexture':    ('TextureColor',        '_color',   [formatNewTexturePath]),
     '$material':        ('TextureColor',        '_color',   [formatNewTexturePath]),
+    '$modelmaterial':   ('TextureColor',        '_color',   [formatNewTexturePath]),
     '$compress':        ('TextureSquishColor',  '_color',   [formatNewTexturePath], ('F_MORPH_SUPPORTED', 1), ('F_WRINKLE', 1)),
     '$stretch':         ('TextureStretchColor', '_color',   [formatNewTexturePath], ('F_MORPH_SUPPORTED', 1), ('F_WRINKLE', 1)),
 
@@ -702,7 +702,7 @@ vmt_to_vmat = {
     '$color':               ('g_vColorTint',        '[1.000 1.000 1.000 0.000]',    [fixVector, True]),
     '$color2':              ('g_vColorTint',        '[1.000 1.000 1.000 0.000]',    [fixVector, True]),
     '$selfillumtint':       ('g_vSelfIllumTint',    '[1.000 1.000 1.000 0.000]',    [fixVector, True]),
-    '$envmaptint':          ('g_vSpecularColor',    '[1.000 1.000 1.000 0.000]',    [fixVector, True]),
+    '$envmaptint':          ('g_vEnvironmentMapTint','[1.000 1.000 1.000 0.000]',    [fixVector, True]), # g_vSpecularColor
     '$emissiveblendtint':   ('g_vEmissiveTint',     '[1.000 1.000 1.000 0.000]',    [fixVector, True]),
     '$layertint1':          ('g_vLayer1Tint',       '[1.000 1.000 1.000 0.000]',    [fixVector, True]),
     '$layertint2':          ('g_vLayer2Tint',       '[1.000 1.000 1.000 0.000]',    [fixVector, True]),
@@ -713,7 +713,7 @@ vmt_to_vmat = {
     '$gradientcolorstop0':  ('g_vGradientColorStop0', '[1.000 1.000 1.000 0.000]',  [fixVector, True]),
     '$gradientcolorstop1':  ('g_vGradientColorStop1', '[1.000 1.000 1.000 0.000]',  [fixVector, True]),
     '$gradientcolorstop2':  ('g_vGradientColorStop2', '[1.000 1.000 1.000 0.000]',  [fixVector, True]),
-
+    '$uvscale':             ('g_flTexCoordScale', '', [float_val]),
     
     # s1 channels relative to each other "[0 0 0]" = "[1 1 1]" (lum preserving) -> s2 is color so it has a brightness factor within it
     # perhaps default to 0.5 0.5 0.5 and scale it with $phongboost, etc
@@ -744,10 +744,12 @@ vmt_to_vmat = {
 
 
     '$nofog':   ('g_bFogEnabled',       '0',        [int_val, True]),
-    "$notint":  ('g_flModelTintAmount', '1.000',    [int_val, True]),
+    '$notint':  ('g_flModelTintAmount', '1.000',    [int_val, True]),
+    '$allowdiffusemodulation': ('g_flModelTintAmount', '1.000',    [int_val]),
 
     # rimlight
-    '$rimlightexponent':    ('g_flRimLightScale',   '1.000',    [float_val]),
+    '$rimlightscale':    ('g_flRimLightScale',   '1.000',    [float_val]),
+    '$rimlightcolor':    ('g_vRimLightColor'    '[1.000000 1.000000 1.000000 0.000000]', [fixVector, True]),
     #'$warpindex':           ('g_flDiffuseWrap',         '1.000',    [float_var]),  # requires F_DIFFUSE_WRAP 1. "?
     #'$diffuseexp':          ('g_flDiffuseExponent',     '2.000',    [float_var], 'g_vDiffuseWrapColor "[1.000000 1.000000 1.000000 0.000000]'),
 
@@ -1193,7 +1195,7 @@ def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False):
     global vmt, vmat
     validMaterial = False
 
-    vmt = VMT(KV.FromFile(vmt_path))
+    vmt = VMT(KV.FromFile(vmt_path))  # Its actually a collection - needs CollectionFromFile
     vmt.path = vmt_path
 
     if any(wd in vmt.shader for wd in shaderDict):

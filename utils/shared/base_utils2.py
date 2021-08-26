@@ -3,7 +3,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from enum import Enum
 from types import GeneratorType
-
+try:
+    from keyvalues1 import KV
+except ImportError:
+    from shared.keyvalues1 import KV
 
 import argparse
 arg_parser = argparse.ArgumentParser(usage = "-src1gameinfodir <s1gameinfodir> -game <s2 mod> [<src1 file or folder>]") # -filter <substring> [optional] Filter for matching files
@@ -123,6 +126,31 @@ _recurse = lambda: import_context['recurse']
 _src = lambda: import_context['src']
 _dest = lambda: import_context['dest']
 
+class KVUtilFile(KV):
+    @classmethod
+    def RemapTable(cls):
+        cls.path = EXPORT_CONTENT / "source1import_name_remap_table.txt"
+        keyName = "name_remap_table"
+
+        def remap(self, extType: str, s1Name: str, s2Remap: str):
+            # Remap. Don't remap and WARN if already remapped.
+            if not isinstance(self.get(extType), dict):
+                self[extType] = {}
+
+            exist = self[extType].setdefault(s1Name, s2Remap)
+            if exist != s2Remap:
+                WARN(f"Remap entry for '{s1Name}' -> '{s2Remap}' conflicts with existing value of '{exist}' (ignoring))")
+        cls.remap = remap
+        rv = cls(keyName)
+        if cls.path.is_file():
+            rv.update(cls.FromFile(cls.path, case_sensitive=True))
+        return rv
+
+    def save(self):
+        return super().save(self.path, quoteKeys=True)
+
+RemapTable = KVUtilFile.RemapTable()
+
 class Importable:
     src: Path = import_context['src']
     dest: Path = import_context['dest']
@@ -181,12 +209,13 @@ def src(local_path) -> Path:
 def output(input, out_ext=None, dest=_dest()) -> Path:
     try: out = dest / input.local
     except Exception: out = dest / input
+    #out = source2namefixup(out)
     if out_ext is not None:
         return out.with_suffix(out_ext)
     return out
 
 def source2namefixup(path):
-    return path.without_spaces()
+    return path.parent / path.name.lower().replace(' ', '_')
 
 #def overwrite_allowed(path, bAllowed=import_context['overwrite']):
 #    return path.exists() and bAllowed
@@ -271,6 +300,10 @@ DEBUG = False
 def msg(*args, **kwargs):
     if DEBUG:
         print("@ DBG:", *args, **kwargs)
+
+def warn(*args, **kwargs): print("WARNING:", *args, **kwargs)
+def WARN(*args, **kwargs):  # TODO: source1importwarnings_lastrun.txt
+    print("*** WARNING:", *args, **kwargs)
 
 __last_status_len = 0
 def status(text):
