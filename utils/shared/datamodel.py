@@ -164,7 +164,7 @@ class _Vector(list):
 	def __init__(self,l):
 		if len(l) != len(self.type_str):
 			raise TypeError("Expected {} values, got {}".format(len(self.type_str), len(l)))
-		l = _validate_array_list(l,float)
+		l = _validate_array_list(l,float if not self.__class__.__name__ == 'Color' else int)
 		super().__init__(l)
 		
 	def __repr__(self):

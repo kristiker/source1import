@@ -1,3 +1,4 @@
+from typing import Union
 from dataclassy import dataclass, factory
 import shared.base_utils2 as sh
 from shared.keyvalues1 import KV
@@ -10,8 +11,15 @@ from shared.datamodel import (
     _ElementArray as element_array,
     _IntArray as int_array,
     _StrArray as string_array,
+    _VectorArray as vector_array,
+    _Vector2Array as vector2_array,
+    _Vector3Array as vector3_array,
+    _Vector4Array as vector4_array,
+
 )   
 string = str
+
+# https://developer.valvesoftware.com/wiki/Valve_Map_Format
 
 @sh.s1import('.vmf')
 def ImportVMFtoVMAP_TXT(vmf_path, vmap_path, move_s1_assets = False):
@@ -60,30 +68,18 @@ def main_to_root(main_key: str, sub):
             replacement, _type = RootDict[main_key][t]
             vmap[replacement] = _type(sub[t])
 
-class _SubElement:
-    def __new__(cls, *args):
-        if cls is not _SubElement:
-            print("_SubElement -> ", cls.__name__)
-            dc = super(_SubElement, cls).__new__(cls, *args)
-            el = dmx.Element(vmap, "", elemtype=cls.__name__)
-            el.update(dc.__dict__)
-            return el
-        return super(_SubElement, cls).__new__(cls, *args)
-
-class EditGameClassProps(_SubElement):
-    # Everything is a string
-    def __init__(self, **kv: str):
-        self.__dict__.update(**kv)
-
 @dataclass
-class DmePlugList(_SubElement):
-    names: string_array = factory(string_array)
-    dataTypes: int_array = factory(int_array)
-    plugTypes: int_array = factory(int_array)
-    descriptions: string_array = factory(string_array)
+class _CustomElement:
+    def get_element(self, dm: dmx.DataModel) -> dmx.Element:
+        "py object 2 datamodel element"
+        el = dmx.Element(dm, "", self.__class__.__name__)
+        for k, v in self.__dict__.items():
+            if hasattr(v, 'get_element'):
+                v = v.get_element(dm)
+            el[k] = v
+        return el
 
-@dataclass
-class _BaseEnt:#(_T):
+class _BaseNode(_CustomElement):
     origin: vector3 = factory(lambda:vector3([0,0,0]))
     angles: qangle = factory(lambda:qangle([0,0,0]))
     scales: vector3 = factory(lambda:vector3([1,1,1]))
@@ -95,9 +91,6 @@ class _BaseEnt:#(_T):
     transformLocked: bool = False
     variableTargetKeys: string_array = factory(string_array)
     variableNames: string_array = factory(string_array)
-    relayPlugData: DmePlugList = factory(DmePlugList)
-    connectionsData: element_array = factory(element_array)
-    entity_properties: EditGameClassProps = factory(EditGameClassProps)
 
     def Value_to_Value2(self, k, v):
         "generic KV1 str value to typed KV2 value"
@@ -107,12 +100,12 @@ class _BaseEnt:#(_T):
         _type = self.__annotations__[k]
         if issubclass(_type, list):
             if issubclass(_type, dmx._Array):
-                print(v, "->", v.split(), "-> make_array", _type)
+                #print(v, "->", v.split(), "-> make_array", _type)
                 return dmx.make_array(v.split(), _type)
             else:
-                print(v, "->", v.split(), "-> vec[n]", _type)
+                #print(v, "->", v.split(), "-> vec[n]", _type)
                 return _type(v.split())
-        print(v, "->", _type(v))
+        #print(v, "->", _type(v))
         
         return _type(v)
 
@@ -122,8 +115,10 @@ class _BaseEnt:#(_T):
         baseDict = {}
         editorDict = {}
         for k, v in KV.items():
-            if k in ('id', 'name'):
-                continue
+            if k == 'id':
+                t.nodeID = t.Value_to_Value2('nodeID', v)
+            elif k == 'name':
+                t.name = v
             elif k in cls.__annotations__:
                 print("caling v_v2")
                 baseDict[k] = t.Value_to_Value2(k, v)
@@ -132,27 +127,54 @@ class _BaseEnt:#(_T):
             else:
                 print("Unknown editor object", k, type(v))
         t.__dict__.update(baseDict)
-        t.entity_properties.update(editorDict)
+        if hasattr(t, 'entity_properties'):
+            t.entity_properties.__dict__.update(editorDict)
         return t
 
-@dataclass
+class _BaseEnt(_BaseNode):#(_T):
+    class DmePlugList(_CustomElement):
+        names: string_array = factory(string_array)
+        dataTypes: int_array = factory(int_array)
+        plugTypes: int_array = factory(int_array)
+        descriptions: string_array = factory(string_array)
+    
+    class EditGameClassProps(_CustomElement):
+        # Everything is a string
+        def __init__(self, **kv: str):
+            self.__dict__.update(**kv)
+
+    relayPlugData: DmePlugList = factory(DmePlugList)
+    connectionsData: element_array = factory(element_array)
+    entity_properties: EditGameClassProps = factory(EditGameClassProps)
+
+
 class CMapWorld(_BaseEnt):
-    @dataclass
-    class CMapMesh(_BaseEnt):
-        @dataclass
-        class CDmePolygonMesh(_SubElement):
-            @dataclass
-            class CDmePolygonMeshDataArray(_SubElement):
+
+    @classmethod
+    def TRANSLATE(cls, versioninfo, visgroups,):
+        ...
+
+    class CMapGroup(_BaseNode):
+        pass
+
+    class CMapMesh(_BaseNode):
+        class CDmePolygonMesh(_CustomElement):
+            class CDmePolygonMeshDataArray(_CustomElement):
                 size: int = 8
                 streams: element_array = factory(element_array)
-            @dataclass
-            class CDmePolygonMeshSubdivisionData(_SubElement):
+            class CDmePolygonMeshSubdivisionData(_CustomElement):
                 subdivisionLevels: int_array = factory(int_array)
                 streams: element_array = factory(element_array)
 
-            @dataclass  # above element_array participant
-            class CDmePolygonMeshDataStream(_SubElement):
-                ...
+            # above element_array participant
+            class CDmePolygonMeshDataStream(_CustomElement):
+                standardAttributeName: str = "textureAxisU"
+                semanticName: str = "textureAxisU"
+                semanticIndex: int = 0
+                vertexBufferLocation: int = 0
+                dataStateFlags: int = 0
+                subdivisionBinding: dmx.Element = None#NullElement = 
+                data: Union[vector2_array, vector3_array, vector4_array]
 
             vertexEdgeIndices: int_array = factory(int_array)
             vertexDataIndices: int_array = factory(int_array)
@@ -183,7 +205,7 @@ class CMapWorld(_BaseEnt):
         renderToCubemaps: bool = True
         disableShadows: bool = False
         smoothingAngle: float = 40.0
-        tintColor: color = factory(color)
+        tintColor: color = factory(lambda: color([255,255,255,255]))
         renderAmt: int = 255
         physicsType: str = "default"
         physicsGroup: str = ""
@@ -195,7 +217,6 @@ class CMapWorld(_BaseEnt):
         physicsSimplificationOverride: bool = False
         physicsSimplificationError: float = 0.0
 
-    @dataclass
     class CMapEntity(_BaseEnt):
         hitNormal: vector3 = factory(lambda:vector3([0,0,1]))
         isProceduralEntity: bool = False
@@ -206,8 +227,8 @@ class CMapWorld(_BaseEnt):
             if KV.get('editor') is not None:
                 editorDict.update(KV.pop('editor'))
             rv = super(cls, cls).FromKeyValues(KV)
-            print(rv)
-            rv.entity_properties.update(editorDict)
+            #print(rv)
+            rv.entity_properties.__dict__.update(editorDict)
             return rv
 
     nextDecalID: int = 0
@@ -216,33 +237,49 @@ class CMapWorld(_BaseEnt):
 
     @classmethod
     def FromKeyValues(cls, KV: KV):
-        editorDict = {}
-        if KV.get('editor') is not None:
-            editorDict.update(KV.pop('editor'))
-
-        return super(cls, cls).FromKeyValues(KV)
+        children = []
+        grouped_children = {}
+        for (i, key), value in KV.items(indexed_keys=True):
+            if key == 'solid':
+                groupid, t_mesh = cls.translate_solid(value)
+                if groupid != None:
+                    grouped_children.setdefault(groupid, []).append(t_mesh)
+                else:
+                    children.append(t_mesh)
+        base = super().FromKeyValues(KV) # Base worldspawn entity properties.
+        world = cls(**base.__dict__)
+        world.children.extend(children)
+        return world
     
-    def translate_solid(s):
-        ...
+    @staticmethod
+    def translate_solid(keyvalues):
+        return None, CMapWorld.CMapMesh.FromKeyValues(keyvalues).get_element(vmap)
         
+    @staticmethod
+    def translate_ent(keyvalues):
+        classname = keyvalues['classname']
 
-def translate_ent(keyvalues):
-    classname = keyvalues['classname']
-
-    t_ent = dmx.Element(vmap, '', 'CMapEntity')
-    t_keyvalues = CMapWorld.CMapEntity.FromKeyValues(keyvalues).__dict__
-    t_ent.update(t_keyvalues)
-
-    vmap['world']['children'].append(t_ent)
-    return t_ent
+        t_ent = CMapWorld.CMapEntity.FromKeyValues(keyvalues)
+        print(vmap['world'], type(vmap['world']), vmap['world'].__dict__)
+        vmap['world']['children'].append(
+            t_ent.get_element(vmap)
+        )
+        return t_ent
 
 '(%f %f %f) (%f %f %f) (%f %f %f)'
 def translate_world(keyvalues):
-    t_world = CMapWorld.FromKeyValues(keyvalues).__dict__#dmx.Element(vmap, 's1imported_world', 'CMapWorld')
-    t_world["nodeID"] = 1
-    t_world["referenceID"] = uint64(0x0)
-
-    vmap['world'].update(t_world)
+    t_world = CMapWorld.FromKeyValues(keyvalues)#dmx.Element(vmap, 's1imported_world', 'CMapWorld')
+    #t_world["nodeID"] = 1
+    #t_world["referenceID"] = uint64(0x0)
+    #print("|||||||||||||||||||||")
+    #print(t_world)
+    #print("--->>>>>>>>>>>>>>>>>")
+    #print(t_world.get_element(vmap).items())
+    #print("____________________")
+    #input()
+    #for k, v in t_world.get_element(vmap).__dict__.items():
+    #    print(k, type(v), v)
+    vmap['world'] = t_world.get_element(vmap)#.update(t_world.get_element(vmap).__dict__)
 
 
 if __name__ == "__main__":
@@ -252,7 +289,7 @@ if __name__ == "__main__":
     vmap_dmx = dmx.load("utils/dev/box.vmap.txt")
     if False: # codegen
         # TODO: default factory value lambda:
-        for k, v in vmap_dmx.root['world']['children'][0]['meshData']['subdivisionData'].items():
+        for k, v in vmap_dmx.root['world']['children'][0]['meshData']['edgeData']['streams'][0].items():
             print(f"{k}: {type(v).__name__} = {v if not issubclass(type(v), list) else 'factory('+ type(v).__name__+')'}")
         quit()
     out_vmap = create_fresh_vmap()
@@ -274,6 +311,6 @@ if __name__ == "__main__":
     for (i, key), value in vmf.items(indexed_keys=True):
         if key != m.entity:
             continue
-        translate_ent(value)
+        CMapWorld.translate_ent(value)
 
     out_vmap.write("utils/dev/out.vmap.txt", 'keyvalues2', 4)
