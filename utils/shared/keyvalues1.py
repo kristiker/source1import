@@ -257,7 +257,7 @@ class KV(VDFDict):
     @classmethod
     def CollectionFromBuffer(cls, buf: str, resourceName: Path = None, case_sensitive=False, escape=False, **params):
         cppkv = KeyValues(
-            k="" if resourceName is None else resourceName.name,
+            k="" if resourceName is None else str(resourceName),
             case_sensitive = case_sensitive, escape = escape
         )
         cppkv.RecursiveLoadFromBuffer(resourceName, CKeyValuesTokenReader(CUtlBuffer(buf)), True)

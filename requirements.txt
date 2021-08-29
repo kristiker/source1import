@@ -1,3 +1,4 @@
 Pillow
 numpy
 vdf
+dataclassy
