@@ -1,3 +1,7 @@
+import sys
+if sys.version_info.minor != 8:
+    print("Python version 3.8 is required")
+    sys.exit(1)
 from typing import Union
 from dataclassy import dataclass, factory
 import shared.base_utils2 as sh
@@ -18,6 +22,10 @@ from shared.datamodel import (
 
 )   
 string = str
+
+"""
+Silly vmf to vmap test
+"""
 
 # https://developer.valvesoftware.com/wiki/Valve_Map_Format
 
@@ -40,33 +48,9 @@ class m(str, Enum):
     cordons = 'cordons'
 
 def create_fresh_vmap():
-    #out_vmap.prefix_attributes
-    #out_vmap.add_element("", "$prefix_element$")['map_asset_references'] = dmx.make_array([], str)
-    #rv.root = rv.add_element("s1imported_map", "CMapRootElement")
     boilerplate = dmx.load("utils/dev/empty.vmap.txt")
     boilerplate.prefix_attributes.type = "$prefix_element$"
-    #vmap = dmx.DataModel('vmap', 29)
-    #vmap.root = vmap.add_element("s1imported_map", "CMapRootElement")
-    #vmap.root.update(boilerplate.root)
-    
     return boilerplate
-RootDict = {
-    "versioninfo":{
-        "prefab": ("isprefab", bool),
-    },
-    "visgroups":{},
-    "viewsettings":{
-        "bShowGrid": ("showgrid", bool),
-        "nGridSpacing": ("gridspacing", float),
-        "bShow3DGrid": ("show3dgrid", bool),
-    },
-    "world":{},"entity":{},"hidden":{},"cameras":{},"cordon":{},"cordons":{},
-}
-def main_to_root(main_key: str, sub):
-    for t in RootDict[main_key]:
-        if t in sub:
-            replacement, _type = RootDict[main_key][t]
-            vmap[replacement] = _type(sub[t])
 
 @dataclass
 class _CustomElement:
@@ -226,6 +210,10 @@ class CMapWorld(_BaseEnt):
             editorDict = {}
             if KV.get('editor') is not None:
                 editorDict.update(KV.pop('editor'))
+            
+            if 'uniformscale' in KV:
+                KV['scales'] = KV['uniformscale']
+                del KV['uniformscale']
             rv = super(cls, cls).FromKeyValues(KV)
             #print(rv)
             rv.entity_properties.__dict__.update(editorDict)
@@ -253,7 +241,17 @@ class CMapWorld(_BaseEnt):
     
     @staticmethod
     def translate_solid(keyvalues):
-        return None, CMapWorld.CMapMesh.FromKeyValues(keyvalues).get_element(vmap)
+        groupid = keyvalues.get('editor', {}).get('groupid')
+        for (i, key), value in keyvalues.items(indexed_keys=True):
+            if key != 'side':
+                continue
+            
+            """
+            Go figure this out.
+            translate brush to source2 mesh
+            """
+            
+        return groupid, CMapWorld.CMapMesh.FromKeyValues(keyvalues).get_element(vmap)
         
     @staticmethod
     def translate_ent(keyvalues):
@@ -269,28 +267,46 @@ class CMapWorld(_BaseEnt):
 '(%f %f %f) (%f %f %f) (%f %f %f)'
 def translate_world(keyvalues):
     t_world = CMapWorld.FromKeyValues(keyvalues)#dmx.Element(vmap, 's1imported_world', 'CMapWorld')
-    #t_world["nodeID"] = 1
-    #t_world["referenceID"] = uint64(0x0)
     #print("|||||||||||||||||||||")
     #print(t_world)
     #print("--->>>>>>>>>>>>>>>>>")
     #print(t_world.get_element(vmap).items())
     #print("____________________")
-    #input()
-    #for k, v in t_world.get_element(vmap).__dict__.items():
-    #    print(k, type(v), v)
-    vmap['world'] = t_world.get_element(vmap)#.update(t_world.get_element(vmap).__dict__)
 
+    """Update the prefab empty world with our vmf translated world"""
+    vmap['world'].update(t_world.get_element(vmap).items())
+
+RootDict = {
+    "versioninfo":{
+        "prefab": ("isprefab", bool),
+    },
+    "visgroups":{},
+    "viewsettings":{
+        "bShowGrid": ("showgrid", bool),
+        "nGridSpacing": ("gridspacing", float),
+        "bShow3DGrid": ("show3dgrid", bool),
+    },
+    "world":{},"entity":{},"hidden":{},"cameras":{},"cordon":{},"cordons":{},
+}
+def main_to_root(main_key: str, sub):
+    for t in RootDict[main_key]:
+        if t in sub:
+            replacement, _type = RootDict[main_key][t]
+            vmap[replacement] = _type(sub[t])
 
 if __name__ == "__main__":
     #print('Source 2 VMAP TXT Generator!')
 
-    vmf = KV.CollectionFromFile("utils/dev/box.vmf", case_sensitive=True)
+    vmf = KV.CollectionFromFile("utils/dev/literal_box.vmf", case_sensitive=True)
     vmap_dmx = dmx.load("utils/dev/box.vmap.txt")
     if False: # codegen
         # TODO: default factory value lambda:
         for k, v in vmap_dmx.root['world']['children'][0]['meshData']['edgeData']['streams'][0].items():
             print(f"{k}: {type(v).__name__} = {v if not issubclass(type(v), list) else 'factory('+ type(v).__name__+')'}")
+        quit()
+    elif True:
+        from shared.maps.clean import _load_solid
+        _load_solid(vmf['world']['solid'], 'worldspawn')
         quit()
     out_vmap = create_fresh_vmap()
     vmap = out_vmap.root

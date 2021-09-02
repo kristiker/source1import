@@ -1,0 +1,388 @@
+"CMapMesh"
+{
+	"id" "elementid" "9912f919-d0ef-4241-b47e-2067838f6068"
+	"origin" "vector3" "0 0 0"
+	"angles" "qangle" "0 0 0"
+	"scales" "vector3" "1 1 1"
+	"nodeID" "int" "8"
+	"referenceID" "uint64" "0x8e0d165086423368"
+	"children" "element_array" 
+	[
+	]
+	"editorOnly" "bool" "0"
+	"force_hidden" "bool" "0"
+	"transformLocked" "bool" "0"
+	"variableTargetKeys" "string_array" 
+	[
+	]
+	"variableNames" "string_array" 
+	[
+	]
+	"cubeMapName" "string" ""
+	"lightGroup" "string" ""
+	"visexclude" "bool" "0"
+	"renderwithdynamic" "bool" "0"
+	"disableHeightDisplacement" "bool" "0"
+	"fademindist" "float" "-1"
+	"fademaxdist" "float" "0"
+	"bakelighting" "bool" "1"
+	"precomputelightprobes" "bool" "1"
+	"renderToCubemaps" "bool" "1"
+	"disableShadows" "bool" "0"
+	"smoothingAngle" "float" "40"
+	"tintColor" "color" "255 255 255 255"
+	"renderAmt" "int" "255"
+	"physicsType" "string" "default"
+	"physicsGroup" "string" ""
+	"physicsInteractsAs" "string" ""
+	"physicsInteractsWith" "string" ""
+	"physicsInteractsExclude" "string" ""
+	"meshData" "CDmePolygonMesh"
+	{
+		"id" "elementid" "69f27fc6-d2b6-4b48-aee7-fc584e57e06d"
+		"name" "string" "meshData"
+		"vertexEdgeIndices" "int_array" 
+		[
+			"0",
+			"2",
+			"4",
+			"6"
+		]
+		"vertexDataIndices" "int_array" 
+		[
+			"0",
+			"1",
+			"2",
+			"3"
+		]
+		"edgeVertexIndices" "int_array" 
+		[
+			"1",
+			"0",
+			"2",
+			"1",
+			"3",
+			"2",
+			"0",
+			"3"
+		]
+		"edgeOppositeIndices" "int_array" 
+		[
+			"1",
+			"0",
+			"3",
+			"2",
+			"5",
+			"4",
+			"7",
+			"6"
+		]
+		"edgeNextIndices" "int_array" 
+		[
+			"2",
+			"7",
+			"4",
+			"1",
+			"6",
+			"3",
+			"0",
+			"5"
+		]
+		"edgeFaceIndices" "int_array" 
+		[
+			"0",
+			"-1",
+			"0",
+			"-1",
+			"0",
+			"-1",
+			"0",
+			"-1"
+		]
+		"edgeDataIndices" "int_array" 
+		[
+			"0",
+			"0",
+			"1",
+			"1",
+			"2",
+			"2",
+			"3",
+			"3"
+		]
+		"edgeVertexDataIndices" "int_array" 
+		[
+			"0",
+			"1",
+			"2",
+			"3",
+			"4",
+			"5",
+			"6",
+			"7"
+		]
+		"faceEdgeIndices" "int_array" 
+		[
+			"6"
+		]
+		"faceDataIndices" "int_array" 
+		[
+			"0"
+		]
+		"materials" "string_array" 
+		[
+			"materials/dev/reflectivity_30.vmat"
+		]
+		"vertexData" "CDmePolygonMeshDataArray"
+		{
+			"id" "elementid" "2c58fa33-f99c-4215-8f85-175efd017e94"
+			"size" "int" "4"
+			"streams" "element_array" 
+			[
+				"CDmePolygonMeshDataStream"
+				{
+					"id" "elementid" "4c7e3705-b2d6-4a0c-80c6-ddc7f8d6f118"
+					"name" "string" "position:0"
+					"standardAttributeName" "string" "position"
+					"semanticName" "string" "position"
+					"semanticIndex" "int" "0"
+					"vertexBufferLocation" "int" "0"
+					"dataStateFlags" "int" "3"
+					"subdivisionBinding" "element" ""
+					"data" "vector3_array" 
+					[
+						"-128 -128 0",
+						"128 -128 0",
+						"128 128 0",
+						"-128 128 0"
+					]
+				}
+			]
+		}
+		
+		"faceVertexData" "CDmePolygonMeshDataArray"
+		{
+			"id" "elementid" "af22e881-ade0-443e-a9df-14dfd00862de"
+			"size" "int" "8"
+			"streams" "element_array" 
+			[
+				"CDmePolygonMeshDataStream"
+				{
+					"id" "elementid" "8464c7d4-2eb8-4a69-b0fd-7299d624d1ba"
+					"name" "string" "texcoord:0"
+					"standardAttributeName" "string" "texcoord"
+					"semanticName" "string" "texcoord"
+					"semanticIndex" "int" "0"
+					"vertexBufferLocation" "int" "0"
+					"dataStateFlags" "int" "1"
+					"subdivisionBinding" "element" ""
+					"data" "vector2_array" 
+					[
+						"1 1",
+						"0 0",
+						"1 -1",
+						"0 0",
+						"-1 -1",
+						"0 0",
+						"-1 1",
+						"0 0"
+					]
+				},
+				"CDmePolygonMeshDataStream"
+				{
+					"id" "elementid" "a17ce346-a5ee-443a-aab3-4cb338c0ba03"
+					"name" "string" "normal:0"
+					"standardAttributeName" "string" "normal"
+					"semanticName" "string" "normal"
+					"semanticIndex" "int" "0"
+					"vertexBufferLocation" "int" "0"
+					"dataStateFlags" "int" "1"
+					"subdivisionBinding" "element" ""
+					"data" "vector3_array" 
+					[
+						"0 0 1",
+						"0 0 0",
+						"0 0 1",
+						"0 0 0",
+						"0 0 1",
+						"0 0 0",
+						"0 0 1",
+						"0 0 0"
+					]
+				},
+				"CDmePolygonMeshDataStream"
+				{
+					"id" "elementid" "d798381d-d6cd-4b0b-a1a4-43134ee6de6e"
+					"name" "string" "tangent:0"
+					"standardAttributeName" "string" "tangent"
+					"semanticName" "string" "tangent"
+					"semanticIndex" "int" "0"
+					"vertexBufferLocation" "int" "0"
+					"dataStateFlags" "int" "1"
+					"subdivisionBinding" "element" ""
+					"data" "vector4_array" 
+					[
+						"1 0 0 -1",
+						"0 0 0 0",
+						"1 0 0 -1",
+						"0 0 0 0",
+						"1 0 0 -1",
+						"0 0 0 0",
+						"1 0 0 -1",
+						"0 0 0 0"
+					]
+				}
+			]
+		}
+		
+		"edgeData" "CDmePolygonMeshDataArray"
+		{
+			"id" "elementid" "e4b368cf-5442-4da0-9a55-0c5d691464ed"
+			"size" "int" "4"
+			"streams" "element_array" 
+			[
+				"CDmePolygonMeshDataStream"
+				{
+					"id" "elementid" "ada8f7cf-4fbb-4185-b37d-f7c054158d6d"
+					"name" "string" "flags:0"
+					"standardAttributeName" "string" "flags"
+					"semanticName" "string" "flags"
+					"semanticIndex" "int" "0"
+					"vertexBufferLocation" "int" "0"
+					"dataStateFlags" "int" "3"
+					"subdivisionBinding" "element" ""
+					"data" "int_array" 
+					[
+						"0",
+						"0",
+						"0",
+						"0"
+					]
+				}
+			]
+		}
+		
+		"faceData" "CDmePolygonMeshDataArray"
+		{
+			"id" "elementid" "63da3417-4e97-419c-b0a1-838b231f11d0"
+			"size" "int" "1"
+			"streams" "element_array" 
+			[
+				"CDmePolygonMeshDataStream"
+				{
+					"id" "elementid" "0bd92d77-73a1-4a4b-b44c-013fac774a1c"
+					"name" "string" "textureScale:0"
+					"standardAttributeName" "string" "textureScale"
+					"semanticName" "string" "textureScale"
+					"semanticIndex" "int" "0"
+					"vertexBufferLocation" "int" "0"
+					"dataStateFlags" "int" "0"
+					"subdivisionBinding" "element" ""
+					"data" "vector2_array" 
+					[
+						"0.25 0.25"
+					]
+				},
+				"CDmePolygonMeshDataStream"
+				{
+					"id" "elementid" "142f2906-ca99-43db-a34a-9fa5b6c2d4d1"
+					"name" "string" "textureAxisU:0"
+					"standardAttributeName" "string" "textureAxisU"
+					"semanticName" "string" "textureAxisU"
+					"semanticIndex" "int" "0"
+					"vertexBufferLocation" "int" "0"
+					"dataStateFlags" "int" "0"
+					"subdivisionBinding" "element" ""
+					"data" "vector4_array" 
+					[
+						"1 0 0 0"
+					]
+				},
+				"CDmePolygonMeshDataStream"
+				{
+					"id" "elementid" "99e6bd00-a38f-42a1-903f-4bcc2c0ff93a"
+					"name" "string" "textureAxisV:0"
+					"standardAttributeName" "string" "textureAxisV"
+					"semanticName" "string" "textureAxisV"
+					"semanticIndex" "int" "0"
+					"vertexBufferLocation" "int" "0"
+					"dataStateFlags" "int" "0"
+					"subdivisionBinding" "element" ""
+					"data" "vector4_array" 
+					[
+						"0 -1 0 0"
+					]
+				},
+				"CDmePolygonMeshDataStream"
+				{
+					"id" "elementid" "434d02ed-f924-4b71-a7be-ddfd5ec6bf20"
+					"name" "string" "materialindex:0"
+					"standardAttributeName" "string" "materialindex"
+					"semanticName" "string" "materialindex"
+					"semanticIndex" "int" "0"
+					"vertexBufferLocation" "int" "0"
+					"dataStateFlags" "int" "8"
+					"subdivisionBinding" "element" ""
+					"data" "int_array" 
+					[
+						"0"
+					]
+				},
+				"CDmePolygonMeshDataStream"
+				{
+					"id" "elementid" "93a9e3cd-d18d-4c6e-955c-2c195d38e30e"
+					"name" "string" "flags:0"
+					"standardAttributeName" "string" "flags"
+					"semanticName" "string" "flags"
+					"semanticIndex" "int" "0"
+					"vertexBufferLocation" "int" "0"
+					"dataStateFlags" "int" "3"
+					"subdivisionBinding" "element" ""
+					"data" "int_array" 
+					[
+						"0"
+					]
+				},
+				"CDmePolygonMeshDataStream"
+				{
+					"id" "elementid" "bbdf6277-cda1-4bf6-8a68-1cf124fc15f9"
+					"name" "string" "lightmapScaleBias:0"
+					"standardAttributeName" "string" "lightmapScaleBias"
+					"semanticName" "string" "lightmapScaleBias"
+					"semanticIndex" "int" "0"
+					"vertexBufferLocation" "int" "0"
+					"dataStateFlags" "int" "1"
+					"subdivisionBinding" "element" ""
+					"data" "int_array" 
+					[
+						"0"
+					]
+				}
+			]
+		}
+		
+		"subdivisionData" "CDmePolygonMeshSubdivisionData"
+		{
+			"id" "elementid" "b55956db-c421-445b-bd65-be3bfdc6bbe3"
+			"subdivisionLevels" "int_array" 
+			[
+				"0",
+				"0",
+				"0",
+				"0",
+				"0",
+				"0",
+				"0",
+				"0"
+			]
+			"streams" "element_array" 
+			[
+			]
+		}
+		
+	}
+	
+	"useAsOccluder" "bool" "0"
+	"physicsSimplificationOverride" "bool" "0"
+	"physicsSimplificationError" "float" "0"
+}
