@@ -24,7 +24,7 @@ def zipimport(ext):
             try:
                 if asset_out is None:
                     asset_out = sh.output(asset_in).with_suffix(ext)
-                asset_out.parent.mkdir(parents=True, exist_ok=True)
+                asset_out.parent.MakeDir()
                 rv = func(asset_in, asset_out, pre_opened, **kwargs)
             finally:
                 pre_opened.close()

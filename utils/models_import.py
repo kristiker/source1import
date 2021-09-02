@@ -1,4 +1,3 @@
-#!usr/bin/python
 import shared.base_utils2 as sh
 
 SHOULD_OVERWRITE = False

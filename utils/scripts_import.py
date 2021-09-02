@@ -11,9 +11,47 @@ from shared.keyvalues1 import KV, VDFDict
 
 OVERWRITE_SCRIPTS = True
 
+HLVR_ADDON_WRITE = False
+"""
+For hlvr_addons:
+    Set to True to also write sound event imports to `soundevents/{addon}_soundevents.vsndevts` FILE
+
+https://developer.valvesoftware.com/wiki/Half-Life:_Alyx_Workshop_Tools/Addon_Sounds#Sound_Events_files
+"""
+
 scripts = Path('scripts')
 SOUNDSCAPES_MANIFEST = Path("scripts/soundscapes_manifest.txt")
 SOUND_OPERATORS_FILE = "scripts/sound_operator_stacks.txt" # TODO.....
+
+def main():
+
+    sh.import_context['dest'] = sh.EXPORT_GAME
+
+    # soundscapes vsc...
+    for soundscapes_vsc in sh.collect("scripts", ".vsc", ".txt", OVERWRITE_SCRIPTS, match="soundscapes_*.vsc"):
+        ImportSoundscape(soundscapes_vsc)
+
+    # soundscapes txt... (also manifest)
+    for soundscapes_txt in sh.collect("scripts", ".txt", ".txt", OVERWRITE_SCRIPTS, match="soundscapes_*.txt"):
+        if soundscapes_txt.name == SOUNDSCAPES_MANIFEST.name:
+            ImportSoundscapeManifest(soundscapes_txt)
+            continue
+        ImportSoundscape(soundscapes_txt)
+
+    # game sounds...
+    sh.import_context['dest'] = sh.EXPORT_CONTENT
+
+    # 'scripts' 'soundevents' hybrid base_utils2 FIXME
+    for file in (sh._src()/'scripts').glob('**/game_sounds*.txt'):
+        if file.name != 'game_sounds_manifest.txt':
+            ImportGameSound(file)
+
+    if (boss:=sh._src()/'scripts'/'level_sounds_general.txt').is_file():
+        ImportGameSound(boss)
+
+    if HLVR_ADDON_WRITE:
+        print("Fix the misplaced brace ({) inside addon soundevent file or it won't compile.")
+
 
 def fix_wave_resource(old_value):
     soundchars = '*?!#><^@~+)(}$' + '`' # public\soundchars.h
@@ -44,8 +82,7 @@ def ImportSoundscape(file: Path, newsc_path: Path):
         else:
             new_soundscapes += f'{key}\t"{value}"\n'
 
-    with open(newsc_path, 'w') as fp:
-        fp.write(new_soundscapes)
+    sh.write(new_soundscapes, newsc_path)
     print("+ Saved", newsc_path.local)
     return newsc_path
     #soundscapes_manifest.add("file", f'scripts/{newsc_path.name}')
@@ -76,9 +113,7 @@ def ImportSoundscapeManifest(asset_path: Path, out_manifest: Path):
 # 	...
 # }
 
-from particles_import import dict_to_kv3_text
-if __name__ is None:
-    from utils.particles_import import dict_to_kv3_text
+from shared.keyvalues3 import dict_to_kv3_text
 
 collected = {}
 def collect_dev(k, v):
@@ -187,7 +222,7 @@ op_stacks = {}
 def ImportGameSound(asset_path: Path):
     
     vsndevts_file = sh.EXPORT_CONTENT / "soundevents" / asset_path.local.relative_to(scripts).with_suffix('.vsndevts')
-    vsndevts_file.parent.mkdir(parents=True, exist_ok=True)
+    vsndevts_file.parent.MakeDir()
 
     if not OVERWRITE_SCRIPTS and vsndevts_file.exists():
         return vsndevts_file
@@ -290,45 +325,23 @@ def ImportGameSound(asset_path: Path):
             out_kv = None
         kv3[gamesound] = out_kv
 
-    if True:
-        with open(r"D:\Games\steamapps\common\Half-Life Alyx\content\hlvr_addons\csgo\soundevents\csgo_soundevents.vsndevts", 'a') as fp:
-            #fp.seek(3)
-            fp.write('\n'.join(dict_to_kv3_text(kv3).splitlines()[2:-1]))
+    if HLVR_ADDON_WRITE:# and sh.is_addon():
+        addon_vsndevts = sh.EXPORT_CONTENT / "soundevents" / f"{sh.EXPORT_CONTENT.name}_soundevents.vsndevts"
+        if not addon_vsndevts.is_file():
+            sh.write(dict_to_kv3_text({}),addon_vsndevts)
+        with open(addon_vsndevts, 'ab') as fp:
+            """Bad way of writing, manual fixing is necessary."""
+            fp.write('\n' + '\n'.join(dict_to_kv3_text(kv3).splitlines()[2:-1]))
 
-    with open(vsndevts_file, 'w') as fp:
-        fp.write(dict_to_kv3_text(kv3))
+    sh.write(dict_to_kv3_text(kv3), vsndevts_file)
 
     print("+ Saved", vsndevts_file.local)
     return vsndevts_file
 
 if __name__ == '__main__':
-    
-    # import soundscapes...
-    sh.import_context['dest'] = sh.EXPORT_GAME
-    for soundscapes_vsc in sh.collect("scripts", ".vsc", ".txt", OVERWRITE_SCRIPTS, match="soundscapes_*.vsc"):
-        ImportSoundscape(soundscapes_vsc)
+    main()  
 
-    for soundscapes_txt in sh.collect("scripts", ".txt", ".txt", OVERWRITE_SCRIPTS, match="soundscapes_*.txt"):
-        if soundscapes_txt.name == SOUNDSCAPES_MANIFEST.name:
-            ImportSoundscapeManifest(soundscapes_txt)
-            continue
-        ImportSoundscape(soundscapes_txt)
-
-    
-    # import game sounds...
-    sh.import_context['dest'] = sh.EXPORT_CONTENT
-
-    # see what you can do with this 'scripts' 'soundevents' hybrid base_utils2 FIXME
-    for file in (sh._src()/'scripts').glob('**/game_sounds*.txt'):
-        if file.name == 'game_sounds_manifest.txt':
-            continue
-        ImportGameSound(file)
-
-    if (boss:=sh._src()/'scripts'/'level_sounds_general.txt').is_file():
-        ImportGameSound(boss)
-    
-    
-    quit()
+    raise SystemExit(0)
     for k, v in collected.items():
         print(k, v[1])
     for opstack, count in op_stacks.items():

@@ -1,5 +1,6 @@
 import shared.base_utils2 as sh
 import shared.datamodel as dmx
+from shared.keyvalues3 import resource, dict_to_kv3_text
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -89,6 +90,8 @@ vpcf_PreEmisionOperators = (
     'C_OP_SetControlPointRotation',
     'C_OP_SetControlPointToImpactPoint',
 )
+
+#Warning: performed basic import for operator C_OP_RenderStatusEffect. This particle system and this operator's textures need to be imported by hand.
 
 pcf_to_vpcf = {
     # name/functionName -> class
@@ -1983,58 +1986,6 @@ def pcfkv_convert(key, value):
         if outVal != []:
             return outKey, outVal
 
-class resource:
-    def __init__(self, path):
-        self.path = path
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}('{self.path!r}')"
-    def __str__(self):
-        return f'resource:"{self.path.as_posix()}"'
-
-def dict_to_kv3_text(
-        kv3dict: dict,
-        header = '<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:generic:version{7412167c-06e9-4698-aff2-e63eb59037e7} -->'
-    ):
-    kv3: str = header + '\n'
-
-    def obj_serialize(obj, indent = 1, dictKey = False):
-        preind = ('\t' * (indent-1))
-        ind = ('\t' * indent)
-        if obj is None:
-            return 'null'
-        elif isinstance(obj, bool):
-            if obj: return 'true'
-            return 'false'
-        elif isinstance(obj, str):
-            return '"' + obj + '"'
-        elif isinstance(obj, list):
-            s = '['
-            if any(isinstance(item, dict) for item in obj):  # TODO: only non numbers
-                s = f'\n{preind}[\n'
-                for item in obj:
-                    s += (obj_serialize(item, indent+1) + ',\n')
-                return s + preind + ']\n'
-
-            return f'[{", ".join((obj_serialize(item, indent+1) for item in obj))}]'
-        elif isinstance(obj, dict):
-            s = preind + '{\n'
-            if dictKey:
-                s = '\n' + s
-            for key, value in obj.items():
-                #if value == [] or value == "" or value == {}: continue
-                s +=  ind + f"{key} = {obj_serialize(value, indent+1, dictKey=True)}\n"
-            return s + preind + '}'
-        else: # likely an int, float
-            # round off inaccurate dmx floats
-            if type(obj) == float:
-                obj = round(obj, 6)
-            return str(obj)
-
-    if not isinstance(kv3dict, dict):
-        raise TypeError("Give me a dict, not this %s thing" % repr(kv3dict))
-    kv3 += obj_serialize(kv3dict)
-
-    return kv3
 
 imports = []
 unt = {}
@@ -2179,3 +2130,7 @@ if __name__ == '__main__':
             print(child, "child reference was not imported...")
     for fb in fallbacks:
         print(fb)
+'''
+RebuildParticleNameRemapTable: Adding systems for "D:\Games\steamapps\common\Half-Life Alyx\game\csgo\particles\inferno_fx.pcf"
+ImportPCFFileToRemapTable: adding map firework_crate_explosion_01 to particles/inferno_fx/firework_crate_explosion_01.vpcf
+'''

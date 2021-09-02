@@ -139,7 +139,8 @@ class KVUtilFile(KV):
 
             exist = self[extType].setdefault(s1Name, s2Remap)
             if exist != s2Remap:
-                WARN(f"Remap entry for '{s1Name}' -> '{s2Remap}' conflicts with existing value of '{exist}' (ignoring))")
+                WARN(f"Remap entry for '{s1Name}' -> '{s2Remap}' conflicts with existing value of '{exist}' (ignoring)")
+
         cls.remap = remap
         rv = cls(keyName)
         if cls.path.is_file():
@@ -231,7 +232,7 @@ def s1import(out_ext=None, **ctx):
                     kwargs.pop(k)
             if asset_out is None:
                 asset_out = output(asset_in, out_ext, ctx['dest'])
-            asset_out.parent.mkdir(parents=True, exist_ok=True)
+            asset_out.parent.MakeDir()
             rv = function(asset_in, asset_out, **kwargs)
             return rv
         return wrapper
@@ -295,6 +296,10 @@ def collect(root, inExt, outExt, existing:bool = False, outNameRule = None, sear
         )
     else:
         print("ERROR while searching: Does not exist:", searchPath)
+
+def write(content: str, path: Path):
+    with open(path, 'w') as fp:
+        fp.write(content)
 
 DEBUG = False
 def msg(*args, **kwargs):

@@ -344,7 +344,7 @@ class KeyValues:
 
         self.DataType: KVType = KVType.TYPE_NONE
         self.KeyNameCaseSensitive2: bool = case_sensitive
-        self.HasEscapeSequences: bool = escape
+        self.HasEscapeSequences: bool = escape  # Always acts as False
 
         self.keyName = str(k)
         if not self.KeyNameCaseSensitive2 and k is not None:
