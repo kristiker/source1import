@@ -329,7 +329,7 @@ def ImportGameSound(asset_path: Path):
         addon_vsndevts = sh.EXPORT_CONTENT / "soundevents" / f"{sh.EXPORT_CONTENT.name}_soundevents.vsndevts"
         if not addon_vsndevts.is_file():
             sh.write(dict_to_kv3_text({}),addon_vsndevts)
-        with open(addon_vsndevts, 'ab') as fp:
+        with open(addon_vsndevts, 'a') as fp:
             """Bad way of writing, manual fixing is necessary."""
             fp.write('\n' + '\n'.join(dict_to_kv3_text(kv3).splitlines()[2:-1]))
 

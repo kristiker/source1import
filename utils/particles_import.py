@@ -1,6 +1,6 @@
 import shared.base_utils2 as sh
 import shared.datamodel as dmx
-from shared.keyvalues3 import resource, dict_to_kv3_text
+from shared.keyvalues3 import resource, KV3Header, dict_to_kv3_text
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -150,8 +150,8 @@ pcf_to_vpcf = {
             # 	 	m_model = resource:"asd"
             # 	 },
             # ]
-            'sequence 0 model': lambda v: ('m_ModelList',
-                [{'m_model': resource(Path('models/' + v).with_suffix('.vmdl'))}]
+            'sequence 0 model': lambda mdl_path: ('m_ModelList',
+                [{'m_model': resource(Path('models/' + mdl_path).with_suffix('.vmdl'))}]
             ),
             'orient model z to normal': 'm_bOrientZ',
             'activity override': 'm_ActivityName',
@@ -2007,7 +2007,7 @@ def ImportParticleSnapshotFile(psf_path: Path, vsnap_path: Path) -> Path:
     return copyfile(psf_path, vsnap_path)
 
 class VPCF(dict):
-    header = '<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf26:version{26288658-411e-4f14-b698-2e1e5d00dec6} -->'
+    header = KV3Header(format='vpcf26', format_ver='26288658-411e-4f14-b698-2e1e5d00dec6')
 
     def __init__(self, path, **kwargs):
         self.path = path

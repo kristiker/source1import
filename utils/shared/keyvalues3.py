@@ -4,10 +4,12 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class KV3Header:
     encoding: str = 'text'
+    encoding_ver: str = 'e21c7f3c-8a33-41c5-9977-a76d3a32aa0d'
     format: str = 'generic'
-    common = '<!-- kv3 encoding:%s:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:%s:version{7412167c-06e9-4698-aff2-e63eb59037e7} -->'
+    format_ver: str = '7412167c-06e9-4698-aff2-e63eb59037e7'
+    common = '<!-- kv3 encoding:%s:version{%s} format:%s:version{%s} -->'
     def __str__(self):
-        return self.common % (self.format, self.encoding)
+        return self.common % (self.encoding, self.encoding_ver, self.format, self.format_ver)
 
 @dataclass(frozen=True)
 class resource:
@@ -16,7 +18,7 @@ class resource:
         return f'resource:"{self.path.as_posix()}"'
 
 def dict_to_kv3_text(kv3dict: dict, header: KV3Header = KV3Header()):
-    kv3: str = str(header) + '\n'
+    kv3 = str(header) + '\n'
 
     def obj_serialize(obj, indent = 1, dictKey = False):
         preind = ('\t' * (indent-1))
@@ -56,3 +58,33 @@ def dict_to_kv3_text(kv3dict: dict, header: KV3Header = KV3Header()):
     kv3 += obj_serialize(kv3dict)
 
     return kv3
+
+if __name__ == '__main__':
+    import unittest
+    class Test_KV3(unittest.TestCase):
+        default_header = '<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:generic:version{7412167c-06e9-4698-aff2-e63eb59037e7} -->'
+        def test_default_header(self):
+            self.assertEqual(str(KV3Header()), self.default_header)
+
+        def test_custom_header(self):
+            header = KV3Header('text2', '123-123', 'generic2', '234-234')
+            headertext = '<!-- kv3 encoding:text2:version{123-123} format:generic2:version{234-234} -->'
+            self.assertEqual(str(header), headertext)
+
+        def test_kv(self):
+            expect_text = f'{self.default_header}\n{{'+\
+                '\n\ta = "asd asd"'+\
+                '\n\tb = \n\t{\n\t\t"(2,)" = 3\n\t}'+\
+                '\n\tc = ["listed_text1", "listed_text2"]\n}'
+            self.assertEqual(
+                dict_to_kv3_text(
+                    dict(
+                        a='asd asd',
+                        b={(2,):3}, 
+                        c=["listed_text1", "listed_text2"]
+                    )
+                ),
+                expect_text
+            )
+
+    unittest.main()
