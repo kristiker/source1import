@@ -12,7 +12,11 @@ except ImportError:
 
 
 class VDFDict(dict):
-    "Slightly modified ValvePython.VDFDict"
+    """
+    Slightly modified VDFDict https://github.com/ValvePython/vdf
+    
+    Copyright (c) 2015 Rossen Georgiev <rossen@rgp.io>
+    """
     def __init__(self, data=None):
         """
         This is a dictionary that supports duplicate keys and preserves insert order

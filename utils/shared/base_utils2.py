@@ -1,5 +1,5 @@
 
-from dataclasses import dataclass
+from contextlib import suppress
 from pathlib import Path
 from enum import Enum
 from types import GeneratorType
@@ -37,41 +37,51 @@ def update_root(s2_root):
         globals()[folder.name] = s2_root / folder.value
 
 update_root(None)  # Add ROOT, CONTENTROOT, CORE_GAME... to globals() as None
-IMPORT_CONTENT = None
-IMPORT_GAME = None
-EXPORT_CONTENT = None
-EXPORT_GAME = None
+IMPORT_CONTENT: Path = None
+IMPORT_GAME: Path = None
+EXPORT_CONTENT: Path = None
+EXPORT_GAME: Path = None
 #IMPORT_LEAFIEST_GAME,IMPORT_LEAFIEST_CONTENT,EXPORT_LEAFIEST_GAME,EXPORT_LEAFIEST_CONTENT
-search_scope = None
+search_scope: Path = None
+gameinfo: KV = None
+gameinfo2: KV = None
 
 def in_source2_environment():
     return ROOT is not None
 
 def parse_paths():
     global IMPORT_CONTENT, IMPORT_GAME, EXPORT_CONTENT, EXPORT_GAME
-    global search_scope
-    def error(*args, **kwargs):
-        print("ERROR:", *args, **kwargs)
+    global search_scope, gameinfo, gameinfo2
+    def ERROR(*args, **kwargs):
+        arg_parser.print_usage()
+        print()
+        print("ERROR:", *args, **kwargs)        
         raise SystemExit(1)
     if not _args_known.src1gameinfodir:
+        arg_parser.print_help()
         raise SystemExit(1)
     in_path = Path(_args_known.src1gameinfodir)
     if not in_path.exists():
-       error("src1 game path not found")
+       ERROR(f"src1 game path does not exist \"{in_path}\"")
     if in_path.is_file() and in_path.name == 'gameinfo.txt':
         in_path = in_path.parent
-    if not (in_path / 'gameinfo.txt').is_file():
-        error(f"gameinfo.txt not found for src1 mod `{in_path.name}`")
+    gi_txt = in_path / 'gameinfo.txt'
+    if not gi_txt.is_file():
+        ERROR(f"gameinfo.txt not found inside src1 mod `{in_path.name}`")
+    try:
+        gameinfo = KV.FromFile(gi_txt)
+    except Exception:
+        print("Warning: Error reading gameinfo.txt")
     IMPORT_GAME = in_path
     if IMPORT_GAME.parent.name == 'game':  # Source 2 dir
         update_root(IMPORT_GAME.parents[1])
         IMPORT_CONTENT = CONTENTROOT / IMPORT_GAME.name
     if not _args_known.game:
-        error(f"Missing required argument: -o\nUsage: {arg_parser.usage}")
+        ERROR(f"Missing required argument: -e | -game")
     source2_mod = Path(_args_known.game)
     if source2_mod.is_absolute():
         if source2_mod.is_file():
-            error("Cannot specify file as export game")
+            ERROR("Cannot specify file as export game")
         for possible_rel in (GAMEROOT, CONTENTROOT):#, ROOT):
             if possible_rel is not None and source2_mod.is_relative_to(possible_rel):
                 source2_mod = source2_mod.relative_to(possible_rel)
@@ -80,32 +90,33 @@ def parse_paths():
                 if p in ('content', 'game'):  # has game/content at -2 or -3
                     p_index+=len(source2_mod.parts)-3
                     # Importing from a source 2 app into different source 2 app.
-                    # Makes more sense to consider this as more appropriate root
+                    # The latter becomes root (script's working environment).
                     update_root(Path(*source2_mod.parts[:p_index]))
                     source2_mod = Path(*source2_mod.parts[p_index:])
                     break
             if p not in ('content', 'game'):  # Export game has no game-content structure (sbox?)
                 EXPORT_GAME = EXPORT_CONTENT = source2_mod
     elif not in_source2_environment():
-        error("Please use absolute path as export path.")
-    if len(source2_mod.parts) in (1, 2):
+        ERROR(f"Cannot figure out where \"{source2_mod}\" is located. Please correct or use absolute path.")
+
+    if not source2_mod.is_absolute() and len(source2_mod.parts) in (1, 2):
         EXPORT_GAME = GAMEROOT / source2_mod
         EXPORT_CONTENT = CONTENTROOT / source2_mod
-    elif len(source2_mod.parts) == 3:
-        # TEMP FIX FOR hlvr_addons
-        EXPORT_GAME = GAMEROOT / source2_mod
-        EXPORT_CONTENT = CONTENTROOT / source2_mod.relative_to(eEngineFolder.CONTENTROOT.value)
+
     elif EXPORT_GAME is EXPORT_CONTENT is None:
-        error("Invalid export game", source2_mod)
+        ERROR(f"Invalid export game \"{source2_mod}\"")
 
     # Optionals
 
     # Unknowns
     if args_unknown:
         search_scope = Path(args_unknown[0])
+        with suppress(Exception):
+            search_scope = search_scope.relative_to(IMPORT_GAME)
 
 if __name__ == '__main__':
     print(f"{parse_paths()}\n{ROOT=}\n{IMPORT_CONTENT=}\n{IMPORT_GAME=}\n{EXPORT_CONTENT=}\n{EXPORT_GAME=}")
+    print(gameinfo['game'])
     raise SystemExit
 
 parse_paths()
@@ -222,6 +233,7 @@ def source2namefixup(path):
 #    return path.exists() and bAllowed
 
 def s1import(out_ext=None, **ctx):
+    """Decorate an import function with the usual preamble. Provide `asset_out` as output path."""
     if not ctx: ctx = import_context
     def inner_function(function):
         @wraps(function)

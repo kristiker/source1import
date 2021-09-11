@@ -2,7 +2,11 @@
 # https://developer.valvesoftware.com/wiki/List_Of_Material_Proxies
 # https://developer.valvesoftware.com/wiki/Dota_2_Workshop_Tools/Materials/Dynamic_Material_Expressions
 
-from vdf import VDFDict
+try:
+    from .keyvalues1 import VDFDict
+except ImportError:
+    from keyvalues1 import VDFDict
+    
 class Proxies(VDFDict): pass
 
 def add(srcvar1, srcvar2, **_):         return f"{srcvar1} + {srcvar2}"
@@ -240,12 +244,6 @@ if __name__ == "__main__":
                         "mean": 1,
 
                         "resultvar": "$noisesignal",
-                    },
-                    "sine": {    
-                        "sinemin": 0,
-                        "sinemax": 6,
-                        "sineperiod": 88,
-                        "resultvar": "$sinewaveoutput",
                     },
                     "sine": {    
                         "sinemin": 0,

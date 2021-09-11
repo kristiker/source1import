@@ -6,7 +6,7 @@ from PIL import Image, ImageOps
 from shared import base_utils2 as sh
 from shared.keyvalue_simple import getKV_tailored as getKeyValues
 from shared.keyvalues1 import KV
-from shared.materials.proxies import ProxiesToDynamicParams
+from shared.material_proxies import ProxiesToDynamicParams
 
 import numpy as np
 from shared import PFM

@@ -7,9 +7,9 @@ class KV3Header:
     encoding_ver: str = 'e21c7f3c-8a33-41c5-9977-a76d3a32aa0d'
     format: str = 'generic'
     format_ver: str = '7412167c-06e9-4698-aff2-e63eb59037e7'
-    common = '<!-- kv3 encoding:%s:version{%s} format:%s:version{%s} -->'
+    _common = '<!-- kv3 encoding:%s:version{%s} format:%s:version{%s} -->'
     def __str__(self):
-        return self.common % (self.encoding, self.encoding_ver, self.format, self.format_ver)
+        return self._common % (self.encoding, self.encoding_ver, self.format, self.format_ver)
 
 @dataclass(frozen=True)
 class resource:
