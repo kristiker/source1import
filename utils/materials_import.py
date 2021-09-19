@@ -153,7 +153,7 @@ shaderDict = {
     "customcharacter":      "vr_complex",
     "teeth":                "vr_complex",
     "water":                "simple_water",
-    "refract":              "refract",
+    #"refract":              "refract",
     "worldvertextransition":"vr_simple_2way_blend",
     "lightmapped_4wayblend":"vr_simple_2way_blend",
     "lightmappedtwotexture":"vr_complex",  # 2 multiblend $texture2 nocull scrolling, model, additive.
@@ -163,7 +163,7 @@ shaderDict = {
     "shatteredglass":       "vr_glass",
     "wireframe":            "tools_wireframe",
     "wireframe_dx9":        "error",
-    "spritecard":           "spritecard",  # "modulate",
+    #"spritecard":           "spritecard",  these are just vtexes with params defined in vpcf renderer - skip
     #"subrect":              "spritecard",  # should we just cut? $Pos "256 0" $Size "256 256" $decalscale 0.25 decals\blood1_subrect.vmt
     #"weapondecal": weapon sticker
     "patch":                "vr_complex", # fallback if include doesn't have one
@@ -1309,10 +1309,12 @@ def main():
 
     print("\nSkybox materials...")
 
-    for skyfaces_json in sh.collect(
-            None, '.json', OUT_EXT, OVERWRITE_SKYBOX_VMATS,
-            outNameRule=OutName_Sky, searchPath=sh.EXPORT_CONTENT/legacy_skyfaces):
-        ImportSkyJSONtoVMAT(skyfaces_json)
+    # Skip importing skies if searching a different folder
+    if sh.search_scope is None or legacy_skyfaces.is_relative_to(sh.search_scope):
+        for skyfaces_json in sh.collect(
+                None, '.json', OUT_EXT, OVERWRITE_SKYBOX_VMATS,
+                outNameRule=OutName_Sky, searchPath=sh.EXPORT_CONTENT/legacy_skyfaces):
+            ImportSkyJSONtoVMAT(skyfaces_json)
 
     if failureList:
         print("\n\t<<<< THESE MATERIALS HAVE ERRORS >>>>")

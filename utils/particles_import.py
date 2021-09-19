@@ -1743,6 +1743,43 @@ vmtshader = {
 
 }
 
+VTEX_TEMPLATE = \
+"""<!-- dmx encoding keyvalues2_noids 1 format vtex 1 -->
+"CDmeVtex"
+{
+	"m_inputTextureArray" "element_array" 
+	[
+		"CDmeInputTexture"
+		{
+			"m_name" "string" "0"
+			"m_fileName" "string" "<>"
+			"m_colorSpace" "string" "srgb"
+			"m_typeString" "string" "2D"
+		}
+	]
+	"m_outputTypeString" "string" "2D"
+	"m_outputFormat" "string" "DXT5"
+	"m_textureOutputChannelArray" "element_array"
+	[
+		"CDmeTextureOutputChannel"
+		{
+			"m_inputTextureArray" "string_array"
+			[
+				"0"
+			]
+			"m_srcChannels" "string" "rgba"
+			"m_dstChannels" "string" "rgba"
+			"m_mipAlgorithm" "CDmeImageProcessor"
+			{
+				"m_algorithm" "string" ""
+				"m_stringArg" "string" ""
+				"m_vFloat4Arg" "vector4" "0 0 0 0"
+			}
+			"m_outputColorSpace" "string" "srgb"
+		}
+	]
+}"""
+
 def is_valid_pcf(x: dmx.DataModel):
     return ('particleSystemDefinitions' in x.elements[0].keys() and
             'DmeParticleSystemDefinition' == x.elements[1].type)
@@ -1793,8 +1830,8 @@ def process_material(value: str):
     if not value:
         return
 
-    vmt_path = sh.IMPORT_CONTENT / value
-    vmat_path = (Path('materials') / value).with_suffix('.vmat')
+    vmt_path = sh.IMPORT_GAME / "materials" / value # vmts are found in game (as most things)
+    vmat_path = vmt_path.local.with_suffix('.vmat')
     vpcf._base_t['m_Renderers']['m_hMaterial'] = resource(vmat_path)
     try:
         vmt = VMT(KV.FromFile(vmt_path))
@@ -1819,9 +1856,16 @@ def process_material(value: str):
         for vmtkey, vmtval in vmt.KeyValues.items():
             if '?' in vmtkey: vmtkey = vmtkey.split('?')[1]
             if vmtkey in ('$basetexture', '$material', '$normalmap', '$bumpmap'):
-                vtex_ref = resource((Path('materials') / vmtval).with_suffix('.vtex'))
+                tex = (Path('materials') / vmtval).with_suffix('.tga')
+                if not (sh.EXPORT_CONTENT / tex).is_file():
+                    continue
+                vtex_path = sh.EXPORT_CONTENT / tex.with_suffix('.vtex')
+                if not vtex_path.is_file():
+                    vtex_path.parent.MakeDir()
+                    with open(vtex_path, 'w') as fp:
+                        fp.write(VTEX_TEMPLATE.replace('<>', tex.as_posix(), 1))
                 vpcf_replacement_key = 'm_hTexture' if vmtkey in ('$basetexture', '$material') else 'm_hNormalTexture'
-                vpcf._base_t['m_Renderers'][vpcf_replacement_key] = vtex_ref
+                vpcf._base_t['m_Renderers'][vpcf_replacement_key] =  resource(vtex_path.local)
                 continue
             if vmtkey not in vmt_to_vpcf:
                 #un((vmtkey, vmtval), "VMT")
