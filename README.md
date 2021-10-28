@@ -16,10 +16,12 @@ cd utils
 All set. Use `python materials_import.py --help` or read below examples to get started.
 
 ## Usage
-Scripts are launched via command line, and as such need command line arguments:
+Scripts are launched via command line:
 
-**-i** \<dir\> This should be an absolute path pointing into a source1 game directory containing gameinfo.txt  
-**-e** \<dir/modname\> Path to source2 mod. Dir may or may not contain gameinfo.gi defining `Source1Import { }`. Modname (e.g. `-e portal2_imported`) instead of absolute path allowed only if **-i** points to a dir set into a source2 /game/ environment that contains modname).
+**-i** *\<dir\>*  This should be an absolute path pointing into a source1 game directory containing gameinfo.txt   
+
+**-e** *\<dir/modname\>*  Path to source2 mod/addon. \<*modname*\> (e.g. `-e portal2_imported`) instead of an absolute path will only work if the input folder **-i** is placed inside a source2 /game/ environment which also contains \<*modname*\>.  
+
 
 ### Usage examples:
 ```bash
@@ -31,3 +33,12 @@ python panorama_import.py  -i "C:/.../Half-Life Alyx/game/csgo" -e csgo_imported
 python models_import.py    -i "C:/.../Half-Life Alyx/game/l4d2" -e l4d2_source2
 python materials_import.py -i "C:/.../Half-Life Alyx/game/ep2" -e hlvr
 ```
+
+#### Note:
+* Make sure to import texture content first (`.vtf` files), via VTFEdit :: Tools -> Convert folder, or the included `vtf_to_tga.py`, using the same parameters.  
+
+    Materials and particles won't convert correctly if `.tga` files aren't present inside `/content/<modname>/materials/` 
+
+
+## Results
+### [Inferno Source 2 Comparison - YouTube](https://www.youtube.com/watch?v=e-kcE9F_uH0)
