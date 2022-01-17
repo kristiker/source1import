@@ -3,7 +3,6 @@
 # csgo soundscapes:
 # "wave" ambient\dust2\wind_sand_01.wav" -> "wave" "sounds\ambient\dust2\wind_sand_01.vsnd" 
 #
-# surfaceprop need processing
 
 from shared import base_utils2 as sh
 from pathlib import Path
@@ -15,13 +14,15 @@ HLVR_ADDON_WRITE = False
 """
 For hlvr_addons:
     Set to True to also write sound event imports to `soundevents/{addon}_soundevents.vsndevts` FILE
+    The addon system demands all addon sounds be in this one file.
 
 https://developer.valvesoftware.com/wiki/Half-Life:_Alyx_Workshop_Tools/Addon_Sounds#Sound_Events_files
 """
 
 scripts = Path('scripts')
-SOUNDSCAPES_MANIFEST = Path("scripts/soundscapes_manifest.txt")
-SOUND_OPERATORS_FILE = "scripts/sound_operator_stacks.txt" # TODO.....
+SOUNDSCAPES_MANIFEST = scripts / "soundscapes_manifest.txt"
+SURFACEPROPERTIES_MANIFEST = scripts / "surfaceproperties_manifest.txt"
+SOUND_OPERATORS_FILE = scripts / "sound_operator_stacks.txt" # TODO.....
 
 def main():
 
@@ -51,6 +52,17 @@ def main():
 
     if HLVR_ADDON_WRITE:
         print("Fix the misplaced brace ({) inside addon soundevent file or it won't compile.")
+
+    # surfaceproperties...
+    manifest_handle = VsurfManifestHandler()
+    for surfprop_txt in sh.collect("scripts", ".txt", ".txt", OVERWRITE_SCRIPTS, match="surfaceproperties*.txt"):
+        if surfprop_txt.name == SURFACEPROPERTIES_MANIFEST.name:
+            manifest_handle.read_manifest(surfprop_txt)
+            continue
+        manifest_handle.retrieve_surfaces(
+            ImportSurfaceProperties(surfprop_txt)
+        )
+    manifest_handle.after_all_converted()
 
 
 def fix_wave_resource(old_value):
@@ -220,6 +232,7 @@ hrtf_follow [1]
 op_stacks = {}
 
 def ImportGameSound(asset_path: Path):
+    "scripts/game_sounds*.txt -> soundevents/game_sounds*.vsndevts"
     
     vsndevts_file = sh.EXPORT_CONTENT / "soundevents" / asset_path.local.relative_to(scripts).with_suffix('.vsndevts')
     vsndevts_file.parent.MakeDir()
@@ -337,6 +350,88 @@ def ImportGameSound(asset_path: Path):
 
     print("+ Saved", vsndevts_file.local)
     return vsndevts_file
+
+vsurf_base_params = {
+    'physics': ('density','elasticity','friction','dampening','thickness',),
+    'audiosounds':('bulletimpact','scraperough','scrapesmooth','impacthard','impactsoft','rolling','break','strain',),
+    'audioparams': ('audioreflectivity','audiohardnessfactor','audioroughnessfactor','scrapeRoughThreshold','impactHardThreshold',),
+}
+
+def ImportSurfaceProperties(asset_path: Path):
+    "scripts/surfaceproperties*.txt -> surfaceproperties/surfaceproperties*.vsurf"
+    vsurf_file: Path = sh.EXPORT_CONTENT / "surfaceproperties" / asset_path.local.relative_to(scripts).with_suffix('.vsurf')
+    vsurf_file.parent.MakeDir()
+
+    
+    kv = KV.CollectionFromFile(asset_path)
+    vsurf = dict(SurfacePropertiesList = [])
+
+    for surface, properties in {**kv}.items():
+        new_surface = dict(surfacePropertyName = surface)
+        unsupported_params = {}
+        for key, value in properties.items():
+            context = next((ctx for ctx, group in vsurf_base_params.items() if key in group), None)
+            if context is not None:
+                new_surface.setdefault(context, {})[key] = value
+            elif key in ('base'):
+                new_surface[key] = value
+            else:
+                unsupported_params[key] = value
+
+        # Add default base
+        if 'base' not in new_surface:
+            if surface not in ('default', 'player'):
+                new_surface['base'] = 'default'
+
+        # Add unsupported parameters last
+        if unsupported_params:
+            new_surface['legacy_import'] = unsupported_params
+
+        vsurf['SurfacePropertiesList'].append(new_surface)
+    
+    sh.write(dict_to_kv3_text(vsurf), vsurf_file)
+    print("+ Saved", vsurf_file.local)
+
+    return vsurf_file, vsurf['SurfacePropertiesList']
+
+class VsurfManifestHandler:
+    """
+    * source only reads files listed in manifest
+    * source2 only reads a single `surfaceproperties.vsurf` file.
+    -
+    --> write surfaces to main file as per rules of manifest
+    """
+    def __init__(self):
+        self.manifest_files = []
+        self.all_surfaces: dict[Path, list] = {}
+
+    def read_manifest(self, manifest_file: Path):
+        self.manifest_files.extend(KV.FromFile(manifest_file).get_all_for('file'))
+
+    def retrieve_surfaces(self, rv: tuple[Path, list]):
+        self.all_surfaces.__setitem__(*rv)
+
+    def after_all_converted(self):
+        # Only include surfaces from files that are on manifest.
+        # Last file has override priority
+        if not (self.manifest_files and self.all_surfaces):
+            return
+        vsurf_path = next(iter(self.all_surfaces)).with_stem('surfaceproperties')
+        vsurf = dict(SurfacePropertiesList = [])
+        for file in self.manifest_files[::-1]:
+            file = vsurf_path.parents[1] / 'surfaceproperties' / Path(file).with_suffix('.vsurf').name
+            for surfaceproperty in self.all_surfaces.get(file, ()):
+                if not surfaceproperty:
+                    break
+                # ignore if this surface is already defined
+                if not any(
+                    surfaceproperty2['surfacePropertyName'] == surfaceproperty['surfacePropertyName']
+                        for surfaceproperty2 in vsurf['SurfacePropertiesList']):
+                    vsurf['SurfacePropertiesList'].append(surfaceproperty)
+
+        sh.write(dict_to_kv3_text(vsurf), vsurf_path)
+        print("+ Saved", vsurf_path.local)
+
 
 if __name__ == '__main__':
     main()  
