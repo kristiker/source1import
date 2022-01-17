@@ -46,10 +46,10 @@ def OutputList(path: Path, with_suffix = False):
     """ Return list with all the possible output names
     """ 
     for name in OUT_NAME_ENDS:
-        outPath = Path(path.parent) / Path(path.stem + name)
+        outPath = Path(path.parent) / (path.stem + name)
         if not with_suffix: yield outPath
         for ext in OUT_EXT_LIST:
-            yield Path(str(outPath) + ext) #.with_suffix(ext)
+            yield Path(outPath).with_suffix(ext)
 
 # if there is one, force skybox vtfs to run on the 2nd row executable __very specific__ 
 FORCE_SKYBOX_2ND_VTF2TGA = True
@@ -125,7 +125,7 @@ def ImportVTFtoTGA(vtfFile, force_2nd = False):
 
                     elif ttype == 'up': # cubemap
                         for face in ('up', 'dn', 'lf', 'rt', 'bk', 'ft'):
-                            nextPath = vtfFile.parent / Path(vtfFile.stem + face + outPath.suffix)
+                            nextPath = vtfFile.parent / (vtfFile.stem + face + outPath.suffix)
                             if nextPath.is_file():
                                 outImages.append(nextPath)
                         faces = "[ " + ", ".join([str(path.stem[-2:]) for path in outImages ]) + " ]"
@@ -133,7 +133,7 @@ def ImportVTFtoTGA(vtfFile, force_2nd = False):
 
                     else: # frame sequence & depth slice
                         for i in range(1000):
-                            nextPath = vtfFile.parent / Path(vtfFile.stem + f"{i:03}" + outPath.suffix)
+                            nextPath = vtfFile.parent / (vtfFile.stem + f"{i:03}" + outPath.suffix)
                             if nextPath.is_file():
                                 outImages.append(nextPath)
                             else: break

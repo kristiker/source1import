@@ -819,8 +819,8 @@ def load(path = None, in_file = None, element_path = None):
 			def read_element(elem_type, line_tracker):
 				id = None
 				name = None
-				prefix = elem_type == "$prefix_element$"
-				if prefix: element_chain.append(dm.prefix_attributes)
+				is_prefix = (elem_type == "$prefix_element$")
+				if is_prefix: element_chain.append(dm.prefix_attributes)
 				
 				def read_value(name,type_str,kv2_value, index=-1):
 					if type_str == 'element': # make a record; will link everything up once all elements have been read
@@ -852,7 +852,7 @@ def load(path = None, in_file = None, element_path = None):
 						continue
 					
 					if line[0] == 'id':
-						if not prefix:
+						if not is_prefix:
 							new_elem = dm.add_element(name,elem_type,uuid.UUID(hex=line[2]))
 							element_chain.append(new_elem)
 						continue
@@ -879,7 +879,7 @@ def load(path = None, in_file = None, element_path = None):
 						elif len(element_path):
 							del element_path[0]
 					
-					if new_elem == None and not prefix:
+					if new_elem == None and not is_prefix:
 						continue
 					
 					if len(line) >= 2:

@@ -481,28 +481,6 @@ def fixVector(s, addAlpha = 1, returnList = False):
     if returnList:  return originalValueList
     else:           return '[' + ' '.join(originalValueList) + ']'
 
-surfprop_force = {
-    'stucco':       'world.drywall',
-    'tile':         'world.tile_floor',
-    'metalpanel':   'world.metal_panel',
-    'wood':         'world.wood_solid',
-}
-
-surfprop_list = sh.GetJson(Path(__file__).parent / "shared/surfproperties.json")['hlvr']
-# TODO: ideally, we want to import our legacy surfaceprops and use those instead of whatever is closest
-def fixSurfaceProp(vmtVal):
-
-    if SURFACEPROP_AS_IS or (vmtVal in ('default', 'default_silent', 'no_decal', 'player', 'roller', 'weapon')):
-        return vmtVal
-
-    elif vmtVal in surfprop_force:
-        return surfprop_force[vmtVal]
-
-    if("props" in vmat.path.parts): match = get_close_matches('prop.' + vmtVal, surfprop_list, 1, 0.4)
-    else: match = get_close_matches('world.' + vmtVal, surfprop_list, 1, 0.6) or get_close_matches(vmtVal, surfprop_list, 1, 0.6)
-
-    return match[0] if match else vmtVal
-
 def presence(_, rv=1):
     return rv
 
@@ -810,7 +788,7 @@ vmt_to_vmat = {
 },
 
 'SystemAttributes': {
-    '$surfaceprop':     ('PhysicsSurfaceProperties', 'default', [fixSurfaceProp])
+    '$surfaceprop':     ('PhysicsSurfaceProperties', 'default', [str])
     #'$surfaceprop2'
     #'$surfaceprop3'
     #'$surfaceprop4'
@@ -1182,8 +1160,10 @@ def ImportSkyJSONtoVMAT(json_collection: Path):
         sky_cubemap_path = cubemap.local
 
     with open(vmat_path, 'w') as fp:
-        fp.write('Layer0\n{\n\tshader "sky.vfx"\n' +
-            f'\tSkyTexture\t"{sky_cubemap_path.as_posix()}"\n}}'
+        fp.write(
+            'Layer0\n{\n\tshader "sky.vfx"\n'
+            f'\tSkyTexture\t"{sky_cubemap_path.as_posix()}"\n'
+            '\tF_TEXTURE_FORMAT2 0\n}'
         )
 
     print("+ Saved", vmat_path.local)
@@ -1255,12 +1235,10 @@ def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False):
     if PRINT_LEGACY_IMPORT:
         vmat.KeyValues['legacy_import'] = vmt.KeyValues.as_value()
 
-    with open(vmat.path, 'w') as vmatFile:
-        msg(vmt.shader + " => " + vmat.shader, "\n")#, vmt.KeyValues)
-        vmatFile.write(vmat.KeyValues.ToStr()) ###############################
+    msg(vmt.shader + " => " + vmat.shader, "\n")
+    sh.write(vmat.KeyValues.ToStr(), vmat.path) ####################
 
-    if sh.DEBUG: print("+ Saved", vmat.path)
-    else: print("+ Saved", vmat.path.local)
+    print("+ Saved", vmat.path if sh.DEBUG else vmat.path.local)
 
     if vmat.shader == "vr_projected_decals":
         _ImportVMTtoExtraVMAT(vmt_path, shader="vr_static_overlay",

@@ -76,7 +76,7 @@ class SingleColour:
     default = [255, 255, 255, 255]
     t: str
     place:int
-    def __call__(self, oldval, existing = default):
+    def __call__(self, oldval, existing = default.copy()):
         rv = existing
         rv[self.place] = oldval
         return self.t, rv
@@ -1873,7 +1873,7 @@ def process_material(value: str):
             add = vmt_to_vpcf[vmtkey]
             if callable(add):
                 if isinstance(add, SingleColour):
-                    add, vmtval = add(vmtval, existing = vpcf.get(add.t, add.default))
+                    add, vmtval = add(vmtval, existing = vpcf.get(add.t, add.default.copy()))
                 else:
                     add, vmtval = add(vmtval)
             elif isinstance(add, tuple):
