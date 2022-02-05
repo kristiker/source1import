@@ -164,7 +164,10 @@ def parse_out_path():
     if not source2_mod.is_absolute() and len(source2_mod.parts) in (1, 2):
         EXPORT_GAME = GAMEROOT / source2_mod
         EXPORT_CONTENT = CONTENTROOT / source2_mod
-
+    elif len(source2_mod.parts) == 3:
+        # TEMP FIX FOR game/hlvr_addons/x when import is not source2 environment
+        EXPORT_GAME = GAMEROOT / source2_mod
+        EXPORT_CONTENT = CONTENTROOT / source2_mod.relative_to(eEngineFolder.GAMEROOT.value)
     elif EXPORT_GAME is EXPORT_CONTENT is None:
         ERROR(f"Invalid export game \"{source2_mod}\"")
 
