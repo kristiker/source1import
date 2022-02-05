@@ -1,11 +1,22 @@
 #import shared.base_utils as sh
 from pathlib import Path
+import time
 from tkinter import filedialog, messagebox
 from tkinter import *
 import sys
 from winsound import MessageBeep
-from subprocess import run as subrun, STDOUT, PIPE
+from subprocess import run as subrun, STDOUT, PIPE, CREATE_NEW_CONSOLE
 import json
+
+#os.chdir('utils')
+sys.path.insert(0, sys.path[0] + '\\utils')
+
+import utils.shared.base_utils2 as sh
+
+if True:
+    sh._args_known.__setattr__('src1gameinfodir', None)
+    sh._args_known.__setattr__('game', None)
+
 
 fs = None
 bg1 = "#363636"
@@ -25,8 +36,8 @@ class SampleApp(Tk):
         self.isSingle = IntVar()
         self.allChecked = False
 
-        self.IMPORT_GAME = StringVar(name="IMPORT_GAME")
-        self.EXPORT_GAME = StringVar(name="EXPORT_GAME")
+        self.in_path = StringVar(name="in_path")
+        self.out_path = StringVar(name="out_path")
 
         self.Overwrite = IntVar(name='overwrite_all')
 
@@ -36,18 +47,15 @@ class SampleApp(Tk):
         self.Models_move = IntVar(value=True, name='models_move')
         self.Models.Move = "LOl"
 
-        self.vars = (self.IMPORT_GAME, self.EXPORT_GAME, self.Overwrite, self.Textures, self.Materials, self.Models, self.Models_move)
+        self.vars = (self.in_path, self.out_path, self.Overwrite, self.Textures, self.Materials, self.Models, self.Models_move)
         #self.SOURCE2_ROOT = StringVar()
 
-        self.cfg = {}
-        self.read_config()
-
-        self.widgets = {}
+        self.widgets: dict[Widget] = {}
         if (path:= Path(r"D:\Games\steamapps\common\Source SDK Base 2013 Multiplayer\hl2\resource\game.ico")).exists():
             self.iconbitmap(path)
 
-        self.geometry("476x380")
-        self.minsize(476, 380)
+        self.geometry("480x380")
+        self.minsize(480, 360)
         self.title(self.APP_TITLE)
         #self.maxsize(370, 350)
         self.configure(bg=bg1)
@@ -58,7 +66,7 @@ class SampleApp(Tk):
         #self.widgets[20].pack(fill=X, side=TOP)
 
         self.io_grid = Frame(self, width=310, height=100, bg=bg1)
-        self.io_grid.pack(fill="both", expand=False, padx=6, pady=5 )#side="left", fill="both", expand=True)
+        self.io_grid.pack(fill="both", expand=False, padx=6, pady=5 )#side="left", fill="both", )
         self.io_grid.grid_columnconfigure(0, weight=0, pad=2, minsize=12, uniform= True)
         self.io_grid.grid_rowconfigure(0, weight=0, pad=1, minsize=15, uniform= True)
 
@@ -70,13 +78,12 @@ class SampleApp(Tk):
         #self.widgets[2] = Checkbutton(self, text="female", background="#414141",selectcolor="#414141")#.grid(row=1, sticky=W)
         #self.widgets[2].grid(row=0, column = 2, in_=self.main_grid, sticky="w")#.grid(row=0, sticky=W)
 
-        self.widgets[3] = Entry(self, textvariable=self.IMPORT_GAME,relief=GROOVE, width=40, state=DISABLED, disabledbackground=bg2, disabledforeground="white")
-        self.widgets[4] = Button(text="File  ", command=lambda: self.pick_path(0),relief=GROOVE)
-        self.widgets[5] = Button(text="Folder", command=lambda: self.pick_path(1))
+        self.widgets[3] = Entry(self, textvariable=self.in_path,relief=GROOVE, width=48, state=DISABLED, disabledbackground=bg2, disabledforeground="white")
+        #self.widgets[4] = Button(text="File  ", command=lambda: self.pick_path(0),relief=GROOVE)
+        self.widgets[5] = Button(text=" ... ", command=lambda: self.pick_in_path())
         Label(self, text="Import Game :", fg = fg1, bg=bg1).grid(in_=self.io_grid,row=1,column=0,sticky="w")
-        self.widgets[3].grid(row=1, column = 1, columnspan=2, in_=self.io_grid,sticky="we", pady=5, padx=1, ipady=2)
-        self.widgets[4].grid(row=1, column = 3, in_=self.io_grid, sticky="w")
-        self.widgets[5].grid(row=1, column = 4, in_=self.io_grid, sticky="e")
+        self.widgets[3].grid(row=1, column = 1, columnspan=2, in_=self.io_grid,sticky="we", pady=5, padx=3, ipady=2)
+        self.widgets[5].grid(row=1, column = 3, in_=self.io_grid)
 
         # Export content text and entry
         #Label(self, text="Export Content :", bg="#414141", fg = "white").grid(in_=self.io_grid,row=2,column=0,sticky="w")
@@ -85,12 +92,12 @@ class SampleApp(Tk):
 
         # Export game text and entry
         Label(self, text="Export Game :", bg=bg1, fg = fg1).grid(in_=self.io_grid,row=2,column=0,sticky="w")
-        self.widgets[8] = Entry(self, textvariable=self.EXPORT_GAME, width=40, relief=GROOVE, state=DISABLED, disabledbackground=bg2, disabledforeground="white")
-        self.widgets[8].grid(row=2, column= 1, columnspan=2, in_=self.io_grid,sticky="we", pady=5, padx=1, ipady=2)
+        self.widgets[8] = Entry(self, textvariable=self.out_path, width=40, relief=GROOVE, state=DISABLED, disabledbackground=bg2, disabledforeground="white")
+        self.widgets[8].grid(row=2, column= 1, columnspan=2, in_=self.io_grid,sticky="we", pady=5, padx=3, ipady=2)
 
         # Choose button
-        self.widgets[7] = Button(text="Choose", command=lambda: self.pick_path(2),relief=GROOVE)
-        self.widgets[7].grid(row=2, column = 3, columnspan=2, rowspan = 1,in_=self.io_grid, sticky="wens")
+        self.widgets[7] = Button(text=" ... ", command=lambda: self.pick_out_path(),relief=GROOVE,state=DISABLED)
+        self.widgets[7].grid(row=2, column = 3, in_=self.io_grid)#.grid(row=2, column = 3, columnspan=2, rowspan = 1,in_=self.io_grid, sticky="wens")
 
        #Button(text="Overwrite All", command=self.overwrite_all).pack(anchor="w")
         self.sett_grid = Frame(self, width=310, height=100, bg=bg1)
@@ -104,8 +111,8 @@ class SampleApp(Tk):
         self.widgets[1].grid(pady= 5, row = 0, column = 1, columnspan = 2, in_=self.sett_grid, sticky="n")#.grid(row=0, sticky=W)
 
 
-        self.widgets[13] = Checkbutton(self, text="Import Textures", variable=self.Textures, bd = 0,selectcolor=bg1)
-        self.widgets[13].grid(row = 1, in_=self.sett_grid, sticky="w")
+        #self.widgets[13] = Checkbutton(self, text="Import Textures", variable=self.Textures, bd = 0,selectcolor=bg1)
+        #self.widgets[13].grid(row = 1, in_=self.sett_grid, sticky="w")
 
         self.widgets[9] = Checkbutton(self, text="Import Materials", variable=self.Materials, bd = 0,selectcolor=bg1)
         self.widgets[9].grid(row = 2, in_=self.sett_grid, sticky="w")
@@ -129,7 +136,7 @@ class SampleApp(Tk):
         #self.pack()
         #font=('arial',16,'normal')
         for widget in self.widgets:
-            self.widgets[widget].configure(bg=bg1, fg =fg1, highlightbackground=bg1, highlightcolor = bg1, relief=GROOVE, font='Helvetica 10 bold' if widget == 5 else 'Helvetica 10')
+            self.widgets[widget].configure(bg=bg1, fg =fg1, highlightbackground=bg1, highlightcolor = bg1, relief=GROOVE, font='Helvetica 10 bold' if widget in (5,7) else 'Helvetica 10')
 
             if widget in (19, 999): # depth
                 self.widgets[widget].configure(bg=bg2)
@@ -140,76 +147,91 @@ class SampleApp(Tk):
         #self.main_grid.grid_remove()
         #self.widgets[20].configure(bg="green", fg="white", font='Helvetica 10 bold')
 
-        self.gobutton = Button(text="\tGo\t", command=self.run_scripts, bg=bg1, fg =fg1, activebackground = bg2, activeforeground = fg1, relief=GROOVE, disabledforeground=bg2)
+        self.gobutton = Button(text="\tGo\t", command=self.launch_importer_thread, bg=bg1, fg =fg1, activebackground = bg2, activeforeground = fg1, relief=GROOVE, disabledforeground=bg2)
         self.gobutton.pack(anchor="se", ipadx = 6, ipady = 1.1, padx = 6, pady = 6, side=BOTTOM)#, side=BOTTOM)
         self.widgets[19].pack(fill=BOTH, padx = 6, pady = 2, side=BOTTOM, expand=True)#, side=BOTTOM
 
-        self.main_msg()
-        self.poll()
-        #Button(text="hmmm", command=lambda: self.IMPORT_GAME.set("C:/here/theaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaare.xd")).pack()
+        self.importer_thread = Thread(target=self.go)
+
+        # restore app state from last session
+        self.cfg = {}
+        Thread(target=self.read_config).start()
+    
+
+        #Button(text="hmmm", command=lambda: self.in_path.set("C:/here/theaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaare.xd")).pack()
         #self.entry.place(relx=.5, rely=.5, anchor="c")
         #self.button2.pack()
         #self.button3.pack()
-        #self.IMPORT_GAME.set(str(Path(__file__).parent).capitalize())
 
-    def main_msg(self):
-        print("Welcome to the", self.APP_TITLE)
-        print(f"Files will be exported on either the /content/ or /game/ directory, depending on its type.")
 
-    def poll(self):
-        #print("YO POLLING")
-        if hasattr(self, 'processing_thread'):
-            if self.isRunning:
-                if not self.processing_thread.is_alive():
-                    self.isRunning = False
-                    self.gobutton.configure(state=NORMAL)
-                    #sys.stdout = self.Console
-                    print("\n\t\t\t**** FINISHED ****\n")
-                    MessageBeep()
-            self.after(200, self.poll)
-            return
-
-        self.after(1000, self.poll)
-
-    def fix_paths(self):
-        if (not self.IMPORT_GAME.get()) or (not self.EXPORT_GAME.get()):
-            return
-        if (not Path(self.IMPORT_GAME.get()).exists()) or (not Path(self.EXPORT_GAME.get()).exists()):
-            return
-
-        self.IMPORT_GAME.set(self.IMPORT_GAME.as_posix())
-        self.EXPORT_GAME.set(self.EXPORT_GAME.as_posix())
-        return True
-
-    def pick_path(self, what):
-        if what in (0, 1):
-            self.isSingle = not what
-            path = filedialog.askopenfilename(initialdir=self.IMPORT_GAME) if self.isSingle else filedialog.askdirectory(initialdir=self.IMPORT_GAME)
-            if path:
-                self.IMPORT_GAME.set(Path(path).as_posix())
-                #self.widgets[3].configure(show = path.split("/Half-Life Alyx/", 1)[-1])
-                self.widgets[4].configure(font=f'Helvetica 10{" bold"*self.isSingle}')
-                self.widgets[5].configure(font=f'Helvetica 10{" bold"*(not self.isSingle)}')
-
-        elif what == 2:
-            path = filedialog.askdirectory()
-            if path:
-                self.EXPORT_GAME.set(Path(path).as_posix())
-
-    def run_scripts(self):
-        if self.isRunning: return
+    def update_paths(self):
+        if self.in_path.get():
+            sh._args_known.__setattr__('src1gameinfodir', self.in_path.get())
+            try:
+                sh.parse_in_path()
+            except SystemExit as exc:
+                messagebox.showwarning(title="The path provided is invalid.",
+                    message=f"{self.in_path.get()}\n\nERROR: {exc.args[0]}"
+                )
+                sh._args_known.__setattr__('src1gameinfodir', None)
+                self.in_path.set("")
+                self.widgets[7].configure(state=DISABLED)
+                self.gobutton.configure(state=DISABLED)
+                return
+            else:
+                self.Console.textbox.delete(1.0,END)
+                print("Importing", sh.gameinfo.get('game', 'game with unreadable gameinfo'), f"('{Path(self.in_path.get()).name}')")
+                self.widgets[7].configure(state=NORMAL)  
+        if self.out_path.get(): # Both paths are provided.
+            sh._args_known.__setattr__('game', self.out_path.get())
+            sh.parse_out_path()
+            self.gobutton.configure(state=NORMAL)
+            print()
+            try:
+                print(
+                f"ROOT :  \"{sh.ROOT.as_posix()}\"\n"
+                f"CONTENT :  {sh.EXPORT_CONTENT.relative_to(sh.ROOT).as_posix()}\n"
+                f"GAME :  {sh.EXPORT_GAME.relative_to(sh.ROOT).as_posix()}\n"   
+            )
+            except (ValueError, AttributeError): # non-source2 export (sbox)
+                print(f"Export everything to '{sh.EXPORT_GAME.as_posix()}'\n")
+            
+            print('=========================================================')
+            
         self.update_config()
 
-        rv = self.fix_paths()
-        if not rv:
-            messagebox.showwarning(title=self.APP_TITLE, message="The path provided is invalid")
-            return
+    def pick_in_path(self):
+        if path := filedialog.askdirectory(initialdir=self.in_path.get()):
+            self.in_path.set(Path(path).as_posix())
+            #self.widgets[4].configure(font=f'Helvetica 10{" bold"*self.isSingle}')
+            self.widgets[5].configure(font=f'Helvetica 10{" bold"*(not self.isSingle)}')
+            self.update_paths()
+
+    def pick_out_path(self):
+        if path:= filedialog.askdirectory(initialdir=Path(self.in_path.get()).parent):
+            self.out_path.set(Path(path).as_posix())
+            self.update_paths()
+
+    def launch_importer_thread(self):
+        if self.importer_thread.is_alive():
+            self.importer_thread.join()
+        self.importer_thread.start()
+
+    def go(self):
+        #if self.isRunning: return
+        self.update_config()
 
         textures =self.Textures.get()
         materials =self.Materials.get()
         models =self.Models.get()
-        if textures or materials or models:
-            #print("Went!", self.isSingle, self.Overwrite.get(), self.EXPORT_GAME.get())
+        
+        if models:
+            from utils import models_import
+            models_import.sh = sh
+            models_import.main()
+        
+        if False: #textures or materials or models:
+            #print("Went!", self.isSingle, self.Overwrite.get(), self.out_path.get())
             #if not (messagebox.askokcancel(title=self.APP_TITLE, message=
             #        "Are you sure you want to continue?\n" +
             #        f"\n" +
@@ -221,7 +243,7 @@ class SampleApp(Tk):
             self.isRunning = True
 
             commandList = []
-            i, o = self.IMPORT_GAME, self.EXPORT_CONTENT
+            i, o = self.in_path, self.EXPORT_CONTENT
             overwrite = ' -f' if self.Overwrite else ''
 
             if textures:
@@ -262,6 +284,7 @@ class SampleApp(Tk):
         self._rw_cfg(write=False)
         for var in self.vars:
             var.set(self.cfg.setdefault(var._name, var.get()))
+        self.update_paths()
 
     def update_config(self):
         for var in self.vars:
@@ -286,7 +309,7 @@ class SampleApp(Tk):
 
 
 class Console(): # create file like object
-    def __init__(self, textbox): # pass reference to text widget
+    def __init__(self, textbox: Text): # pass reference to text widget
         self.textbox = textbox # keep ref
 
     def write(self, text):
@@ -310,7 +333,7 @@ class threaded_cmd(Thread):
     def run(self):
         subrun(self.command, cwd=Path(__file__).parent, shell=True)
 
-app = SampleApp("source2utils")
+app = SampleApp("source1import")
 
 _print = print
 def print(*args, **kw):

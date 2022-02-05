@@ -1,0 +1,1 @@
+pyinstaller --onefile -p utils source1import.pyw

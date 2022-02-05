@@ -16,7 +16,7 @@ def ImportMDLtoVMDL(mdl_path, move_s1_assets = False):
     print('+ Generated', vmdl_path.local)
     return vmdl_path
 
-if __name__ == "__main__":
+def main():
     print('Source 2 VMDL Generator!')
 
     mdl_files = sh.collect('models', '.mdl', '.vmdl', SHOULD_OVERWRITE)
@@ -25,3 +25,6 @@ if __name__ == "__main__":
         ImportMDLtoVMDL(mdl)
     
     print("Looks like we are done!")
+
+if __name__ == "__main__":
+    main()
