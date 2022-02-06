@@ -11,8 +11,8 @@ from shared.material_proxies import ProxiesToDynamicParams
 import numpy as np
 from shared import PFM
 
-# generic, blend instead of vr_complex, vr_simple_2wayblend etc...
-LEGACY_SHADER = False
+# generic, blend instead of vr_standard, vr_simple_2wayblend etc...
+LEGACY_SHADER = True
 NEW_SH = not LEGACY_SHADER
 
 # Path to content root, before /materials/
@@ -144,20 +144,20 @@ class VMAT(ValveMaterial):
 shaderDict = {
     "black":                "black",
     "sky":                  "sky",
-    "unlitgeneric":         "vr_complex",
-    "vertexlitgeneric":     "vr_complex",
+    "unlitgeneric":         "vr_standard",
+    "vertexlitgeneric":     "vr_standard",
     "decalmodulate":        "vr_projected_decals",  # https://developer.valvesoftware.com/wiki/Decals#DecalModulate
-    "lightmappedgeneric":   "vr_complex",
-    "lightmappedreflective":"vr_complex",
-    "character":            "vr_complex",  # https://developer.valvesoftware.com/wiki/Character_(shader)
-    "customcharacter":      "vr_complex",
-    "teeth":                "vr_complex",
+    "lightmappedgeneric":   "vr_standard",
+    "lightmappedreflective":"vr_standard",
+    "character":            "vr_standard",  # https://developer.valvesoftware.com/wiki/Character_(shader)
+    "customcharacter":      "vr_standard",
+    "teeth":                "vr_standard",
     "water":                "simple_water",
     #"refract":              "refract",
-    "worldvertextransition":"vr_simple_2way_blend",
-    "lightmapped_4wayblend":"vr_simple_2way_blend",
-    "lightmappedtwotexture":"vr_complex",  # 2 multiblend $texture2 nocull scrolling, model, additive.
-    "unlittwotexture":      "vr_complex",  # 2 multiblend $texture2 nocull scrolling, model, additive.
+    "worldvertextransition":"vr_standard",
+    "lightmapped_4wayblend":"vr_standard",
+    "lightmappedtwotexture":"vr_standard",  # 2 multiblend $texture2 nocull scrolling, model, additive.
+    "unlittwotexture":      "vr_standard",  # 2 multiblend $texture2 nocull scrolling, model, additive.
     "cable":                "cables",
     "splinerope":           "cables",
     "shatteredglass":       "vr_glass",
@@ -166,7 +166,7 @@ shaderDict = {
     #"spritecard":           "spritecard",  these are just vtexes with params defined in vpcf renderer - skip
     #"subrect":              "spritecard",  # should we just cut? $Pos "256 0" $Size "256 256" $decalscale 0.25 decals\blood1_subrect.vmt
     #"weapondecal": weapon sticker
-    "patch":                "vr_complex", # fallback if include doesn't have one
+    "patch":                "vr_standard", # fallback if include doesn't have one
     #grass
     #customweapon
     #decalbasetimeslightmapalphablendselfillum
@@ -198,15 +198,15 @@ def chooseShader():
     if vmt.KeyValues['$decal'] == 1: d["vr_projected_decals"] += 10
 
     if vmt.shader == "worldvertextransition":
-        if vmt.KeyValues['$basetexture2']: d["vr_simple_2way_blend"] += 10
+        if vmt.KeyValues['$basetexture2']: d["vr_standard"] += 10
 
     elif vmt.shader == "lightmappedgeneric":
-        if vmt.KeyValues['$newlayerblending'] == 1: d["vr_simple_2way_blend"] += 10
+        if vmt.KeyValues['$newlayerblending'] == 1: d["vr_standard"] += 10
         #if vmt.KeyValues['$decal'] == 1: sh["vr_projected_decals"] += 10
 
     elif vmt.shader == "":
         pass
-    # TODO: vr_complex -> vr simple if no selfillum tintmask detailtexture specular
+    # TODO: vr_standard -> vr simple if no selfillum tintmask detailtexture specular
     return max(d, key = d.get)
 
 ignoreList = [ "dx9", "dx8", "dx7", "dx6", "proxies"]
@@ -491,7 +491,7 @@ def fix_envmap(vmtVal):
         vmat.KeyValues['F_SPECULAR_CUBE_MAP'] = 1
     else:
         vmat.KeyValues['F_SPECULAR_CUBE_MAP'] = 2
-        vmat.KeyValues['TextureCubeMap'] = "formatN"#TODO
+        vmat.KeyValues['TextureCubeMap'] = "materials\default\default_cube.pfm"#TODO
     return 1  # presence()
 
 
@@ -631,7 +631,7 @@ vmt_to_vmat = {
 
     '$selfillummask':   ('TextureSelfIllumMask','_selfillummask', [formatNewTexturePath]),
     '$tintmasktexture': ('TextureTintMask',     '_mask',   [createMask, 'G', False],   ('F_TINT_MASK',  1)), #('TextureTintTexture',)
-    '$_vmat_metalmask': ('TextureMetalness',    '_metal',  [formatNewTexturePath],     ('F_METALNESS_TEXTURE',  1)),  # F_SPECULAR too
+    '$_vmat_metalmask': ('TextureReflectance',    '_refl',  [formatNewTexturePath]),
     '$_vmat_transmask': ('TextureTranslucency', '_trans',  [formatNewTexturePath]),
     '$_vmat_rimmask':   ('TextureRimMask',      '_rimmask',[formatNewTexturePath]),
 
@@ -739,19 +739,19 @@ vmt_to_vmat = {
     '$layerbordertint':     ('g_vLayer1BorderColor',    '[1.000000 1.000000 1.000000 0.000000]', [fixVector, True]),
 
     # Diferent names in source1import.exe why?
-    ('$newlayerblending', 1): {  # F_FANCY_BLENDING
-        '$layerbordertint':     ('g_vLayerBorderTint',      '[1.000000 1.000000 1.000000 0.000000]', [fixVector, True]),
-        '$blendsoftness':       ('g_flBlendSoftness',       '0.500',    [float_val]),
-        '$layerborderstrength': ('g_flLayerBorderStrength', '0.500',    [float_val]),
-        '$layerborderoffset':   ('g_flLayerBorderOffset',   '0.000',    [float_val]),
-        '$layerbordersoftness': ('g_flLayerBorderSoftness', '0.500',    [float_val]),
+    #('$newlayerblending', 1): {  # F_FANCY_BLENDING
+    #    '$layerbordertint':     ('g_vLayerBorderTint',      '[1.000000 1.000000 1.000000 0.000000]', [fixVector, True]),
+    #    '$blendsoftness':       ('g_flBlendSoftness',       '0.500',    [float_val]),
+    #    '$layerborderstrength': ('g_flLayerBorderStrength', '0.500',    [float_val]),
+    #    '$layerborderoffset':   ('g_flLayerBorderOffset',   '0.000',    [float_val]),
+    #    '$layerbordersoftness': ('g_flLayerBorderSoftness', '0.500',    [float_val]),
 #F_TEXTURETRANSFORMS TextureLayer1Detail g_vLayer1DetailScale $detailtint     
 # $bumpdetailscale1       $bumpdetailscale2       g_vLayer1DetailTintAndBlend     
 # $detail2        TextureLayer2Detail     $detailScale2   g_vLayer2DetailScale    
 # $detailtint2    g_vLayer2DetailTintAndBlend     F_DETAILTEXTURE 
 # $detailblendmode F_DETAILBLENDMODE 
 # F_SPECULAR F_SPECULAR_CUBE_MAP DecalColor DecalTranslucency       [1.000000 1.000000 1.000000 1.000000]
-    }
+    #}
 },
 
 'channeled_masks': {  # 1-X will extract and invert channel X // M_1-X to only invert on models
@@ -1044,7 +1044,7 @@ def convertSpecials():
         vmt.KeyValues['$translucent'] = 1
 
     # fix unlit shader ## what about generic?
-    if (vmt.shader == 'unlitgeneric') and (vmat.shader == "vr_complex"):
+    if (vmt.shader == 'unlitgeneric') and (vmat.shader == "vr_standard"):
         vmat.KeyValues["F_UNLIT"] = 1
 
     # fix mod2x logic for "vr_projected_decals"
