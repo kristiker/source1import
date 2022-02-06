@@ -190,8 +190,7 @@ def chooseShader():
             failureList.add(f"{vmt.shader} unsupported shader", vmt.path)
         return "vr_black_unlit"
 
-    if LEGACY_SHADER:   d["generic"] += 1
-    else:               d[shaderDict[vmt.shader]] += 1
+    d[shaderDict[vmt.shader]] += 1
 
     if vmt.KeyValues['$beachfoam']: return "csgo_beachfoam"
 
@@ -267,7 +266,7 @@ def createMask(image_path, copySub = '_mask', channel = 'A', invert = False, que
         #if vmtTexture in vmt_to_vmat['textures']:
         #    failureList.add(f"{vmtTexture} not found", vmt.path) # FIXME ALL OF ME vmtTexture
         #else:
-        print(f"~ ERROR: Couldn't find requested image ({image_path}). Please check.")
+        print(f"~ ERROR: Couldn't find requested image ({image_path.local}).\nPlease make sure all textures have been pre-exported.")
         return default(copySub)
 
     image = Image.open(image_path).convert('RGBA')
@@ -282,7 +281,7 @@ def createMask(image_path, copySub = '_mask', channel = 'A', invert = False, que
 
     colors = imgChannel.getcolors()
     if len(colors) == 1:  # mask with single color
-        if copySub == "_rough" and colors[0][1] == 0:  # fix some very dumb .convert('RGBA') with 255 255 255 alpha
+        if copySub == "_gloss" and colors[0][1] == 255:  # fix some very dumb .convert('RGBA') with 255 255 255 alpha
             return default(copySub)  # TODO: should this apply to other types of masks as well?
         return fixVector(f"{{{colors[0][1]} {colors[0][1]} {colors[0][1]}}}", True)
 
@@ -756,13 +755,13 @@ vmt_to_vmat = {
 
 'channeled_masks': {  # 1-X will extract and invert channel X // M_1-X to only invert on models
    #'$vmtKey':                      (extract_from,       extract_as,       channel to extract)
-    '$normalmapalphaenvmapmask':    ('$normalmap',    '$envmapmask',      '1-A'),
-    '$basealphaenvmapmask':         ('$basetexture',    '$envmapmask',      'M_1-A'),
+    '$normalmapalphaenvmapmask':    ('$normalmap',    '$envmapmask',      'A'),
+    '$basealphaenvmapmask':         ('$basetexture',    '$envmapmask',      '1-A'),
     '$envmapmaskintintmasktexture': ('$tintmasktexture','$envmapmask',      '1-R'),
     '$basemapalphaphongmask':       ('$basetexture',    '$phongmask',       '1-A'),
     '$basealphaphongmask':          ('$basetexture',    '$phongmask',       '1-A'),
-    '$normalmapalphaphongmask':     ('$normalmap',    '$phongmask',       '1-A'),
-    '$bumpmapalphaphongmask':       ('$normalmap',    '$phongmask',       '1-A'),
+    '$normalmapalphaphongmask':     ('$normalmap',    '$phongmask',       'A'),
+    '$bumpmapalphaphongmask':       ('$normalmap',    '$phongmask',       'A'),
     '$basemapluminancephongmask':   ('$basetexture',    '$phongmask',       'L'),
 
     '$blendtintbybasealpha':        ('$basetexture',    '$tintmasktexture', 'A'),
@@ -1046,6 +1045,14 @@ def convertSpecials():
     # fix unlit shader ## what about generic?
     if (vmt.shader == 'unlitgeneric') and (vmat.shader == "vr_standard"):
         vmat.KeyValues["F_UNLIT"] = 1
+
+    # two layer material
+    if vmt.shader == 'worldvertextransition':
+        vmat.KeyValues['F_BLEND'] = 1
+
+    # three layer material
+    if vmt.shader == 'lightmapped_4wayblend':
+        vmat.KeyValues['F_BLEND'] = 2 # 3 layers max in steamvr, not 4
 
     # fix mod2x logic for "vr_projected_decals"
     if vmt.shader == 'decalmodulate':

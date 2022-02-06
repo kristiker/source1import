@@ -102,7 +102,13 @@ def parse_paths():
     if not source2_mod.is_absolute() and len(source2_mod.parts) in (1, 2):
         EXPORT_GAME = GAMEROOT / source2_mod
         EXPORT_CONTENT = CONTENTROOT / source2_mod
-
+    elif len(source2_mod.parts) == 3:
+        # TEMP FIX FOR game/hlvr_addons/x when import is not source2 environment
+        try:
+            EXPORT_CONTENT = CONTENTROOT / source2_mod.relative_to(eEngineFolder.GAMEROOT.value)
+        except ValueError:
+            EXPORT_CONTENT = CONTENTROOT / source2_mod.relative_to(eEngineFolder.CONTENTROOT.value)
+        EXPORT_GAME = GAMEROOT / source2_mod
     elif EXPORT_GAME is EXPORT_CONTENT is None:
         ERROR(f"Invalid export game \"{source2_mod}\"")
 
@@ -291,11 +297,12 @@ def collect(root, inExt, outExt, existing:bool = False, outNameRule = None, sear
                         skipCountExists += 1
                         skip_reason = 'already-exist'
 
-            for skip_match in skiplist:
-                if skip_reason: break
-                if (skip_match.replace("\\", "/") in filePath2.as_posix()) or filePath2.match(skip_match):
-                    skipCountBlacklist += 1
-                    skip_reason = 'blacklist'
+            # why this not working now
+            #for skip_match in skiplist:
+            #    if skip_reason: break
+            #    if (skip_match.replace("\\", "/") in filePath2.as_posix()) or filePath2.match(skip_match):
+            #        skipCountBlacklist += 1
+            #        skip_reason = 'blacklist'
 
             if skip_reason:
                 status(f"- skipping [{skip_reason}]: {filePath2.local.as_posix()}")
