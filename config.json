@@ -1,0 +1,9 @@
+{
+    "in_path": "C:/Program Files (x86)/Steam/steamapps/common/Counter-Strike Global Offensive/csgo",
+    "materials": 0,
+    "models": 1,
+    "models_move": 1,
+    "out_path": "D:/Games/steamapps/common/Half-Life Alyx/game/hlvr_addons/csgo",
+    "overwrite_all": 0,
+    "textures": 0
+}

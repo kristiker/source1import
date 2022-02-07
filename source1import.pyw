@@ -183,8 +183,7 @@ class SampleApp(Tk):
                 print("Importing", sh.gameinfo.get('game', 'game with unreadable gameinfo'), f"('{Path(self.in_path.get()).name}')")
                 self.widgets[7].configure(state=NORMAL)  
         if self.out_path.get(): # Both paths are provided.
-            sh._args_known.__setattr__('game', self.out_path.get())
-            sh.parse_out_path()
+            sh.parse_out_path(Path(self.out_path.get()))
             self.gobutton.configure(state=NORMAL)
             print()
             try:

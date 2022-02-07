@@ -104,22 +104,24 @@ def add_method(cls):
 def in_source2_environment():
     return ROOT is not None
 
+def argv_error(*args, **kwargs):
+    arg_parser.print_usage()
+    print()
+    print("ERROR:", *args, **kwargs)
+    raise SystemExit(*args)
+
 def parse_in_path():
     global IMPORT_CONTENT, IMPORT_GAME, EXPORT_CONTENT, EXPORT_GAME
-    global search_scope, gameinfo, gameinfo2
-    def ERROR(*args, **kwargs):
-        arg_parser.print_usage()
-        print()
-        print("ERROR:", *args, **kwargs)        
-        raise SystemExit(*args)
+    global search_scope, gameinfo, gameinfo2            
+
     in_path = Path(_args_known.src1gameinfodir)
     if not in_path.exists():
-        ERROR(f"src1 game path does not exist \"{in_path}\"")
+        argv_error(f"src1 game path does not exist \"{in_path}\"")
     if in_path.is_file() and in_path.name == 'gameinfo.txt':
         in_path = in_path.parent
     gi_txt = in_path / 'gameinfo.txt'
     if not gi_txt.is_file():
-        ERROR(f"gameinfo.txt not found inside src1 mod `{in_path.name}`")
+        argv_error(f"gameinfo.txt not found inside src1 mod `{in_path.name}`")
     try:
         gameinfo = KV.FromFile(gi_txt)
     except Exception:
@@ -129,21 +131,14 @@ def parse_in_path():
         update_root(IMPORT_GAME.parents[1])
         IMPORT_CONTENT = CONTENTROOT / IMPORT_GAME.name
 
-def parse_out_path():
+def parse_out_path(source2_mod: Path):
     "Must call after parse_in_path"
     global IMPORT_CONTENT, IMPORT_GAME, EXPORT_CONTENT, EXPORT_GAME
     global search_scope, gameinfo, gameinfo2
-    def ERROR(*args, **kwargs):
-        arg_parser.print_usage()
-        print()
-        print("ERROR:", *args, **kwargs)        
-        raise SystemExit(1)
-    if not _args_known.game:
-        ERROR(f"Missing required argument: -e | -game")
-    source2_mod = Path(_args_known.game)
+
     if source2_mod.is_absolute():
         if source2_mod.is_file():
-            ERROR("Cannot specify file as export game")
+            argv_error("Cannot specify file as export game")
         for possible_rel in (GAMEROOT, CONTENTROOT):#, ROOT):
             if possible_rel is not None and source2_mod.is_relative_to(possible_rel):
                 source2_mod = source2_mod.relative_to(possible_rel)
@@ -159,7 +154,7 @@ def parse_out_path():
             if p not in ('content', 'game'):  # Export game has no game-content structure (sbox?)
                 EXPORT_GAME = EXPORT_CONTENT = source2_mod
     elif not in_source2_environment():
-        ERROR(f"Cannot figure out where \"{source2_mod}\" is located. Please correct or use absolute path.")
+        argv_error(f"Cannot figure out where \"{source2_mod}\" is located. Please correct or use absolute path.")
 
     if not source2_mod.is_absolute() and len(source2_mod.parts) in (1, 2):
         EXPORT_GAME = GAMEROOT / source2_mod
@@ -169,7 +164,7 @@ def parse_out_path():
         EXPORT_GAME = GAMEROOT / source2_mod
         EXPORT_CONTENT = CONTENTROOT / source2_mod.relative_to(eEngineFolder.GAMEROOT.value)
     elif EXPORT_GAME is EXPORT_CONTENT is None:
-        ERROR(f"Invalid export game \"{source2_mod}\"")
+        argv_error(f"Invalid export game \"{source2_mod}\"")
 
     #print("Paths sucessfuly parsed......")
 
@@ -219,6 +214,13 @@ def parse_out_path():
             return out.with_suffix(out_ext)
         return out
 
+def parse_argv():
+    if not _args_known.src1gameinfodir:
+        argv_error(f"Missing required argument: -i | -src1gameinfodir")
+    parse_in_path()
+    if not _args_known.game:
+        argv_error(f"Missing required argument: -e | -game")
+    parse_out_path(Path(_args_known.game))
 
 if __name__ == 'shared.base_utils2':
     #from shared.paths import *
