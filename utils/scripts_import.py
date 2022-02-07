@@ -4,7 +4,7 @@
 # "wave" ambient\dust2\wind_sand_01.wav" -> "wave" "sounds\ambient\dust2\wind_sand_01.vsnd" 
 #
 
-from shared import base_utils2 as sh
+import shared.base_utils2 as sh
 from pathlib import Path
 from shared.keyvalues1 import KV, VDFDict
 
@@ -71,10 +71,8 @@ def fix_wave_resource(old_value):
 
     return f"sounds/{Path(old_value).with_suffix('.vsnd').as_posix()}"
 
-@sh.s1import('.txt')
-def ImportSoundscape(file: Path, newsc_path: Path):
+def ImportSoundscape(file: Path):
     soundscapes = KV.CollectionFromFile(file)
-
     fixups = {'wave': fix_wave_resource}
 
     def recursively_fixup(kv: VDFDict):
@@ -87,21 +85,24 @@ def ImportSoundscape(file: Path, newsc_path: Path):
     recursively_fixup(soundscapes)
     
     new_soundscapes = ''
-
     for key, value in soundscapes.items():
         if isinstance(value, VDFDict):
             new_soundscapes += f"{key}{value.ToStr()}"
         else:
             new_soundscapes += f'{key}\t"{value}"\n'
 
+    newsc_path = sh.output(file, '.txt')
+    newsc_path.parent.MakeDir()
     sh.write(new_soundscapes, newsc_path)
     print("+ Saved", newsc_path.local)
     return newsc_path
     #soundscapes_manifest.add("file", f'scripts/{newsc_path.name}')
 
-@sh.s1import()
-def ImportSoundscapeManifest(asset_path: Path, out_manifest: Path):
+def ImportSoundscapeManifest(asset_path: Path):
     "Integ, but with '.vsc' fixup for csgo"
+    
+    out_manifest = sh.output(asset_path)
+    out_manifest.parent.MakeDir()
 
     with open(asset_path) as old, open(out_manifest, 'w') as out:
         contents = old.read().replace('.vsc', '.txt').replace('soundscaples_manifest', 'soundscapes_manifest')
@@ -110,7 +111,7 @@ def ImportSoundscapeManifest(asset_path: Path, out_manifest: Path):
             ls[1] = '\n\t"file"\t"scripts/test123.txt"' + ls[1]
             contents = '{'.join(ls)
         out.write(contents)
-    
+
     print("+ Saved manifest file", out_manifest.local)
     return out_manifest
 

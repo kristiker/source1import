@@ -27,13 +27,14 @@ def _ensure_scenes_vrman():
 
 vcdlist_entries_cache = {}
 
-@sh.s1import()
-def ImportVCD(vcd_in: Path, vcd_out: Path, to='_root.vcdlist'):
+def ImportVCD(vcd_in: Path, to='_root.vcdlist'):
     
     _ensure_scenes_vrman()
     
     vcdlist = sh._dest() / 'scenes' / to
     vcdlist.parent.mkdir(exist_ok=True, parents=True)
+    vcd_out = sh.output(vcd_in)
+    vcd_out.parent.MakeDir()
 
     if not vcd_out.is_file():
         copyfile(vcd_in, vcd_out)

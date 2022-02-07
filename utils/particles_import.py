@@ -2044,10 +2044,11 @@ def un(val, t):
 
 from shutil import copyfile
 
-@sh.s1import('.vsnap')
-def ImportParticleSnapshotFile(psf_path: Path, vsnap_path: Path) -> Path:
+def ImportParticleSnapshotFile(psf_path: Path) -> Path:
     # in VRperf (yes) its dmx text
     # either way open and save as text dmx with ext .vsnap on content
+    vsnap_path = sh.output(psf_path, '.vsnap')
+    vsnap_path.parent.MakeDir()
     return copyfile(psf_path, vsnap_path)
 
 class VPCF(dict):

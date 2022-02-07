@@ -359,23 +359,6 @@ def source2namefixup(path):
 #def overwrite_allowed(path, bAllowed=import_context['overwrite']):
 #    return path.exists() and bAllowed
 
-def s1import(out_ext=None, **ctx):
-    """Decorate an import function with the usual preamble. Provide `asset_out` as output path."""
-    if not ctx: ctx = import_context
-    def inner_function(function):
-        @wraps(function)
-        def wrapper(asset_in: Path, asset_out: Path = None, **kwargs):
-            for k in kwargs.copy():
-                if k in import_context:
-                    ctx[k] = kwargs[k]
-                    kwargs.pop(k)
-            if asset_out is None:
-                asset_out = output(asset_in, out_ext, ctx['dest'])
-            asset_out.parent.MakeDir()
-            rv = function(asset_in, asset_out, **kwargs)
-            return rv
-        return wrapper
-    return inner_function
 
 def write(content: str, path: Path):
     with open(path, 'w') as fp:
