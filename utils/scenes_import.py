@@ -18,6 +18,12 @@ ResourceManifest_t
     ]
 }'''
 
+def main():
+    print("Importing Scenes!")
+    for vcd in sh.collect('scenes', IN_EXT, '', existing=True):
+        ImportVCD(vcd)
+    print("Looks like we are done!")
+
 def _ensure_scenes_vrman():
     scenes_vrman = sh._dest() / 'scenes/scenes.vrman'
     if not scenes_vrman.is_file():
@@ -64,7 +70,4 @@ def ImportVCD(vcd_in: Path, to='_root.vcdlist'):
 # test_magnificient.vcdlist   scenes/test/magnificient/test.vcd, scenes/test/magnificient/b.vcd
 
 if __name__ == '__main__':
-    for vcd in sh.collect('scenes', IN_EXT, '', existing=True):
-        ImportVCD(vcd)
-
-    print("Looks like we are done!")
+    main()

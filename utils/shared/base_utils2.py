@@ -206,7 +206,9 @@ def parse_out_path(source2_mod: Path):
     def legacy_local(self):
         return self.relative_to(import_context['src'] / importing)
 
-    def output(input, out_ext=None, dest=_dest()) -> Path:
+    def output(input, out_ext=None, dest=None) -> Path:
+        if dest is None:
+            dest = _dest()
         try: out = dest / input.local
         except Exception: out = dest / input
         #out = source2namefixup(out)
@@ -223,13 +225,12 @@ def parse_argv():
     parse_out_path(Path(_args_known.game))
 
 if __name__ == 'shared.base_utils2':
-    #from shared.paths import *
-    #parse_paths()
-    print(__name__, 'parse on import?')
+    #print(__name__, 'parse on import?')
+    pass
 
 elif __name__ == '__main__':
 
-    print(f"{parse_paths()}\n{ROOT=}\n{IMPORT_CONTENT=}\n{IMPORT_GAME=}\n{EXPORT_CONTENT=}\n{EXPORT_GAME=}")
+    print(f"{parse_argv()}\n{ROOT=}\n{IMPORT_CONTENT=}\n{IMPORT_GAME=}\n{EXPORT_CONTENT=}\n{EXPORT_GAME=}")
     print(gameinfo['game'])
 
     import unittest
@@ -241,40 +242,10 @@ elif __name__ == '__main__':
     unittest.main()
     raise SystemExit
 else:
-    print(__name__, 'is uncovered.')
-
-"""
-ROOT=WindowsPath('D:/Games/steamapps/common/Half-Life Alyx')
-IMPORT_CONTENT=WindowsPath('D:/Games/steamapps/common/Half-Life Alyx/content/csgo')
-IMPORT_GAME=WindowsPath('D:/Games/steamapps/common/Half-Life Alyx/game/csgo')
-EXPORT_CONTENT=WindowsPath('D:/Games/steamapps/common/Half-Life Alyx/content/hlvr_addons/csgo')
-EXPORT_GAME=WindowsPath('D:/Games/steamapps/common/Half-Life Alyx/game/hlvr_addons/csgo')
-
--i "D:\Games\steamapps\common\Half-Life Alyx\game\csgo" -e "D:\Games\steamapps\common\Half-Life Alyx\gamehlvr_addons/csgo"
-
-ROOT=WindowsPath('D:/Games/steamapps/common/Half-Life Alyx')
-IMPORT_CONTENT=WindowsPath('D:/Games/steamapps/common/Half-Life Alyx/content/csgo')
-IMPORT_GAME=WindowsPath('D:/Games/steamapps/common/Half-Life Alyx/game/csgo')
-EXPORT_CONTENT=WindowsPath('D:/Games/steamapps/common/Half-Life Alyx/gamehlvr_addons/csgo')
-EXPORT_GAME=WindowsPath('D:/Games/steamapps/common/Half-Life Alyx/gamehlvr_addons/csgo')
-"""
-
-#IMPORT_CONTENT =    Path(r'D:\Games\steamapps\common\Half-Life Alyx\content\csgo')
-#IMPORT_GAME =       Path(r'D:\Games\steamapps\common\Half-Life Alyx\game\csgo')
-#EXPORT_CONTENT =    Path(r'D:\Games\steamapps\common\Half-Life Alyx\content\hlvr_addons\csgo')
-#EXPORT_GAME =       Path(r'D:\Games\steamapps\common\Half-Life Alyx\game\hlvr_addons\csgo')
+    pass
+    #print(__name__, 'is uncovered.')
 
 importing = Path()
-
-#class Importable:
-#    src: Path = import_context['src']
-#    dest: Path = import_context['dest']
-#    _currentpath: Path = None
-#    params: dict
-#
-#    @property
-#    def path(self):
-#        return self._currentpath
 
 @add_method(Path)
 def without_spaces(self, repl = '_') -> Path:
@@ -289,7 +260,7 @@ def MakeDir(self):
     "parents=True, exist_ok=True"
     self.mkdir(parents=True, exist_ok=True)
 
-def src(local_path) -> Path:
+def src(local_path: Path) -> Path:
     return import_context['src'] / local_path
 
 

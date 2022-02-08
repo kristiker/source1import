@@ -25,8 +25,8 @@ SURFACEPROPERTIES_MANIFEST = scripts / "surfaceproperties_manifest.txt"
 SOUND_OPERATORS_FILE = scripts / "sound_operator_stacks.txt" # TODO.....
 
 def main():
-
     sh.import_context['dest'] = sh.EXPORT_GAME
+    print("Importing Scripts!")
 
     # soundscapes vsc...
     for soundscapes_vsc in sh.collect("scripts", ".vsc", ".txt", OVERWRITE_SCRIPTS, match="soundscapes_*.vsc"):
@@ -43,11 +43,11 @@ def main():
     sh.import_context['dest'] = sh.EXPORT_CONTENT
 
     # 'scripts' 'soundevents' hybrid base_utils2 FIXME
-    for file in (sh._src()/'scripts').glob('**/game_sounds*.txt'):
+    for file in (sh.src(scripts)).glob('**/game_sounds*.txt'):
         if file.name != 'game_sounds_manifest.txt':
             ImportGameSound(file)
 
-    if (boss:=sh._src()/'scripts'/'level_sounds_general.txt').is_file():
+    if (boss:=sh.src(scripts)/'level_sounds_general.txt').is_file():
         ImportGameSound(boss)
 
     if HLVR_ADDON_WRITE:
@@ -64,6 +64,7 @@ def main():
         )
     manifest_handle.after_all_converted()
 
+    print("Looks like we are done!")
 
 def fix_wave_resource(old_value):
     soundchars = '*?!#><^@~+)(}$' + '`' # public\soundchars.h
@@ -435,6 +436,7 @@ class VsurfManifestHandler:
 
 
 if __name__ == '__main__':
+    sh.parse_argv()
     main()  
 
     raise SystemExit(0)

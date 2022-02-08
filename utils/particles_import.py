@@ -16,6 +16,7 @@ OVERWRITE_VSNAPS = False
 BEHAVIOR_VERSION = 8
 
 def main():
+    print("Importing Particles!")
     for pcf_path in (sh.IMPORT_GAME/particles).glob('**/*.pcf'):
         ImportPCFtoVPCF(pcf_path, OVERWRITE_PARTICLES)
 
@@ -2136,6 +2137,7 @@ def ImportPCFtoVPCF(pcf_path: Path, bOverwrite=True):
     return rv
 
 if __name__ == '__main__':
+    sh.parse_argv()
     main()
     generics = list()
     dd = {}

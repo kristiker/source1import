@@ -13,10 +13,6 @@ sys.path.insert(0, sys.path[0] + '\\utils')
 
 import utils.shared.base_utils2 as sh
 
-if True:
-    sh._args_known.__setattr__('src1gameinfodir', None)
-    sh._args_known.__setattr__('game', None)
-
 
 fs = None
 bg1 = "#363636"
@@ -45,25 +41,25 @@ class SampleApp(Tk):
         self.Materials = IntVar(name='materials')
         self.Models = IntVar(name='models')
         self.Models_move = IntVar(value=True, name='models_move')
-        self.Models.Move = "LOl"
+        self.Particles = IntVar(name='particles')
+        self.Scenes = IntVar(name='scenes')
+        self.Scripts = IntVar(name='scripts')
 
-        self.vars = (self.in_path, self.out_path, self.Overwrite, self.Textures, self.Materials, self.Models, self.Models_move)
+
+        self.vars = (self.in_path, self.out_path, self.Overwrite, self.Textures,
+            self.Materials, self.Models, self.Models_move,self.Particles,self.Scenes,self.Scripts,
+        )
         #self.SOURCE2_ROOT = StringVar()
 
         self.widgets: dict[Widget] = {}
         if (path:= Path(r"D:\Games\steamapps\common\Source SDK Base 2013 Multiplayer\hl2\resource\game.ico")).exists():
             self.iconbitmap(path)
 
-        self.geometry("480x380")
-        self.minsize(480, 360)
+        self.geometry("480x500")
+        self.minsize(480, 310)
         self.title(self.APP_TITLE)
         #self.maxsize(370, 350)
         self.configure(bg=bg1)
-
-        self.status=StringVar()
-        #self.widgets[20]=Label(self, bd=1, relief=FLAT, anchor=S, textvariable=self.status, bg="red")
-        #self.status.set('Importing Finished! - Ky eshte shiriti i statusit')
-        #self.widgets[20].pack(fill=X, side=TOP)
 
         self.io_grid = Frame(self, width=310, height=100, bg=bg1)
         self.io_grid.pack(fill="both", expand=False, padx=6, pady=5 )#side="left", fill="both", )
@@ -111,8 +107,8 @@ class SampleApp(Tk):
         self.widgets[1].grid(pady= 5, row = 0, column = 1, columnspan = 2, in_=self.sett_grid, sticky="n")#.grid(row=0, sticky=W)
 
 
-        #self.widgets[13] = Checkbutton(self, text="Import Textures", variable=self.Textures, bd = 0,selectcolor=bg1)
-        #self.widgets[13].grid(row = 1, in_=self.sett_grid, sticky="w")
+        self.widgets[13] = Checkbutton(self, text="Import Textures", variable=self.Textures, bd = 0,selectcolor=bg1)
+        self.widgets[13].grid(row = 1, in_=self.sett_grid, sticky="w")
 
         self.widgets[9] = Checkbutton(self, text="Import Materials", variable=self.Materials, bd = 0,selectcolor=bg1)
         self.widgets[9].grid(row = 2, in_=self.sett_grid, sticky="w")
@@ -122,9 +118,14 @@ class SampleApp(Tk):
         self.widgets[11] = Checkbutton(self, text="Move .mdls", variable=self.Models_move, command=self.checkbutton_tree_update,bd = 0, state=DISABLED,selectcolor=bg1)
         self.widgets[11].grid(row = 3, column = 1, in_=self.sett_grid, sticky="w", padx=20)
 
+        self.widgets[14] = Checkbutton(self, text="Import Particles", variable=self.Particles, command=self.checkbutton_tree_update,bd = 0,selectcolor=bg1)
+        self.widgets[14].grid(row = 4, in_=self.sett_grid, sticky="w")
 
-        #self.widgets[10] = Checkbutton(self, text="Import Scripts", variable=self.Materials, command=self.material_sett, selectcolor="#414141", font='Helvetica 11', bd = 0)
-        #self.widgets[10].grid(row = 2, column = 0, in_=self.sett_grid, sticky="w")
+        self.widgets[15] = Checkbutton(self, text="Import Scenes", variable=self.Scenes, command=self.checkbutton_tree_update,bd = 0,selectcolor=bg1)
+        self.widgets[15].grid(row = 5, in_=self.sett_grid, sticky="w")
+
+        self.widgets[16] = Checkbutton(self, text="Import Scripts", variable=self.Scripts, command=self.checkbutton_tree_update,bd = 0,selectcolor=bg1)
+        self.widgets[16].grid(row = 6, in_=self.sett_grid, sticky="w")
 
         self.widgets[19]=Text(self, wrap=NONE, bd=1, relief=SUNKEN, height=7) #, textvariable=self.status
         self.widgets[19].see(END)
@@ -141,16 +142,30 @@ class SampleApp(Tk):
             if widget in (19, 999): # depth
                 self.widgets[widget].configure(bg=bg2)
 
-            if widget in (1,4,5,7,9,10,11,12,13): # buttons
+            if widget in (1,4,5,7,9,10,11,12,13,14,15,16): # buttons
                 self.widgets[widget].configure(activebackground = bg2, activeforeground = "white")
 
         #self.main_grid.grid_remove()
         #self.widgets[20].configure(bg="green", fg="white", font='Helvetica 10 bold')
+        #self.widgets[20].pack(anchor='sw', fill=X, side=BOTTOM)
+        
+        #
 
+        self.go_and_status = Frame(self, bg=bg1)
+        self.go_and_status.pack(ipadx = 6, ipady = 1.1, padx = 6, pady = 6, side=BOTTOM, fill=BOTH)#side="left", fill="both", expand=True)
+        self.go_and_status.grid_columnconfigure(0, weight=1)
+        self.go_and_status.grid_rowconfigure(0, weight=1)
+
+        self.status=StringVar()
+        sh.status = self.status.set
+        self.widgets[20]=Label(self, bd=1, relief=FLAT, textvariable=self.status, bg=bg2, fg=fg1, anchor=W)
+        self.widgets[20].grid(in_=self.go_and_status, row=0, column=0)
+    
         self.gobutton = Button(text="\tGo\t", command=self.launch_importer_thread, bg=bg1, fg =fg1, activebackground = bg2, activeforeground = fg1, relief=GROOVE, disabledforeground=bg2)
-        self.gobutton.pack(anchor="se", ipadx = 6, ipady = 1.1, padx = 6, pady = 6, side=BOTTOM)#, side=BOTTOM)
+        self.gobutton.grid(in_=self.go_and_status, row=0, column=1)
+        
         self.widgets[19].pack(fill=BOTH, padx = 6, pady = 2, side=BOTTOM, expand=True)#, side=BOTTOM
-
+        
         self.importer_thread = Thread(target=self.go)
 
         # restore app state from last session
@@ -163,6 +178,8 @@ class SampleApp(Tk):
         #self.button2.pack()
         #self.button3.pack()
 
+    def status(self, text):
+        self.status.set(text)
 
     def update_paths(self):
         if self.in_path.get():
@@ -219,16 +236,52 @@ class SampleApp(Tk):
     def go(self):
         #if self.isRunning: return
         self.update_config()
-
-        textures =self.Textures.get()
-        materials =self.Materials.get()
-        models =self.Models.get()
         
-        if models:
+        if self.Textures.get():
+            from utils import vtf_to_tga
+            vtf_to_tga.sh = sh
+            vtf_to_tga.OVERWRITE = self.Overwrite.get()
+            vtf_to_tga.main()
+            print('=========================================================')
+
+        if self.Materials.get():
+            from utils import materials_import
+            materials_import.sh = sh
+            materials_import.OVERWRITE_VMAT = self.Overwrite.get()
+            materials_import.OVERWRITE_SKYBOX_VMATS = self.Overwrite.get()
+            materials_import.OVERWRITE_SKYCUBES = self.Overwrite.get()
+            materials_import.main()
+            print('=========================================================')
+
+        if self.Models.get():
             from utils import models_import
             models_import.sh = sh
+            models_import.SHOULD_OVERWRITE = self.Overwrite.get()
             models_import.main()
+            print('=========================================================')
         
+        if self.Particles.get():
+            from utils import particles_import
+            particles_import.sh = sh
+            particles_import.OVERWRITE_PARTICLES = self.Overwrite.get()
+            particles_import.main()
+            print('=========================================================')
+        
+        if self.Scenes.get():
+            from utils import scenes_import
+            scenes_import.sh = sh
+            scenes_import.main()
+            print('=========================================================')
+
+        if self.Scripts.get():
+            from utils import scripts_import
+            scripts_import.sh = sh
+            scripts_import.OVERWRITE_SCRIPTS = self.Overwrite.get()
+            scripts_import.main()
+            print('=========================================================')
+
+        messagebox.showinfo(title=self.APP_TITLE, message="Looks like we are done!")
+        return
         if False: #textures or materials or models:
             #print("Went!", self.isSingle, self.Overwrite.get(), self.out_path.get())
             #if not (messagebox.askokcancel(title=self.APP_TITLE, message=
@@ -284,6 +337,7 @@ class SampleApp(Tk):
         for var in self.vars:
             var.set(self.cfg.setdefault(var._name, var.get()))
         self.update_paths()
+        self.checkbutton_tree_update()
 
     def update_config(self):
         for var in self.vars:
@@ -312,12 +366,16 @@ class Console(): # create file like object
         self.textbox = textbox # keep ref
 
     def write(self, text):
+        if '\r' in text:
+            text = text.replace('\r', '').strip()
+            #text +='\n'
         self.textbox.insert(END, text) # write text to textbox
+        self.console_scroll()
             # could also scroll to end of textbox here to make sure always visible
 
     def console_scroll(self):
         fully_scrolled_down = self.textbox.yview()[1] == 1.0
-        if fully_scrolled_down:
+        if not fully_scrolled_down:
             self.textbox.see(END)
 
     def flush(self): # needed for file like object
