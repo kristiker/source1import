@@ -70,4 +70,5 @@ def ImportVCD(vcd_in: Path, to='_root.vcdlist'):
 # test_magnificient.vcdlist   scenes/test/magnificient/test.vcd, scenes/test/magnificient/b.vcd
 
 if __name__ == '__main__':
+    sh.parse_argv()
     main()
