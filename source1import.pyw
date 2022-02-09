@@ -107,7 +107,7 @@ class SampleApp(Tk):
         self.widgets[1].grid(pady= 5, row = 0, column = 1, columnspan = 2, in_=self.sett_grid, sticky="n")#.grid(row=0, sticky=W)
 
 
-        self.widgets[13] = Checkbutton(self, text="Import Textures", variable=self.Textures, bd = 0,selectcolor=bg1)
+        self.widgets[13] = Checkbutton(self, text="Import Textures", variable=self.Textures, bd = 0,selectcolor=bg1, state=DISABLED)
         self.widgets[13].grid(row = 1, in_=self.sett_grid, sticky="w")
 
         self.widgets[9] = Checkbutton(self, text="Import Materials", variable=self.Materials, bd = 0,selectcolor=bg1)
@@ -237,12 +237,12 @@ class SampleApp(Tk):
         #if self.isRunning: return
         self.update_config()
         
-        if self.Textures.get():
-            from utils import vtf_to_tga
-            vtf_to_tga.sh = sh
-            vtf_to_tga.OVERWRITE = self.Overwrite.get()
-            vtf_to_tga.main()
-            print('=========================================================')
+        #if self.Textures.get():
+        #    from utils import vtf_to_tga
+        #    vtf_to_tga.sh = sh
+        #    vtf_to_tga.OVERWRITE = self.Overwrite.get()
+        #    vtf_to_tga.main()
+        #    print('=========================================================')
 
         if self.Materials.get():
             from utils import materials_import
@@ -320,7 +320,7 @@ class SampleApp(Tk):
         # .toggle, select, deselect
         self.allChecked = not self.allChecked
         self.widgets[12].configure(text= "Untick all" if self.allChecked else " Tick all  ")
-        self.Textures.set(self.allChecked)
+        #self.Textures.set(self.allChecked)
         self.Materials.set(self.allChecked)
         self.Models.set(self.allChecked)
 
