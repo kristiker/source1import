@@ -2,3 +2,5 @@
 *.pyc
 build/
 \dist/*  
+source1import.spec
+config.json
