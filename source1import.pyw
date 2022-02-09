@@ -157,9 +157,16 @@ class SampleApp(Tk):
                 self.Console.textbox.delete(1.0,END)
                 print("Importing", sh.gameinfo.get('game', 'game with unreadable gameinfo'), f"('{Path(self.in_path.get()).name}')")
                 self.widgets[7].configure(state=NORMAL)  
-        if self.out_path.get(): # Both paths are provided.
-            sh.parse_out_path(Path(self.out_path.get()))
-            self.gobutton.configure(state=NORMAL)
+        if self.out_path.get():
+            if not sh.IMPORT_GAME:
+                return
+            try:
+                sh.parse_out_path(Path(self.out_path.get()))
+            except SystemExit as exc:
+                self.out_path.set("")
+                return
+            else:
+                self.gobutton.configure(state=NORMAL)
             try:
                 print("Exporting to:\n"
                 f" ROOT :  \"{sh.ROOT.as_posix()}\"\n"
@@ -195,11 +202,12 @@ class SampleApp(Tk):
 
     def go(self):
         self.write_config()
-        if not any(method.get() for method in (self.Textures,self.Materials,self.Models,self.Particles,self.Scenes,self.Scripts)):
-            messagebox.showinfo(title=self.APP_TITLE, message="No import function was selected")
+        def stop():
             self.is_running = False
             self.gobutton_update()
-            return
+        if not any(method.get() for method in (self.Textures,self.Materials,self.Models,self.Particles,self.Scenes,self.Scripts)):
+            messagebox.showinfo(title=self.APP_TITLE, message="No import function was selected")
+            return stop()
         
         #if self.Textures.get():
         #    from utils import vtf_to_tga
@@ -209,44 +217,61 @@ class SampleApp(Tk):
         #    print('=========================================================')
 
         if self.Materials.get():
-            from utils import materials_import
+            try:
+                from utils import materials_import
+            except ModuleNotFoundError as e:
+                print(e.msg, "(forgot to pip install -r requirements.txt)")
+                return stop()
             materials_import.sh = sh
             materials_import.OVERWRITE_VMAT = self.Overwrite.get()
             materials_import.OVERWRITE_SKYBOX_VMATS = self.Overwrite.get()
             materials_import.OVERWRITE_SKYCUBES = self.Overwrite.get()
-            materials_import.main()
+            try: materials_import.main()
+            except Exception as e:
+                print(e, "\nSomething went wrong while importing materials!")
             print('=========================================================')
 
         if self.Models.get():
             from utils import models_import
             models_import.sh = sh
             models_import.SHOULD_OVERWRITE = self.Overwrite.get()
-            models_import.main()
+            try: models_import.main()
+            except Exception as e:
+                print(e, "\nSomething went wrong while importing models!")
             print('=========================================================')
         
         if self.Particles.get():
-            from utils import particles_import
+            try:
+                from utils import particles_import
+            except ModuleNotFoundError as e:
+                print(e.msg, "(forgot to pip install -r requirements.txt)")
+                return stop()
             particles_import.sh = sh
             particles_import.OVERWRITE_PARTICLES = self.Overwrite.get()
-            particles_import.main()
+            try: particles_import.main()
+            except Exception as e:
+                print(e, "\nSomething went wrong while importing particles!")
             print('=========================================================')
         
         if self.Scenes.get():
             from utils import scenes_import
             scenes_import.sh = sh
-            scenes_import.main()
+            try: scenes_import.main()
+            except Exception as e:
+                print(e, "\nSomething went wrong while importing scenes!")
             print('=========================================================')
 
         if self.Scripts.get():
             from utils import scripts_import
             scripts_import.sh = sh
             scripts_import.OVERWRITE_SCRIPTS = self.Overwrite.get()
-            scripts_import.main()
+            try:scripts_import.main()
+            except Exception as e:
+                print(e, "\nSomething went wrong while importing scripts!\n\t", e)
             print('=========================================================')
 
         messagebox.showinfo(title=self.APP_TITLE, message="Looks like we are done!")
-        self.is_running = False
-        self.gobutton_update()
+        return stop()
 
     def checkbutton_toggle_all(self):
         # .toggle, select, deselect
@@ -276,7 +301,7 @@ class SampleApp(Tk):
     def read_config(self):
         print(Path(__file__).parent)
         try:
-            with open(Path(__file__).parent / Path("config.json"), 'r') as fp:
+            with open("source1import.json", 'r') as fp:
                 try: data = json.load(fp)
                 except json.decoder.JSONDecodeError:
                     data = {}
@@ -299,7 +324,7 @@ class SampleApp(Tk):
         for var in self.vars:
             self.cfg[var._name] = var.get()
         self.cfg['app_geometry'] = self.geometry()
-        with open(Path(__file__).parent / Path("config.json"), 'w') as fp:
+        with open("source1import.json", 'w') as fp:
             json.dump(self.cfg, fp, sort_keys=True, indent=4)
 
 class Console(): # create file like object

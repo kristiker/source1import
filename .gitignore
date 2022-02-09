@@ -1,6 +1,7 @@
 \.vscode/
+env/
 *.pyc
 build/
-\dist/*  
+dist/*  
 source1import.spec
-config.json
+source1import.json
