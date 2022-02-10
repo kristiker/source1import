@@ -3,7 +3,7 @@ from shutil import copyfile
 from difflib import get_close_matches
 from PIL import Image, ImageOps
 
-from shared import base_utils2 as sh
+import shared.base_utils2 as sh
 from shared.keyvalue_simple import getKV_tailored as getKeyValues
 from shared.keyvalues1 import KV
 from shared.material_proxies import ProxiesToDynamicParams
@@ -45,8 +45,6 @@ VMAT_DEFAULT_PATH = Path("materials/default")
 materials = Path("materials")
 skyboxmaterials = materials / "skybox"
 legacy_skyfaces = skyboxmaterials / "legacy_faces"
-
-sh.importing = materials
 
 skybox = Path("skybox")
 SKY_FACES = ('up', 'dn', 'lf', 'rt', 'bk', 'ft')
@@ -1266,6 +1264,7 @@ def main():
     print('----------------------------------------------------------------------------')
 
     global total, import_total, import_invalid
+    sh.importing = materials
     for vmt_path in sh.collect(
             materials,
             IN_EXT, OUT_EXT,
@@ -1314,4 +1313,5 @@ def main():
     print("\nFinished! Your materials are now ready.")
 
 if __name__ == "__main__":
+    sh.parse_argv()
     main()

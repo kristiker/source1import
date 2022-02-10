@@ -3,6 +3,7 @@ from contextlib import suppress
 from pathlib import Path
 from enum import Enum
 from types import GeneratorType
+from typing import Callable
 try:
     from keyvalues1 import KV
 except ImportError:
@@ -17,6 +18,31 @@ arg_parser.add_argument("-game", "-e", help="Specify the S2 mod/addon to import 
 _args_known, args_unknown = arg_parser.parse_known_args()
 
 '-src1gameinfodir "D:/Games/steamapps/common/Half-Life Alyx/game/csgo" -game hlvr_addons/csgo'
+
+class KVUtilFile(KV):
+    @classmethod
+    def RemapTable(cls):
+        cls.path = EXPORT_CONTENT / "source1import_name_remap_table.txt"
+        keyName = "name_remap_table"
+
+        def remap(self, extType: str, s1Name: str, s2Remap: str):
+            # Remap. Don't remap and WARN if already remapped.
+            if not isinstance(self.get(extType), dict):
+                self[extType] = {}
+
+            exist = self[extType].setdefault(s1Name, s2Remap)
+            if exist != s2Remap:
+                WARN(f"Remap entry for '{s1Name}' -> '{s2Remap}' conflicts with existing value of '{exist}' (ignoring)")
+
+        cls.remap = remap
+        rv = cls(keyName)
+        if cls.path.is_file():
+            rv.update(cls.FromFile(cls.path, case_sensitive=True))
+        return rv
+
+    def save(self):
+        return super().save(self.path, quoteKeys=True)
+
 
 from enum import Enum
 class eEngineFolder(Enum):
@@ -46,132 +72,14 @@ search_scope: Path = None
 gameinfo: KV = None
 gameinfo2: KV = None
 
-def in_source2_environment():
-    return ROOT is not None
+import_context: dict = None
+RemapTable: KVUtilFile = None
 
-def parse_paths():
-    global IMPORT_CONTENT, IMPORT_GAME, EXPORT_CONTENT, EXPORT_GAME
-    global search_scope, gameinfo, gameinfo2
-    def ERROR(*args, **kwargs):
-        arg_parser.print_usage()
-        print()
-        print("ERROR:", *args, **kwargs)        
-        raise SystemExit(1)
-    if not _args_known.src1gameinfodir:
-        arg_parser.print_help()
-        raise SystemExit(1)
-    in_path = Path(_args_known.src1gameinfodir)
-    if not in_path.exists():
-       ERROR(f"src1 game path does not exist \"{in_path}\"")
-    if in_path.is_file() and in_path.name == 'gameinfo.txt':
-        in_path = in_path.parent
-    gi_txt = in_path / 'gameinfo.txt'
-    if not gi_txt.is_file():
-        ERROR(f"gameinfo.txt not found inside src1 mod `{in_path.name}`")
-    try:
-        gameinfo = KV.FromFile(gi_txt)
-    except Exception:
-        print("Warning: Error reading gameinfo.txt")
-    IMPORT_GAME = in_path
-    if IMPORT_GAME.parent.name == 'game':  # Source 2 dir
-        update_root(IMPORT_GAME.parents[1])
-        IMPORT_CONTENT = CONTENTROOT / IMPORT_GAME.name
-    if not _args_known.game:
-        ERROR(f"Missing required argument: -e | -game")
-    source2_mod = Path(_args_known.game)
-    if source2_mod.is_absolute():
-        if source2_mod.is_file():
-            ERROR("Cannot specify file as export game")
-        for possible_rel in (GAMEROOT, CONTENTROOT):#, ROOT):
-            if possible_rel is not None and source2_mod.is_relative_to(possible_rel):
-                source2_mod = source2_mod.relative_to(possible_rel)
-        if source2_mod.is_absolute():  # Relativity loop above didnt work
-            for p_index, p in enumerate(source2_mod.parts[-3:-1]):
-                if p in ('content', 'game'):  # has game/content at -2 or -3
-                    p_index+=len(source2_mod.parts)-3
-                    # Importing from a source 2 app into different source 2 app.
-                    # The latter becomes root (script's working environment).
-                    update_root(Path(*source2_mod.parts[:p_index]))
-                    source2_mod = Path(*source2_mod.parts[p_index:])
-                    break
-            if p not in ('content', 'game'):  # Export game has no game-content structure (sbox?)
-                EXPORT_GAME = EXPORT_CONTENT = source2_mod
-    elif not in_source2_environment():
-        ERROR(f"Cannot figure out where \"{source2_mod}\" is located. Please correct or use absolute path.")
+_mod: Callable = None
+_recurse: Callable = None
+_dest: Callable = None
+output: Callable = None
 
-    if not source2_mod.is_absolute() and len(source2_mod.parts) in (1, 2):
-        EXPORT_GAME = GAMEROOT / source2_mod
-        EXPORT_CONTENT = CONTENTROOT / source2_mod
-
-    elif EXPORT_GAME is EXPORT_CONTENT is None:
-        ERROR(f"Invalid export game \"{source2_mod}\"")
-
-    # Optionals
-
-    # Unknowns
-    if args_unknown:
-        search_scope = Path(args_unknown[0])
-        with suppress(Exception):
-            search_scope = search_scope.relative_to(IMPORT_GAME)
-
-if __name__ == '__main__':
-    print(f"{parse_paths()}\n{ROOT=}\n{IMPORT_CONTENT=}\n{IMPORT_GAME=}\n{EXPORT_CONTENT=}\n{EXPORT_GAME=}")
-    print(gameinfo['game'])
-    raise SystemExit
-
-parse_paths()
-importing = Path()
-
-# default import context
-import_context = {
-    'mod': None,
-    'recurse': True,
-    'importfunc': 'integ',
-    'src': IMPORT_GAME,
-    'dest': EXPORT_CONTENT,
-    'ignoresource2namefixup': False,
-    'getSkinningFromLod0': False,
-}
-_mod = lambda: import_context['mod']
-_recurse = lambda: import_context['recurse']
-_src = lambda: import_context['src']
-_dest = lambda: import_context['dest']
-
-class KVUtilFile(KV):
-    @classmethod
-    def RemapTable(cls):
-        cls.path = EXPORT_CONTENT / "source1import_name_remap_table.txt"
-        keyName = "name_remap_table"
-
-        def remap(self, extType: str, s1Name: str, s2Remap: str):
-            # Remap. Don't remap and WARN if already remapped.
-            if not isinstance(self.get(extType), dict):
-                self[extType] = {}
-
-            exist = self[extType].setdefault(s1Name, s2Remap)
-            if exist != s2Remap:
-                WARN(f"Remap entry for '{s1Name}' -> '{s2Remap}' conflicts with existing value of '{exist}' (ignoring)")
-
-        cls.remap = remap
-        rv = cls(keyName)
-        if cls.path.is_file():
-            rv.update(cls.FromFile(cls.path, case_sensitive=True))
-        return rv
-
-    def save(self):
-        return super().save(self.path, quoteKeys=True)
-
-RemapTable = KVUtilFile.RemapTable()
-
-class Importable:
-    src: Path = import_context['src']
-    dest: Path = import_context['dest']
-    _currentpath: Path = None
-    params: dict
-
-    @property
-    def path(self):
-        return self._currentpath
 
 from functools import wraps
 def add_property(cls):
@@ -192,15 +100,152 @@ def add_method(cls):
         return func
     return decorator
 
-@add_property(Path)
-def local(self):
-    try: return self.relative_to(_src())
-    except ValueError:
-        return self.relative_to(import_context['dest'])
 
-@add_property(Path)
-def legacy_local(self):
-    return self.relative_to(_src() / importing)
+def in_source2_environment():
+    return ROOT is not None
+
+def argv_error(*args, **kwargs):
+    arg_parser.print_usage()
+    print()
+    print("ERROR:", *args, **kwargs)
+    raise SystemExit(*args)
+
+def parse_in_path():
+    global IMPORT_CONTENT, IMPORT_GAME, EXPORT_CONTENT, EXPORT_GAME
+    global search_scope, gameinfo, gameinfo2            
+
+    in_path = Path(_args_known.src1gameinfodir)
+    if not in_path.exists():
+        argv_error(f"src1 game path does not exist \"{in_path}\"")
+    if in_path.is_file() and in_path.name == 'gameinfo.txt':
+        in_path = in_path.parent
+    gi_txt = in_path / 'gameinfo.txt'
+    if not gi_txt.is_file():
+        argv_error(f"gameinfo.txt not found inside src1 mod `{in_path.name}`")
+    try:
+        gameinfo = KV.FromFile(gi_txt)
+    except Exception:
+        print("Warning: Error reading gameinfo.txt")
+    IMPORT_GAME = in_path
+    if IMPORT_GAME.parent.name == 'game':  # Source 2 dir
+        update_root(IMPORT_GAME.parents[1])
+        IMPORT_CONTENT = CONTENTROOT / IMPORT_GAME.name
+
+def parse_out_path(source2_mod: Path):
+    "Must call after parse_in_path"
+    global IMPORT_CONTENT, IMPORT_GAME, EXPORT_CONTENT, EXPORT_GAME
+    global search_scope, gameinfo, gameinfo2
+
+    if source2_mod.is_absolute():
+        if source2_mod.is_file():
+            argv_error("Cannot specify file as export game")
+        for possible_rel in (GAMEROOT, CONTENTROOT):#, ROOT):
+            if possible_rel is not None and source2_mod.is_relative_to(possible_rel):
+                source2_mod = source2_mod.relative_to(possible_rel)
+        if source2_mod.is_absolute():  # Relativity loop above didnt work
+            for p_index, p in enumerate(source2_mod.parts[-3:-1]):
+                if p in ('content', 'game'):  # has game/content at -2 or -3
+                    p_index+=len(source2_mod.parts)-3
+                    # Importing from a source 2 app into different source 2 app.
+                    # The latter becomes root (script's working environment).
+                    update_root(Path(*source2_mod.parts[:p_index]))
+                    source2_mod = Path(*source2_mod.parts[p_index:])
+                    break
+            if p not in ('content', 'game'):  # Export game has no game-content structure (sbox?)
+                EXPORT_GAME = EXPORT_CONTENT = source2_mod
+    elif not in_source2_environment():
+        argv_error(f"Cannot figure out where \"{source2_mod}\" is located. Please correct or use absolute path.")
+
+    if not source2_mod.is_absolute() and len(source2_mod.parts) in (1, 2):
+        EXPORT_GAME = GAMEROOT / source2_mod
+        EXPORT_CONTENT = CONTENTROOT / source2_mod
+    elif len(source2_mod.parts) == 3:
+        # TEMP FIX FOR game/hlvr_addons/x when import is not source2 environment
+        EXPORT_GAME = GAMEROOT / source2_mod
+        EXPORT_CONTENT = CONTENTROOT / source2_mod.relative_to(eEngineFolder.GAMEROOT.value)
+    elif EXPORT_GAME is EXPORT_CONTENT is None:
+        argv_error(f"Invalid export game \"{source2_mod}\"")
+
+    #print("Paths sucessfuly parsed......")
+
+    # Optionals
+
+    # Unknowns
+    if args_unknown:
+        search_scope = Path(args_unknown[0])
+        with suppress(Exception):
+            search_scope = search_scope.relative_to(IMPORT_GAME)
+    
+    # Done Parsing. Fill variables
+    global import_context, RemapTable
+    global _mod, _recurse, _dest, output
+    
+    # default import context
+    import_context = {
+        'mod': None,
+        'recurse': True,
+        'importfunc': 'integ',
+        'src': IMPORT_GAME,
+        'dest': EXPORT_CONTENT,
+        'ignoresource2namefixup': False,
+        'getSkinningFromLod0': False,
+    }
+    RemapTable = KVUtilFile.RemapTable()
+
+    _mod = lambda: import_context['mod']
+    _recurse = lambda: import_context['recurse']
+    _dest = lambda: import_context['dest']
+
+    @add_property(Path)
+    def local(self):
+        try: return self.relative_to(import_context['src'])
+        except ValueError:
+            return self.relative_to(import_context['dest'])
+
+    @add_property(Path)
+    def legacy_local(self):
+        return self.relative_to(import_context['src'] / importing)
+
+    def output(input, out_ext=None, dest=None) -> Path:
+        if dest is None:
+            dest = _dest()
+        try: out = dest / input.local
+        except Exception: out = dest / input
+        #out = source2namefixup(out)
+        if out_ext is not None:
+            return out.with_suffix(out_ext)
+        return out
+
+def parse_argv():
+    if not _args_known.src1gameinfodir:
+        argv_error(f"Missing required argument: -i | -src1gameinfodir")
+    parse_in_path()
+    if not _args_known.game:
+        argv_error(f"Missing required argument: -e | -game")
+    parse_out_path(Path(_args_known.game))
+
+if __name__ == 'shared.base_utils2':
+    #print(__name__, 'parse on import?')
+    pass
+
+elif __name__ == '__main__':
+
+    print(f"{parse_argv()}\n{ROOT=}\n{IMPORT_CONTENT=}\n{IMPORT_GAME=}\n{EXPORT_CONTENT=}\n{EXPORT_GAME=}")
+    print(gameinfo['game'])
+
+    import unittest
+
+    class Test_ParsedPaths(unittest.TestCase):
+        def test_1(self):
+            self.assertEqual(ROOT, 'D:/Games/steamapps/common/Half-Life Alyx')
+    
+    unittest.main()
+    raise SystemExit
+else:
+    pass
+    #print(__name__, 'is uncovered.')
+
+importing = Path()
 
 @add_method(Path)
 def without_spaces(self, repl = '_') -> Path:
@@ -215,47 +260,16 @@ def MakeDir(self):
     "parents=True, exist_ok=True"
     self.mkdir(parents=True, exist_ok=True)
 
-def src(local_path) -> Path:
-    return _src() / local_path
+def src(local_path: Path) -> Path:
+    return import_context['src'] / local_path
 
-def output(input, out_ext=None, dest=_dest()) -> Path:
-    try: out = dest / input.local
-    except Exception: out = dest / input
-    #out = source2namefixup(out)
-    if out_ext is not None:
-        return out.with_suffix(out_ext)
-    return out
-
-def source2namefixup(path):
-    return path.parent / path.name.lower().replace(' ', '_')
-
-#def overwrite_allowed(path, bAllowed=import_context['overwrite']):
-#    return path.exists() and bAllowed
-
-def s1import(out_ext=None, **ctx):
-    """Decorate an import function with the usual preamble. Provide `asset_out` as output path."""
-    if not ctx: ctx = import_context
-    def inner_function(function):
-        @wraps(function)
-        def wrapper(asset_in: Path, asset_out: Path = None, **kwargs):
-            for k in kwargs.copy():
-                if k in import_context:
-                    ctx[k] = kwargs[k]
-                    kwargs.pop(k)
-            if asset_out is None:
-                asset_out = output(asset_in, out_ext, ctx['dest'])
-            asset_out.parent.MakeDir()
-            rv = function(asset_in, asset_out, **kwargs)
-            return rv
-        return wrapper
-    return inner_function
 
 def collect(root, inExt, outExt, existing:bool = False, outNameRule = None, searchPath = None, match = None, skiplist = None):
     if not isinstance(outExt, (set, tuple, list)):
         outExt = ((outExt),) # support multiple output extensions
 
     if searchPath is None:
-        searchPath = (_src() / root)
+        searchPath = src(root)
         if search_scope is not None:
             try: searchPath = searchPath / search_scope.relative_to(root)
             except Exception: searchPath = searchPath / search_scope
@@ -308,6 +322,14 @@ def collect(root, inExt, outExt, existing:bool = False, outNameRule = None, sear
         )
     else:
         print("ERROR while searching: Does not exist:", searchPath)
+
+
+def source2namefixup(path):
+    return path.parent / path.name.lower().replace(' ', '_')
+
+#def overwrite_allowed(path, bAllowed=import_context['overwrite']):
+#    return path.exists() and bAllowed
+
 
 def write(content: str, path: Path):
     with open(path, 'w') as fp:

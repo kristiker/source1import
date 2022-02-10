@@ -9,9 +9,6 @@ import shared.base_utils2 as sh
 # Runs vtf2tga.exe on every vtf file
 # Same thing as `VTFCmd.exe -folder "<dir>\materials\*.vtf" -recurse`
 
-
-sh.importing = Path("materials")
-
 OVERWRITE = False
 IGNORE_WORLD_CUBEMAPS = True
 
@@ -197,6 +194,8 @@ def txt_import(txtFile):
 
  
 def main():
+    sh.importing = Path("materials")
+    print("Decompiling Textures!")
     THREADS = []
     vtfFileList = sh.collect(sh.importing, IN_EXT, OUT_EXT_LIST, existing = OVERWRITE, outNameRule = OutputList)
     txtFileList = sh.collect(sh.importing, VTEX_PARAMS_EXT, VTEX_PARAMS_EXT, existing = True)
@@ -249,4 +248,5 @@ def main():
     print("\n+ Looks like we are done.")
 
 if __name__ == "__main__":
+    sh.parse_argv()
     main()
