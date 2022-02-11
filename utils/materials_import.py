@@ -1247,10 +1247,11 @@ def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False):
 vmt, vmat = None, None
 
 class Failures(dict):
-    #data = {}
     def add(self, err, file):
         self.setdefault(err, list())
         self[err].append(file)
+    def __len__(self):
+        return sum(len(filelist) for filelist in self.values())
     
     #def __bool__(self):
     #    return len(self.data) > 0

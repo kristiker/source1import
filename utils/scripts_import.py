@@ -427,7 +427,7 @@ class VsurfManifestHandler:
                     break
                 # ignore if this surface is already defined
                 if not any(
-                    surfaceproperty2['surfacePropertyName'] == surfaceproperty['surfacePropertyName']
+                    surfaceproperty2['surfacePropertyName'].lower() == surfaceproperty['surfacePropertyName'].lower()
                         for surfaceproperty2 in vsurf['SurfacePropertiesList']):
                     vsurf['SurfacePropertiesList'].append(surfaceproperty)
 
