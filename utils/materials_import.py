@@ -484,7 +484,10 @@ def presence(_, rv=1):
 
 def fix_envmap(vmtVal):
     if 'environment maps/metal' in vmtVal:
-        vmt.KeyValues['$metalness'] = 0.888
+        if vmtVal == 'environment maps/metal_generic_003':
+            vmt.KeyValues['$metalness'] = 0.55
+        else:
+            vmt.KeyValues['$metalness'] = 0.888
     elif 'env_cubemap' == vmtVal:
         vmat.KeyValues['F_SPECULAR_CUBE_MAP'] = 1
     else:
@@ -493,19 +496,21 @@ def fix_envmap(vmtVal):
     return 1  # presence()
 
 
-# TODO: [int_val, True] -> int_val(bInvert=False)()
-def int_val(vmtVal, bInvert = False):
-    if bInvert: vmtVal = not int(vmtVal)
-        #return str(int(not int(vmtVal)))
-    return int(vmtVal)
+def bool_val(bInvert = False):
+    def bool_val(v: str):
+        rv = bool(float(v))
+        if bInvert:
+            rv = not rv
+        return int(rv)
+    return bool_val
 
-def mapped_val(vmtVal, dMap):
-    if not vmtVal or vmtVal not in dMap:
+def mapped_val(v: str, dMap: dict):
+    if not v or v not in dMap:
         return None  # use default value
-    return int(dMap[vmtVal])
+    return int(dMap[v])
 
-def float_val(vmtVal):
-    return "{:.6f}".format(float(vmtVal.strip(' \t"')))
+def float_val(v: str):
+    return "{:.6f}".format(float(v.strip(' \t"')))
 
 def vmat_layered_param(vmatKey, layer = 'A', force = False):
     if vmat.shader == "vr_simple_2way_blend" or force:
@@ -644,7 +649,7 @@ vmt_to_vmat = {
 
     # Next script should take care of these, unless BASIC_PBR
     '$envmapmask':  ('$envmapmask',         '_env_mask',   [formatNewTexturePath]) if not BASIC_PBR else \
-                    ('TextureRoughness',    '_rough',      [formatNewTexturePath]) if not LEGACY_SHADER else \
+                    ('TextureRoughness',    '_rough',      [createMask, 'L', True]) if not LEGACY_SHADER else \
                     ('TextureGlossiness',   '_gloss',      [formatNewTexturePath]),
 
                     #if out dota2 ('TextureCubeMapSeparateMask', '_mask', ('F_MASK_CUBE_MAP_BY_SEPARATE_MASK' 1))
@@ -657,13 +662,13 @@ vmt_to_vmat = {
 },
 
 'transform': {  # Center Scale Rotation Offset F_TEXTURETRANSFORMS
-    '$basetexturetransform':    ('g_vTexCoord'),  # g_vLayer1TexCoord for blends F_LAYERS
-    '$detailtexturetransform':  ('g_vDetailTexCoord'),  #  g_vDetailTexCoordXform
-    '$bumptransform':           ('g_vNormalTexCoord'),  # g_vLayer1NormalTexCoord for blends F_LAYERS
-    '$blendmodulatetransform':  ('g_vBlendModulateTexCoord'),
-    '$bumptransform2':          ('g_vLayer2NormalTexCoord'),
-    '$basetexturetransform2':   ('g_vLayer2TexCoord'),
-    '$texture2transform':       ('g_vTexCoord2'),
+    '$basetexturetransform':    ('g_vTexCoord',),  # g_vLayer1TexCoord for blends F_LAYERS
+    '$detailtexturetransform':  ('g_vDetailTexCoord',),  #  g_vDetailTexCoordXform
+    '$bumptransform':           ('g_vNormalTexCoord',),  # g_vLayer1NormalTexCoord for blends F_LAYERS
+    '$blendmodulatetransform':  ('g_vBlendModulateTexCoord',),
+    '$bumptransform2':          ('g_vLayer2NormalTexCoord',),
+    '$basetexturetransform2':   ('g_vLayer2TexCoord',),
+    '$texture2transform':       ('g_vTexCoord2',),
     #'$blendmasktransform':      (''),
     #'$envmapmasktransform':     (''),
     #'$envmapmasktransform2':    (''),
@@ -719,9 +724,9 @@ vmt_to_vmat = {
     '$fogstart':    ('g_flWaterStart',  '', [float_val]),
 
 
-    '$nofog':   ('g_bFogEnabled',       '0',        [int_val, True]),
-    '$notint':  ('g_flModelTintAmount', '1.000',    [int_val, True]),
-    '$allowdiffusemodulation': ('g_flModelTintAmount', '1.000',    [int_val]),
+    '$nofog':   ('g_bFogEnabled',       '0',        [bool_val(bInvert=True)]),
+    '$notint':  ('g_flModelTintAmount', '1.000',    [bool_val(bInvert=True)]),
+    '$allowdiffusemodulation': ('g_flModelTintAmount', '1.000',    [bool_val()]),
 
     # rimlight
     '$rimlightscale':    ('g_flRimLightScale',   '1.000',    [float_val]),
@@ -755,7 +760,7 @@ vmt_to_vmat = {
 'channeled_masks': {  # 1-X will extract and invert channel X // M_1-X to only invert on models
    #'$vmtKey':                      (extract_from,       extract_as,       channel to extract)
     '$normalmapalphaenvmapmask':    ('$normalmap',    '$envmapmask',      '1-A'),
-    '$basealphaenvmapmask':         ('$basetexture',    '$envmapmask',      'M_1-A'),
+    '$basealphaenvmapmask':         ('$basetexture',    '$envmapmask',      '1-A'),
     '$envmapmaskintintmasktexture': ('$tintmasktexture','$envmapmask',      '1-R'),
     '$basemapalphaphongmask':       ('$basetexture',    '$phongmask',       '1-A'),
     '$basealphaphongmask':          ('$basetexture',    '$phongmask',       '1-A'),
@@ -862,7 +867,6 @@ def convertVmtToVmat():
                 outAddLines     = list( vmatTranslation [ VMAT_EXTRALINES : ] )
             except IndexError:
                 pass
-
             if ( vmatReplacement and vmatDefaultVal ):
 
                 outKey = vmatReplacement
@@ -891,24 +895,22 @@ def convertVmtToVmat():
 
                         msg(vmtKey, "->\t" + func_.__name__, args_, end=" -> ")
                         try:
-                            if (returnValue:= func_(*args_)):
+                            returnValue= func_(*args_)
+                            if (returnValue is not None):
                                 outVal = returnValue
-                            #args_.clear()
                             msg(outKey, returnValue)
                         except ValueError as errrrr:
                             print("Got ValueError:", errrrr, "on", f'{vmtKey}: {vmtVal} with {func_.__name__}')
                             failureList.add(f'ValueError on {func_.__name__}', f'{vmt.path} @ "{vmtKey}": "{vmtVal}"')
                             outVal = vmatDefaultVal
-                        
 
             # no equivalent key-value for this key, only exists
             # add comment or ignore completely
             elif (outAddLines):
-                if keyType not in ('transform'):  # exceptions
-                    for key, value in outAddLines:
-                        vmat.KeyValues[key] = value
-                    continue
-            else:
+                for key, value in outAddLines:
+                    vmat.KeyValues[key] = value
+                continue
+            elif keyType not in ('transform'):
                 continue
 
             # F_RENDER_BACKFACES 1 etc
@@ -918,13 +920,11 @@ def convertVmtToVmat():
                     outVal = (0 if (vmat.shader == "vr_projected_decals") else 1)
 
             elif(keyType == 'textures'):
-
                 # Layer A
                 if vmtKey in ('$basetexture', '$hdrbasetexture', '$hdrcompressedtexture', '$normalmap'):
                     outKey = vmat_layered_param(vmatReplacement)
 
-                elif vmtKey in ('$normalmap', '$bumpmap2', '$normalmap2'):
-
+                if vmtKey in ('$normalmap', '$bumpmap2', '$normalmap2'):
                     if vmtVal == 'dev/flat_normal': outVal = default(vmatDefaultVal)
 
                     if not outVal == "materials/default/default_normal.tga":
@@ -933,9 +933,7 @@ def convertVmtToVmat():
             elif(keyType == 'transform'):  # here one key can add multiple keys
                 if not vmatReplacement:
                     continue
-
                 transform = TexTransform(vmtVal)
-                msg( transform )
                 # doesnt seem like there is rotation
                 #if(matrixList[MATRIX_ROTATE] != '0.000'):
                 #    if(matrixList[MATRIX_ROTATIONCENTER] != '[0.500 0.500]')
@@ -1262,7 +1260,6 @@ total=import_total=import_invalid=import_extra = 0
 
 def main():
     print('\nSource 2 Material Converter!')
-    print('----------------------------------------------------------------------------')
 
     global total, import_total, import_invalid
     sh.importing = materials

@@ -1,4 +1,4 @@
-import sys, os, re
+import os, re
 import subprocess
 import threading, multiprocessing
 import shutil

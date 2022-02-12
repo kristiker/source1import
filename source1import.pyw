@@ -1,11 +1,9 @@
-#import shared.base_utils as sh
 from pathlib import Path
 from threading import Thread
 from tkinter import filedialog, messagebox
 from tkinter import *
 import sys
 import json
-from typing import Optional
 
 sys.path.insert(0, sys.path[0] + '\\utils')
 
@@ -213,7 +211,9 @@ class SampleApp(Tk):
             from utils import vtf_to_tga
             vtf_to_tga.sh = sh
             vtf_to_tga.OVERWRITE = self.Overwrite.get()
-            vtf_to_tga.main()
+            try: vtf_to_tga.main()
+            except Exception as e:
+                print(e, "\nSomething went wrong while decompiling textures!")
             print('=========================================================')
 
         if self.Materials.get():
@@ -299,7 +299,7 @@ class SampleApp(Tk):
             self.gobutton.configure(state=NORMAL, text='Go')
         
     def read_config(self):
-        print(Path(__file__).parent)
+        #print(Path(__file__).parent)
         try:
             with open("source1import.json", 'r') as fp:
                 try: data = json.load(fp)

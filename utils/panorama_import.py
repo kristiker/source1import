@@ -8,6 +8,7 @@ import re
 import shared.keyvalues1 as kv1
 import shared.base_utils2 as sh
 sh.importing = Path("panorama")
+sh.parse_argv()
 
 REPLACE_NAMEDPATHS = True
 

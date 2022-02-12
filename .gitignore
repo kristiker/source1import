@@ -5,3 +5,4 @@ build/
 dist/*  
 source1import.spec
 source1import.json
+source1import.exe
