@@ -36,3 +36,5 @@ python materials_import.py -i "C:/.../Half-Life Alyx/game/ep2" -e hlvr  "materia
 * `pip install -r requirements.txt`
 ## Results
 ### [Inferno Source 2 Comparison - YouTube](https://www.youtube.com/watch?v=e-kcE9F_uH0)
+<img src="https://i.imgur.com/qxNDhEE.jpeg" width=100%>
+<img src="https://i.imgur.com/zhHOMWJ.png" width=100%>
