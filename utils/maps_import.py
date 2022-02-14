@@ -161,13 +161,19 @@ class CMapWorld(_BaseEnt):
 
             # above element_array participant
             class CDmePolygonMeshDataStream(_CustomElement):
-                standardAttributeName: str = "textureAxisU"#Literal[, ""]
-                semanticName: str = "textureAxisU"
+                standardAttributeName: str = ""#Literal[, ""]
+                semanticName: str = ""
                 semanticIndex: int = 0
                 vertexBufferLocation: int = 0
                 dataStateFlags: int = 0
                 subdivisionBinding: dmx.Element = None#NullElement = 
                 data: Union[vector2_array, vector3_array, vector4_array]
+                def __post_init__(self):
+                    if not self.standardAttributeName:
+                        self.standardAttributeName = self.name[:-2]
+                    if not self.semanticName:
+                        self.semanticName = self.name[:-2]
+
 
             vertexEdgeIndices: int_array = factory(int_array)
             vertexDataIndices: int_array = factory(int_array)
@@ -190,40 +196,28 @@ class CMapWorld(_BaseEnt):
                 self.faceData.streams.extend([
                 self.CDmePolygonMeshDataStream(
                     name='textureScale:0',
-                    standardAttributeName='textureScale',
-                    semanticName='textureScale',
                     data=vector2_array()
                 ),
                 self.CDmePolygonMeshDataStream(
                     name='textureAxisU:0',
-                    standardAttributeName='textureAxisU',
-                    semanticName='textureAxisU',
                     data=vector4_array([])
                 ),
                 self.CDmePolygonMeshDataStream(
                     name='textureAxisV:0',
-                    standardAttributeName='textureAxisV',
-                    semanticName='textureAxisV',
                     data=vector4_array([])
                 ),
                 self.CDmePolygonMeshDataStream(
                     name='materialindex:0',
-                    standardAttributeName='materialindex',
-                    semanticName='materialindex',
                     dataStateFlags=8,
                     data=int_array()
                 ),
                 self.CDmePolygonMeshDataStream(
                     name='flags:0',
-                    standardAttributeName='flags',
-                    semanticName='flags',
                     dataStateFlags=3,
                     data=int_array()
                 ),
                 self.CDmePolygonMeshDataStream(
                     name='lightmapScaleBias:0',
-                    standardAttributeName='lightmapScaleBias',
-                    semanticName='lightmapScaleBias',
                     dataStateFlags=1,
                     data=int_array()
                 ),
@@ -233,6 +227,7 @@ class CMapWorld(_BaseEnt):
                 textureAxisV: Vector4,
                 materialindex: int, lightmapScaleBias: int
                 ):
+                self.faceData.size +=1
                 self.faceData.streams[0].data.append(textureScale)
                 self.faceData.streams[1].data.append(textureAxisU)
                 self.faceData.streams[2].data.append(textureAxisV)
@@ -314,59 +309,52 @@ class CMapWorld(_BaseEnt):
         mesh.meshData.vertexData.streams.append(
            mesh.meshData.CDmePolygonMeshDataStream(
                 name='position:0',
-                standardAttributeName='position',
-                semanticName='position',
                 dataStateFlags=3,
                 data=vector3_array(
                     sorted(vertex_data, key=lambda v: {0:2, 1:3, 2:6, 3:1, 4:7, 5:1, 6:5, 7:4}[vertex_data.index(v)])
                 )
             )
         )
-        mesh.meshData.faceVertexData.streams.extend([
-            mesh.meshData.CDmePolygonMeshDataStream(
-                name='texcoord:0',
-                standardAttributeName='texcoord',
-                semanticName='texcoord',
-                dataStateFlags=1,
-                data=vector2_array([[1,1],[0,0],[1,-1],[0,0],[-1,-1],[0,0],[-1,1],[0,0]])
-            ),
-            mesh.meshData.CDmePolygonMeshDataStream(
-                name='normal:0',
-                standardAttributeName='normal',
-                semanticName='normal',
-                dataStateFlags=1,
-                data=vector3_array([[0,0,1],[0,0,0],[0,0,1],[0,0,0],[0,0,1],[0,0,0],[0,0,1],[0,0,0]])
-            ),
-            mesh.meshData.CDmePolygonMeshDataStream(
-                name='tangent:0',
-                standardAttributeName='tangent',
-                semanticName='tangent',
-                dataStateFlags=1,
-                data=vector4_array([[1,0,0,-1],[0,0,0,0],[1,0,0,-1],[0,0,0,0],[1,0,0,-1],[0,0,0,0],[1,0,0,-1],[0,0,0,0]])
-            ),
-        ])
-        mesh.meshData.edgeData.streams.append(
-            mesh.meshData.CDmePolygonMeshDataStream(
-                name='flags:0',
-                standardAttributeName='flags',
-                semanticName='flags',
-                dataStateFlags=3,
-                data=int_array([0, 0, 0, 0])
-            ),
-        )
+        if False:
+            mesh.meshData.faceVertexData.streams.extend([
+                mesh.meshData.CDmePolygonMeshDataStream(
+                    name='texcoord:0',
+                    dataStateFlags=1,
+                    data=vector2_array([[1,1],[0,0],[1,-1],[0,0],[-1,-1],[0,0],[-1,1],[0,0]])
+                ),
+                mesh.meshData.CDmePolygonMeshDataStream(
+                    name='normal:0',
+                    dataStateFlags=1,
+                    data=vector3_array([[0,0,1],[0,0,0],[0,0,1],[0,0,0],[0,0,1],[0,0,0],[0,0,1],[0,0,0]])
+                ),
+                mesh.meshData.CDmePolygonMeshDataStream(
+                    name='tangent:0',
+                    dataStateFlags=1,
+                    data=vector4_array([[1,0,0,-1],[0,0,0,0],[1,0,0,-1],[0,0,0,0],[1,0,0,-1],[0,0,0,0],[1,0,0,-1],[0,0,0,0]])
+                ),
+            ])
+            mesh.meshData.edgeData.streams.append(
+                mesh.meshData.CDmePolygonMeshDataStream(
+                    name='flags:0',
+                    dataStateFlags=3,
+                    data=int_array([0, 0, 0, 0])
+                ),
+            )
         # For each side...
         for (i, key), side_kv in keyvalues.items(indexed_keys=True):
             if key != 'side':
                 continue
             # Texture Data
-            mesh.meshData.materials.append(f"materials/{side_kv['material'].lower()}.vmat")
+            material = f"materials/{side_kv['material'].lower()}.vmat"
+            if material not in mesh.meshData.materials:
+                mesh.meshData.materials.append(material)
             usplit = side_kv['uaxis'].split()
             vsplit = side_kv['vaxis'].split()
-            mesh.meshData.add_face(side_kv['id'],
+            mesh.meshData.add_face(int(side_kv['id']),
                 textureScale=Vector2((float(usplit[-1]), float(vsplit[-1]))),
                 textureAxisU=Vector4([int(n.strip('[]')) for n in usplit[:-1]]),
                 textureAxisV=Vector4([int(n.strip('[]')) for n in usplit[:-1]]),
-                materialindex=len(mesh.meshData.materials),
+                materialindex=mesh.meshData.materials.index(material),
                 lightmapScaleBias=int(side_kv['lightmapscale'])
             )
 

@@ -20,6 +20,7 @@
 #  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 #  THE SOFTWARE.
 
+from math import isclose
 import struct, array, io, binascii, collections, uuid
 from typing import Iterable, Optional
 from struct import unpack,calcsize
@@ -160,15 +161,33 @@ class _StrArray(_Array):
 	type = str
 
 class _Vector(list):
+	type = None
 	type_str = ""
 	def __init__(self,l):
 		if len(l) != len(self.type_str):
 			raise TypeError("Expected {} values, got {}".format(len(self.type_str), len(l)))
-		l = _validate_array_list(l,float if not self.__class__.__name__ == 'Color' else int)
+		l = _validate_array_list(l,float if self.type is None else self.type)
 		super().__init__(l)
-		
+	
+	# TODO 9 decimals max, no decimals on int, no scientific
 	def __repr__(self):
-		return " ".join([str(ord) for ord in self])
+		if self.type == int:
+			nl = ['%i' % ord for ord in self]
+		else:
+			nl = []
+			for ord in self:
+				rord = round(ord)
+				if ord%1 < 1e-4:
+					if isclose(ord, rord, rel_tol=1e-06):
+						nl.append(str(rord))
+					# isclose won't work with zero
+					elif rord == 0 and ord < 1e-06:
+						nl.append('0')
+					else:
+						nl.append('%.6f' % ord)
+				else:
+					nl.append(str(ord))
+		return " ".join(nl)
 
 	def __hash__(self):
 		return hash(tuple(self))
@@ -180,10 +199,13 @@ class _Vector(list):
 		return struct.pack(self.type_str,*self)
 		
 class Vector2(_Vector):
+	type = float
 	type_str = "ff"
 class Vector3(_Vector):
+	type = float
 	type_str = "fff"
 class Vector4(_Vector):
+	type = float
 	type_str = "ffff"
 class Quaternion(Vector4):
 	'''XYZW'''
@@ -379,7 +401,7 @@ class Element(collections.OrderedDict):
 				else:
 					return "{}\"{}\" \"{}\" \"{}\"\n".format(_kv2_indent,name,dm_type,value)
 			else:
-				return "{}\"{}\" {}\n".format(_kv2_indent,name,dm_type)
+				return "{}\"{}\" \"{}\" \"\"\n".format(_kv2_indent,name,dm_type)
 		
 		out += _make_attr_str("id", "elementid", self.id)
 		out += _make_attr_str("name", "string", self.name)
