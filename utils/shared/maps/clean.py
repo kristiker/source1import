@@ -14,15 +14,12 @@ bpy = SimpleNamespace
 # maximum distance to a side plane before cutting a vertice off
 _CUT_EPSILON = 0.001
 
-
 VectorPair = Tuple[Vector, Vector]
-
 
 def _plane_from_points(p1: Vector, p2: Vector, p3: Vector) -> VectorPair:
     vectors = (p3, p2, p1)
     normal = geometry.normal(vectors)
     return ((vectors[0] + vectors[2]) / 2, normal)
-
 
 def _intersect_planes(p1: VectorPair, p2: VectorPair, p3: VectorPair) -> Optional[Vector]:
     line: VectorPair = geometry.intersect_plane_plane(*p1, *p2)
@@ -56,13 +53,10 @@ SCALE = 1
 import pprint
 # based on http://mattn.ufoai.org/files/MAPFiles.pdf
 def _load_solid(solid: vmfpy.VMFSolid, parent: str):#,
-#                collection: bpy.types.Collection, tool_collection: Optional[bpy.types.Collection] = None) -> None:
 
     solid = vmfpy.VMFSolid(solid)
     name = f"{parent}_{solid.id}"
-    
     print(f"[VERBOSE] Building {name}...")
-    
     # minimize floating point precision issues
     planes_center = _vertices_center([Vector(point) for side in solid.sides for point in side.plane])
     side_planes: List[VectorPair] = [
@@ -140,12 +134,6 @@ def _load_solid(solid: vmfpy.VMFSolid, parent: str):#,
             vertice_idxs[idx], vertice_idxs[next_idx] = vertice_idxs[next_idx], vertice_idxs[idx]
             face_vertices_2d[idx], face_vertices_2d[next_idx] = face_vertices_2d[next_idx], face_vertices_2d[idx]
 
-#    # need to track side ids and corresponding verts and faces for overlays
-#    if self.import_overlays:
-#        for side_idx, side in enumerate(solid.sides):
-#            self._side_face_vertices[side.id] = [[i for i in range(len(face_vertices[side_idx]))]]
-#            self._side_vertices[side.id] = [vertices[i] + planes_center for i in face_vertices[side_idx]]
-#            self._side_normals[side.id] = side_planes[side_idx][1]
 
     # create uvs and materials
     for side_idx, side in enumerate(solid.sides):
@@ -203,9 +191,6 @@ def _load_solid(solid: vmfpy.VMFSolid, parent: str):#,
         for side_idx, side in enumerate(solid.sides):
             if side.dispinfo is None:
                 continue
-#            if self.import_overlays:
-#                self._side_face_vertices[side.id] = []
-#                self._side_vertices[side.id] = []
             # displacements must be quadrilateral
             if len(old_face_vertices[side_idx]) != 4:
                 err = f"INVALID DISPLACEMENT IN {name}: INVALID AMOUNT OF VERTS: {len(old_face_vertices[side_idx])}"
@@ -274,11 +259,12 @@ def _load_solid(solid: vmfpy.VMFSolid, parent: str):#,
                                                     col_idx / (side.dispinfo.dimension - 1))
                     disp_vertices[row_idx].append(col_vert_i)
                     disp_loop_uvs[row_idx].append(col_vert_uv)
-            disp_loop_cols = [[(0., 0., 0., a / 255) for a in row] for row in side.dispinfo.alphas]
 
-#            if self.import_overlays:
-#                self._side_vertices[side.id] = [vertices[i] + planes_center for row in disp_vertices for i in row]
-#                side_vertice_lookup = {v_i: i for i, v_i in enumerate(i for row in disp_vertices for i in row)}
+            #if self.blend_use_vertex_alpha:
+            disp_loop_cols = [[(0., 0., 0., a / 255) for a in row] for row in side.dispinfo.alphas]
+            #else:
+            #    disp_loop_cols = [[(a / 255, a / 255, a / 255, 1.0) for a in row] for row in side.dispinfo.alphas]
+
 
             # create displacement faces
             for row_idx in range(len(disp_vertices) - 1):
@@ -301,10 +287,6 @@ def _load_solid(solid: vmfpy.VMFSolid, parent: str):#,
                     face_loop_uvs.extend([disp_loop_uvs[r][c] for r, c in idxs] for idxs in disp_face_indexes)
                     face_loop_cols.extend([disp_loop_cols[r][c] for r, c in idxs] for idxs in disp_face_indexes)
                     original_face_normals.extend(side_planes[side_idx][1] for _ in disp_face_indexes)
-#                    if self.import_overlays:
-#                        self._side_face_vertices[side.id].extend(
-#                            [side_vertice_lookup[v_i] for v_i in f_verts] for f_verts in extend_face_vertices
-#                        )
 
             for row_idx in range(len(disp_vertices)):
                 for col_idx in range(len(disp_vertices[row_idx])):
@@ -314,20 +296,21 @@ def _load_solid(solid: vmfpy.VMFSolid, parent: str):#,
                                             + (Vector(side.dispinfo.normals[row_idx][col_idx])
                                                 * side.dispinfo.distances[row_idx][col_idx])
                                             + side_planes[side_idx][1] * side.dispinfo.elevation)
-#                    if self.import_overlays:
-#                        self._side_vertices[side.id].append(vertices[vert_idx] + planes_center)
 
     center = _vertices_center(vertices)
 
     #mesh: bpy.types.Mesh = bpy.data.meshes.new(name)
-
+    pprint.pprint(locals(), indent=4, compact=False, sort_dicts=True)
     # blender can figure out the edges -- but you CANNOT haha
     #mesh.from_pydata([(v - center) * SCALE for v in vertices], (), face_vertices)
-    print([(v - center) * SCALE for v in vertices], (), face_vertices)
+    #print([(v - center) * SCALE for v in vertices], (), face_vertices)
+    origin = planes_center+center
+    verts = [(v - center) * SCALE for v in vertices]
+    return origin, verts#vertices
     for material in materials:
         print("material used", material)
         #mesh.materials.append(material)
-    pprint.pprint(locals(), indent=4, compact=False, sort_dicts=True)
+    
     uv_layer: bpy.types.MeshUVLoopLayer = mesh.uv_layers.new()
     for polygon_idx, polygon in enumerate(mesh.polygons):
         polygon.material_index = face_materials[polygon_idx]
@@ -348,6 +331,5 @@ def _load_solid(solid: vmfpy.VMFSolid, parent: str):#,
     obj: bpy.types.Object = bpy.data.objects.new(name, object_data=mesh)
     #collection.objects.link(obj)
     obj.location = (planes_center + center) * SCALE
-
-    
-    print(obj)
+    #if is_tool:
+    #    obj.display_type = 'WIRE'

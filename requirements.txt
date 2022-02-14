@@ -2,3 +2,5 @@ Pillow
 numpy
 vdf
 dataclassy
+vpk
+mathutils

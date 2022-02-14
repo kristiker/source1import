@@ -2,7 +2,8 @@ import sys
 if sys.version_info.minor != 8:
     print("Python version 3.8 is required")
     sys.exit(1)
-from typing import Union
+from shared.maps.clean import _load_solid
+from typing import Literal, Union
 from dataclassy import dataclass, factory
 import shared.base_utils2 as sh
 from shared.keyvalues1 import KV
@@ -20,7 +21,8 @@ from shared.datamodel import (
     _Vector3Array as vector3_array,
     _Vector4Array as vector4_array,
 
-)   
+)
+from shared.datamodel import Vector2, Vector3, Vector4
 string = str
 
 """
@@ -54,12 +56,19 @@ def create_fresh_vmap():
 
 @dataclass
 class _CustomElement:
+    name: str = ""
     def get_element(self, dm: dmx.DataModel) -> dmx.Element:
         "py object 2 datamodel element"
-        el = dmx.Element(dm, "", self.__class__.__name__)
+        el = dmx.Element(dm, self.name, self.__class__.__name__)
         for k, v in self.__dict__.items():
+            if k == "name":
+                continue
             if hasattr(v, 'get_element'):
                 v = v.get_element(dm)
+            elif isinstance(v, list):
+                for i, item in enumerate(v):
+                    if hasattr(item, 'get_element'):
+                        v[i] = item.get_element(dm)
             el[k] = v
         return el
 
@@ -144,7 +153,7 @@ class CMapWorld(_BaseEnt):
     class CMapMesh(_BaseNode):
         class CDmePolygonMesh(_CustomElement):
             class CDmePolygonMeshDataArray(_CustomElement):
-                size: int = 8
+                size: int = 0
                 streams: element_array = factory(element_array)
             class CDmePolygonMeshSubdivisionData(_CustomElement):
                 subdivisionLevels: int_array = factory(int_array)
@@ -152,7 +161,7 @@ class CMapWorld(_BaseEnt):
 
             # above element_array participant
             class CDmePolygonMeshDataStream(_CustomElement):
-                standardAttributeName: str = "textureAxisU"
+                standardAttributeName: str = "textureAxisU"#Literal[, ""]
                 semanticName: str = "textureAxisU"
                 semanticIndex: int = 0
                 vertexBufferLocation: int = 0
@@ -176,6 +185,60 @@ class CMapWorld(_BaseEnt):
             edgeData: CDmePolygonMeshDataArray = factory(CDmePolygonMeshDataArray)
             faceData: CDmePolygonMeshDataArray = factory(CDmePolygonMeshDataArray)
             subdivisionData: CDmePolygonMeshSubdivisionData = factory(CDmePolygonMeshSubdivisionData)
+
+            def __post_init__(self):
+                self.faceData.streams.extend([
+                self.CDmePolygonMeshDataStream(
+                    name='textureScale:0',
+                    standardAttributeName='textureScale',
+                    semanticName='textureScale',
+                    data=vector2_array()
+                ),
+                self.CDmePolygonMeshDataStream(
+                    name='textureAxisU:0',
+                    standardAttributeName='textureAxisU',
+                    semanticName='textureAxisU',
+                    data=vector4_array([])
+                ),
+                self.CDmePolygonMeshDataStream(
+                    name='textureAxisV:0',
+                    standardAttributeName='textureAxisV',
+                    semanticName='textureAxisV',
+                    data=vector4_array([])
+                ),
+                self.CDmePolygonMeshDataStream(
+                    name='materialindex:0',
+                    standardAttributeName='materialindex',
+                    semanticName='materialindex',
+                    dataStateFlags=8,
+                    data=int_array()
+                ),
+                self.CDmePolygonMeshDataStream(
+                    name='flags:0',
+                    standardAttributeName='flags',
+                    semanticName='flags',
+                    dataStateFlags=3,
+                    data=int_array()
+                ),
+                self.CDmePolygonMeshDataStream(
+                    name='lightmapScaleBias:0',
+                    standardAttributeName='lightmapScaleBias',
+                    semanticName='lightmapScaleBias',
+                    dataStateFlags=1,
+                    data=int_array()
+                ),
+            ])
+            def add_face(self, id: int, textureScale: Vector2,
+                textureAxisU: Vector4,
+                textureAxisV: Vector4,
+                materialindex: int, lightmapScaleBias: int
+                ):
+                self.faceData.streams[0].data.append(textureScale)
+                self.faceData.streams[1].data.append(textureAxisU)
+                self.faceData.streams[2].data.append(textureAxisV)
+                self.faceData.streams[3].data.append(materialindex)
+                self.faceData.streams[4].data.append(lightmapScaleBias)
+                
 
         cubeMapName: str = ""
         lightGroup: str = ""
@@ -242,16 +305,72 @@ class CMapWorld(_BaseEnt):
     @staticmethod
     def translate_solid(keyvalues):
         groupid = keyvalues.get('editor', {}).get('groupid')
-        for (i, key), value in keyvalues.items(indexed_keys=True):
+        mesh = CMapWorld.CMapMesh.FromKeyValues(keyvalues)
+        
+        origin, vertex_data = _load_solid(keyvalues, 'worldspawn')
+
+        mesh.origin = Vector3(list(origin))
+        mesh.meshData.vertexData.size = len(vertex_data)
+        mesh.meshData.vertexData.streams.append(
+           mesh.meshData.CDmePolygonMeshDataStream(
+                name='position:0',
+                standardAttributeName='position',
+                semanticName='position',
+                dataStateFlags=3,
+                data=vector3_array(
+                    sorted(vertex_data, key=lambda v: {0:2, 1:3, 2:6, 3:1, 4:7, 5:1, 6:5, 7:4}[vertex_data.index(v)])
+                )
+            )
+        )
+        mesh.meshData.faceVertexData.streams.extend([
+            mesh.meshData.CDmePolygonMeshDataStream(
+                name='texcoord:0',
+                standardAttributeName='texcoord',
+                semanticName='texcoord',
+                dataStateFlags=1,
+                data=vector2_array([[1,1],[0,0],[1,-1],[0,0],[-1,-1],[0,0],[-1,1],[0,0]])
+            ),
+            mesh.meshData.CDmePolygonMeshDataStream(
+                name='normal:0',
+                standardAttributeName='normal',
+                semanticName='normal',
+                dataStateFlags=1,
+                data=vector3_array([[0,0,1],[0,0,0],[0,0,1],[0,0,0],[0,0,1],[0,0,0],[0,0,1],[0,0,0]])
+            ),
+            mesh.meshData.CDmePolygonMeshDataStream(
+                name='tangent:0',
+                standardAttributeName='tangent',
+                semanticName='tangent',
+                dataStateFlags=1,
+                data=vector4_array([[1,0,0,-1],[0,0,0,0],[1,0,0,-1],[0,0,0,0],[1,0,0,-1],[0,0,0,0],[1,0,0,-1],[0,0,0,0]])
+            ),
+        ])
+        mesh.meshData.edgeData.streams.append(
+            mesh.meshData.CDmePolygonMeshDataStream(
+                name='flags:0',
+                standardAttributeName='flags',
+                semanticName='flags',
+                dataStateFlags=3,
+                data=int_array([0, 0, 0, 0])
+            ),
+        )
+        # For each side...
+        for (i, key), side_kv in keyvalues.items(indexed_keys=True):
             if key != 'side':
                 continue
-            
-            """
-            Go figure this out.
-            translate brush to source2 mesh
-            """
-            
-        return groupid, CMapWorld.CMapMesh.FromKeyValues(keyvalues).get_element(vmap)
+            # Texture Data
+            mesh.meshData.materials.append(f"materials/{side_kv['material'].lower()}.vmat")
+            usplit = side_kv['uaxis'].split()
+            vsplit = side_kv['vaxis'].split()
+            mesh.meshData.add_face(side_kv['id'],
+                textureScale=Vector2((float(usplit[-1]), float(vsplit[-1]))),
+                textureAxisU=Vector4([int(n.strip('[]')) for n in usplit[:-1]]),
+                textureAxisV=Vector4([int(n.strip('[]')) for n in usplit[:-1]]),
+                materialindex=len(mesh.meshData.materials),
+                lightmapScaleBias=int(side_kv['lightmapscale'])
+            )
+
+        return groupid, mesh.get_element(vmap)
         
     @staticmethod
     def translate_ent(keyvalues):
@@ -305,8 +424,21 @@ if __name__ == "__main__":
             print(f"{k}: {type(v).__name__} = {v if not issubclass(type(v), list) else 'factory('+ type(v).__name__+')'}")
         quit()
     elif True:
-        from shared.maps.clean import _load_solid
-        _load_solid(vmf['world']['solid'], 'worldspawn')
+        out_vmap = create_fresh_vmap()
+        vmap = out_vmap.root
+        
+        i, mesh = CMapWorld.translate_solid(vmf['world']['solid'])
+    
+        print()
+        print()
+        #print(vmap.get_kv2())
+
+        vmap['world']['children'].append(
+            #CMapWorld.CMapGroup.get_element(vmap)
+            mesh
+        )
+        out_vmap.write("utils/dev/test.vmap.txt", 'keyvalues2', 4)
+        #print(vmap.get_kv2())
         quit()
     out_vmap = create_fresh_vmap()
     vmap = out_vmap.root
