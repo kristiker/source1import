@@ -256,7 +256,7 @@ class CMapWorld(_BaseEnt):
                 )
 
             @classmethod
-            def create_sample_triangle(self):
+            def SampleTriangle(self):
                 """
                 test if you can even create a hammer polygon
                 
@@ -328,6 +328,88 @@ class CMapWorld(_BaseEnt):
 
                 # subdivisionData
                 for n in range(6):
+                    self.subdivisionData.subdivisionLevels.append(0)
+                
+                return self
+
+            @classmethod
+            def SampleQuad(self):
+                """
+                test if you can even create a hammer polygon
+                
+                data from utils/dev/sample_triangle.vmap.txt
+                """
+                self = self(name='meshData')
+                # vertexEdgeIndices
+                self.vertexEdgeIndices.extend(  [0, 1, 2, 3])
+                # vertexDataIndices
+                self.vertexDataIndices.extend(  [0, 1, 2, 3])
+                # edgeVertexIndices
+                self.edgeVertexIndices.extend(  [1, 0, 3, 2, 2, 0, 1, 3])
+                # edgeOppositeIndices
+                self.edgeOppositeIndices.extend([1, 0, 3, 2, 5, 4, 7, 6])
+                # edgeNextIndices
+                self.edgeNextIndices.extend(    [7, 4, 6, 5, 2, 0, 1, 3])
+                # edgeFaceIndices
+                self.edgeFaceIndices.extend(    [0,-1,-1, 0,-1, 0,-1, 0])
+
+                # edgeDataIndices
+                for n in range(4):
+                    self.edgeDataIndices.append(n)
+                    self.edgeDataIndices.append(n)
+
+                # edgeVertexDataIndices
+                self.edgeVertexDataIndices.extend(n for n in range((8)))
+                # faceEdgeIndices
+                self.faceEdgeIndices.append(3)
+                # faceDataIndices
+                self.faceDataIndices.append(0)
+                # materials
+                self.materials.append("materials/dev/reflectivity_30.vmat")
+                # vertexData
+                self.vertexData.size = 4
+                self.vertexData.streams[0].data.append(Vector3("-3.5 -3.5 0".split()))
+                self.vertexData.streams[0].data.append(Vector3("3.5 -3.5 0".split()))
+                self.vertexData.streams[0].data.append(Vector3("-3.5 3.5 0".split()))
+                self.vertexData.streams[0].data.append(Vector3("3.5 3.5 0".split()))
+
+                # faceVertexData
+                self.faceVertexData.size = 8
+                for _ in range(8):
+                    self.faceVertexData.streams[0].data.append(Vector2("0 0".split())) # texcoord
+                self.faceVertexData.streams[1].data.append(Vector3("0 0 1".split())) # normal
+                self.faceVertexData.streams[1].data.append(Vector3("0 0 0".split()))
+                self.faceVertexData.streams[1].data.append(Vector3("0 0 0".split()))
+                self.faceVertexData.streams[1].data.append(Vector3("0 0 1".split()))
+                self.faceVertexData.streams[1].data.append(Vector3("0 0 0".split()))
+                self.faceVertexData.streams[1].data.append(Vector3("0 0 1".split()))
+                self.faceVertexData.streams[1].data.append(Vector3("0 0 0".split()))
+                self.faceVertexData.streams[1].data.append(Vector3("0 0 1".split()))
+                self.faceVertexData.streams[2].data.append(Vector4("1 0 0 1".split())) # tangent
+                self.faceVertexData.streams[2].data.append(Vector4("0 0 0 0".split()))
+                self.faceVertexData.streams[2].data.append(Vector4("0 0 0 0".split()))
+                self.faceVertexData.streams[2].data.append(Vector4("1 0 0 1".split()))
+                self.faceVertexData.streams[2].data.append(Vector4("0 0 0 0".split()))
+                self.faceVertexData.streams[2].data.append(Vector4("1 0 0 1".split()))
+                self.faceVertexData.streams[2].data.append(Vector4("0 0 0 0".split()))
+                self.faceVertexData.streams[2].data.append(Vector4("1 0 0 1".split()))
+
+                # edgeData
+                for n in range(4):
+                    self.edgeData.size+=1
+                    self.edgeData.streams[0].data.append(0)
+
+                # faceData
+                self.faceData.size +=1
+                self.faceData.streams[0].data.append(Vector2("1 1".split()))
+                self.faceData.streams[1].data.append(Vector4("1 0 0 0".split()))
+                self.faceData.streams[2].data.append(Vector4("0 1 0 0".split()))
+                self.faceData.streams[3].data.append(0)
+                self.faceData.streams[4].data.append(0)
+                self.faceData.streams[5].data.append(0)
+
+                # subdivisionData
+                for n in range(8):
                     self.subdivisionData.subdivisionLevels.append(0)
                 
                 return self
@@ -481,10 +563,10 @@ if __name__ == "__main__":
     out_vmap = create_fresh_vmap()
     vmap = out_vmap.root
     mesh = CMapWorld.CMapMesh()
-    mesh.origin = Vector3([3,3,0])
-    mesh.meshData = CMapWorld.CMapMesh.CDmePolygonMesh.create_sample_triangle()
+    mesh.origin = Vector3([0,0,0])
+    mesh.meshData = CMapWorld.CMapMesh.CDmePolygonMesh.SampleQuad()
     out_vmap.prefix_attributes['map_asset_references'].append("materials/dev/reflectivity_30.vmat")
     vmap['world']['children'].append(mesh.get_element(vmap))
-    out_vmap.write("utils/dev/out_sample_triangle.vmap.txt", 'keyvalues2', 4)
-    print("Saved", "utils/dev/out_sample_triangle.vmap.txt")
+    out_vmap.write("utils/dev/out_sample_quad.vmap.txt", 'keyvalues2', 4)
+    print("Saved", "utils/dev/out_sample_quad.vmap.txt")
 
