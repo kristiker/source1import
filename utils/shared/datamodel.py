@@ -130,7 +130,7 @@ class _Array(list):
 		
 	def to_kv2(self):
 		if len(self) == 0:
-			return "[ ]"
+			return f"\n{_kv2_indent}[\n{_kv2_indent}]"
 		if self.type == Element:
 
 			out = "\n{}[\n".format(_kv2_indent)
@@ -142,7 +142,8 @@ class _Array(list):
 			_sub_kv2_indent()
 			return "{}\n{}]".format(out,_kv2_indent)
 		else:
-			return "[{}]".format(", ".join([_quote(_get_kv2_repr(item)) for item in self]))
+			out = "\n{}[\n{}".format(_kv2_indent,",\n".join([_kv2_indent+"\t"+_quote(_get_kv2_repr(item)) for item in self]))
+			return "{}\n{}]".format(out,_kv2_indent)
 		
 	def frombytes(self,file):
 		length = get_int(file)		
@@ -404,7 +405,8 @@ class Element(collections.OrderedDict):
 				return "{}\"{}\" \"{}\" \"\"\n".format(_kv2_indent,name,dm_type)
 		
 		out += _make_attr_str("id", "elementid", self.id)
-		out += _make_attr_str("name", "string", self.name)
+		if self.name:
+			out += _make_attr_str("name", "string", self.name)
 		
 		for name in self:
 			attr = self[name]

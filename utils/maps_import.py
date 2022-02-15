@@ -1,3 +1,4 @@
+from itertools import islice, tee, zip_longest
 import sys
 if sys.version_info.minor != 8:
     print("Python version 3.8 is required")
@@ -193,35 +194,144 @@ class CMapWorld(_BaseEnt):
             subdivisionData: CDmePolygonMeshSubdivisionData = factory(CDmePolygonMeshSubdivisionData)
 
             def __post_init__(self):
+                self.vertexData.streams.append(
+                    self.CDmePolygonMeshDataStream(
+                        name='position:0',
+                        dataStateFlags=3,
+                        data=vector3_array()
+                    )
+                )
                 self.faceData.streams.extend([
-                self.CDmePolygonMeshDataStream(
-                    name='textureScale:0',
-                    data=vector2_array()
-                ),
-                self.CDmePolygonMeshDataStream(
-                    name='textureAxisU:0',
-                    data=vector4_array([])
-                ),
-                self.CDmePolygonMeshDataStream(
-                    name='textureAxisV:0',
-                    data=vector4_array([])
-                ),
-                self.CDmePolygonMeshDataStream(
-                    name='materialindex:0',
-                    dataStateFlags=8,
-                    data=int_array()
-                ),
-                self.CDmePolygonMeshDataStream(
-                    name='flags:0',
-                    dataStateFlags=3,
-                    data=int_array()
-                ),
-                self.CDmePolygonMeshDataStream(
-                    name='lightmapScaleBias:0',
-                    dataStateFlags=1,
-                    data=int_array()
-                ),
-            ])
+                    self.CDmePolygonMeshDataStream(
+                        name='textureScale:0',
+                        data=vector2_array()
+                    ),
+                    self.CDmePolygonMeshDataStream(
+                        name='textureAxisU:0',
+                        data=vector4_array([])
+                    ),
+                    self.CDmePolygonMeshDataStream(
+                        name='textureAxisV:0',
+                        data=vector4_array([])
+                    ),
+                    self.CDmePolygonMeshDataStream(
+                        name='materialindex:0',
+                        dataStateFlags=8,
+                        data=int_array()
+                    ),
+                    self.CDmePolygonMeshDataStream(
+                        name='flags:0',
+                        dataStateFlags=3,
+                        data=int_array()
+                    ),
+                    self.CDmePolygonMeshDataStream(
+                        name='lightmapScaleBias:0',
+                        dataStateFlags=1,
+                        data=int_array()
+                    ),
+                ])
+                self.faceVertexData.streams.extend([
+                    self.CDmePolygonMeshDataStream(
+                        name='texcoord:0',
+                        dataStateFlags=1,
+                        data=vector2_array()
+                    ),
+                    self.CDmePolygonMeshDataStream(
+                        name='normal:0',
+                        dataStateFlags=1,
+                        data=vector3_array()
+                    ),
+                    self.CDmePolygonMeshDataStream(
+                        name='tangent:0',
+                        dataStateFlags=1,
+                        data=vector4_array()
+                    ),
+                ])
+                self.edgeData.streams.append(
+                    self.CDmePolygonMeshDataStream(
+                        name='flags:0',
+                        dataStateFlags=3,
+                        data=int_array()
+                    )
+                )
+
+            @classmethod
+            def create_sample_triangle(self):
+                """
+                test if you can even create a hammer polygon
+                
+                data from utils/dev/sample_triangle.vmap.txt
+                """
+                self = self(name='meshData')
+                # vertexEdgeIndices
+                self.vertexEdgeIndices.extend(  [0, 3, 5])
+                # vertexDataIndices
+                self.vertexDataIndices.extend(  [0, 1, 2])
+                # edgeVertexIndices
+                self.edgeVertexIndices.extend(  [1, 0, 1, 2, 2, 0])
+                # edgeOppositeIndices
+                self.edgeOppositeIndices.extend([1, 0, 3, 2, 5, 4])
+                # edgeNextIndices
+                self.edgeNextIndices.extend(    [3, 4, 1, 5, 2, 0])
+                # edgeFaceIndices
+                self.edgeFaceIndices.extend(    [0,-1,-1, 0,-1, 0])
+
+                # edgeDataIndices
+                for n in range(3):
+                    self.edgeDataIndices.append(n)
+                    self.edgeDataIndices.append(n)
+
+                # edgeVertexDataIndices
+                self.edgeVertexDataIndices.extend(n for n in range((6)))
+                # faceEdgeIndices
+                self.faceEdgeIndices.append(3)
+                # faceDataIndices
+                self.faceDataIndices.append(0)
+                # materials
+                self.materials.append("materials/dev/reflectivity_30.vmat")
+                # vertexData
+                self.vertexData.size = 3
+                self.vertexData.streams[0].data.append(Vector3("-3 -3 0".split()))
+                self.vertexData.streams[0].data.append(Vector3("3 -3 0".split()))
+                self.vertexData.streams[0].data.append(Vector3("-3 3 0".split()))
+
+                # faceVertexData
+                self.faceVertexData.size = 6
+                for _ in range(6):
+                    self.faceVertexData.streams[0].data.append(Vector2("0 0".split())) # texcoord
+                self.faceVertexData.streams[1].data.append(Vector3("0 0 1".split())) # normal
+                self.faceVertexData.streams[1].data.append(Vector3("0 0 0".split()))
+                self.faceVertexData.streams[1].data.append(Vector3("0 0 0".split()))
+                self.faceVertexData.streams[1].data.append(Vector3("0 0 1".split()))
+                self.faceVertexData.streams[1].data.append(Vector3("0 0 0".split()))
+                self.faceVertexData.streams[1].data.append(Vector3("0 0 1".split()))
+                self.faceVertexData.streams[2].data.append(Vector4("1 0 0 -1".split())) # tangent
+                self.faceVertexData.streams[2].data.append(Vector4("0 0 0 0".split()))
+                self.faceVertexData.streams[2].data.append(Vector4("0 0 0 0".split()))
+                self.faceVertexData.streams[2].data.append(Vector4("1 0 0 -1".split()))
+                self.faceVertexData.streams[2].data.append(Vector4("0 0 0 0".split()))
+                self.faceVertexData.streams[2].data.append(Vector4("1 0 0 -1".split()))
+
+                # edgeData
+                for n in range(3):
+                    self.edgeData.size+=1
+                    self.edgeData.streams[0].data.append(0)
+
+                # faceData
+                self.faceData.size +=1
+                self.faceData.streams[0].data.append(Vector2("0.25 0.25".split()))
+                self.faceData.streams[1].data.append(Vector4("1 0 0 0".split()))
+                self.faceData.streams[2].data.append(Vector4("0 -1 0 0".split()))
+                self.faceData.streams[3].data.append(0)
+                self.faceData.streams[4].data.append(0)
+                self.faceData.streams[5].data.append(0)
+
+                # subdivisionData
+                for n in range(6):
+                    self.subdivisionData.subdivisionLevels.append(0)
+                
+                return self
+
             def add_face(self, id: int, textureScale: Vector2,
                 textureAxisU: Vector4,
                 textureAxisV: Vector4,
@@ -232,7 +342,8 @@ class CMapWorld(_BaseEnt):
                 self.faceData.streams[1].data.append(textureAxisU)
                 self.faceData.streams[2].data.append(textureAxisV)
                 self.faceData.streams[3].data.append(materialindex)
-                self.faceData.streams[4].data.append(lightmapScaleBias)
+                self.faceData.streams[4].data.append(0)
+                self.faceData.streams[5].data.append(lightmapScaleBias)
                 
 
         cubeMapName: str = ""
@@ -304,42 +415,6 @@ class CMapWorld(_BaseEnt):
         
         origin, vertex_data = _load_solid(keyvalues, 'worldspawn')
 
-        mesh.origin = Vector3(list(origin))
-        mesh.meshData.vertexData.size = len(vertex_data)
-        mesh.meshData.vertexData.streams.append(
-           mesh.meshData.CDmePolygonMeshDataStream(
-                name='position:0',
-                dataStateFlags=3,
-                data=vector3_array(
-                    sorted(vertex_data, key=lambda v: {0:2, 1:3, 2:6, 3:1, 4:7, 5:1, 6:5, 7:4}[vertex_data.index(v)])
-                )
-            )
-        )
-        if False:
-            mesh.meshData.faceVertexData.streams.extend([
-                mesh.meshData.CDmePolygonMeshDataStream(
-                    name='texcoord:0',
-                    dataStateFlags=1,
-                    data=vector2_array([[1,1],[0,0],[1,-1],[0,0],[-1,-1],[0,0],[-1,1],[0,0]])
-                ),
-                mesh.meshData.CDmePolygonMeshDataStream(
-                    name='normal:0',
-                    dataStateFlags=1,
-                    data=vector3_array([[0,0,1],[0,0,0],[0,0,1],[0,0,0],[0,0,1],[0,0,0],[0,0,1],[0,0,0]])
-                ),
-                mesh.meshData.CDmePolygonMeshDataStream(
-                    name='tangent:0',
-                    dataStateFlags=1,
-                    data=vector4_array([[1,0,0,-1],[0,0,0,0],[1,0,0,-1],[0,0,0,0],[1,0,0,-1],[0,0,0,0],[1,0,0,-1],[0,0,0,0]])
-                ),
-            ])
-            mesh.meshData.edgeData.streams.append(
-                mesh.meshData.CDmePolygonMeshDataStream(
-                    name='flags:0',
-                    dataStateFlags=3,
-                    data=int_array([0, 0, 0, 0])
-                ),
-            )
         # For each side...
         for (i, key), side_kv in keyvalues.items(indexed_keys=True):
             if key != 'side':
@@ -402,51 +477,14 @@ def main_to_root(main_key: str, sub):
             vmap[replacement] = _type(sub[t])
 
 if __name__ == "__main__":
-    #print('Source 2 VMAP TXT Generator!')
-
-    vmf = KV.CollectionFromFile("utils/dev/literal_box.vmf", case_sensitive=True)
-    vmap_dmx = dmx.load("utils/dev/box.vmap.txt")
-    if False: # codegen
-        # TODO: default factory value lambda:
-        for k, v in vmap_dmx.root['world']['children'][0]['meshData']['edgeData']['streams'][0].items():
-            print(f"{k}: {type(v).__name__} = {v if not issubclass(type(v), list) else 'factory('+ type(v).__name__+')'}")
-        quit()
-    elif True:
-        out_vmap = create_fresh_vmap()
-        vmap = out_vmap.root
-        
-        i, mesh = CMapWorld.translate_solid(vmf['world']['solid'])
-    
-        print()
-        print()
-        #print(vmap.get_kv2())
-
-        vmap['world']['children'].append(
-            #CMapWorld.CMapGroup.get_element(vmap)
-            mesh
-        )
-        out_vmap.write("utils/dev/test.vmap.txt", 'keyvalues2', 4)
-        #print(vmap.get_kv2())
-        quit()
+    print('Source 2 VMAP Generator!')
     out_vmap = create_fresh_vmap()
     vmap = out_vmap.root
+    mesh = CMapWorld.CMapMesh()
+    mesh.origin = Vector3([3,3,0])
+    mesh.meshData = CMapWorld.CMapMesh.CDmePolygonMesh.create_sample_triangle()
+    out_vmap.prefix_attributes['map_asset_references'].append("materials/dev/reflectivity_30.vmat")
+    vmap['world']['children'].append(mesh.get_element(vmap))
+    out_vmap.write("utils/dev/out_sample_triangle.vmap.txt", 'keyvalues2', 4)
+    print("Saved", "utils/dev/out_sample_triangle.vmap.txt")
 
-    #merge_multiple_worlds() use latest properties
-    for (i, key), value in vmf.items(indexed_keys=True):
-        # dismiss excess main keys (exlcuding entity)
-        if i >= 1 or key in (m.world, m.entity):
-            continue
-        main_to_root(key, value)
-
-        #if key == m.entity:
-        #    add_ent_to_world()
-        #print(i, key, type(value))
-    
-    translate_world(vmf.get(m.world))
-
-    for (i, key), value in vmf.items(indexed_keys=True):
-        if key != m.entity:
-            continue
-        CMapWorld.translate_ent(value)
-
-    out_vmap.write("utils/dev/out.vmap.txt", 'keyvalues2', 4)
