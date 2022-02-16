@@ -149,23 +149,17 @@ def parse_out_path(source2_mod: Path):
                     # Importing from a source 2 app into different source 2 app.
                     # The latter becomes root (script's working environment).
                     update_root(Path(*source2_mod.parts[:p_index]))
-                    source2_mod = Path(*source2_mod.parts[p_index:])
+                    source2_mod = Path(*source2_mod.parts[p_index+1:])
                     break
             if p not in ('content', 'game'):  # Export game has no game-content structure (sbox?)
                 EXPORT_GAME = EXPORT_CONTENT = source2_mod
     elif not in_source2_environment():
         argv_error(f"Cannot figure out where \"{source2_mod}\" is located. Please correct or use absolute path.")
 
-    if not source2_mod.is_absolute() and len(source2_mod.parts) in (1, 2):
+    if not source2_mod.is_absolute() and len(source2_mod.parts) <=3:
         EXPORT_GAME = GAMEROOT / source2_mod
         EXPORT_CONTENT = CONTENTROOT / source2_mod
-    elif len(source2_mod.parts) == 3:
-        # TEMP FIX FOR game/hlvr_addons/x when import is not source2 environment
-        try:
-            EXPORT_CONTENT = CONTENTROOT / source2_mod.relative_to(eEngineFolder.GAMEROOT.value)
-        except ValueError:
-            EXPORT_CONTENT = CONTENTROOT / source2_mod.relative_to(eEngineFolder.CONTENTROOT.value)
-        EXPORT_GAME = GAMEROOT / source2_mod
+
     elif EXPORT_GAME is EXPORT_CONTENT is None:
         argv_error(f"Invalid export game \"{source2_mod}\"")
 
@@ -232,21 +226,22 @@ if __name__ == 'shared.base_utils2':
     pass
 
 elif __name__ == '__main__':
-
-    print(f"{parse_argv()}\n{ROOT=}\n{IMPORT_CONTENT=}\n{IMPORT_GAME=}\n{EXPORT_CONTENT=}\n{EXPORT_GAME=}")
+    parse_argv()
+    print(f"{ROOT=}\n{IMPORT_CONTENT=}\n{IMPORT_GAME=}\n{EXPORT_CONTENT=}\n{EXPORT_GAME=}")
     print(gameinfo['game'])
 
     import unittest
-
     class Test_ParsedPaths(unittest.TestCase):
-        def test_1(self):
-            self.assertEqual(ROOT, 'D:/Games/steamapps/common/Half-Life Alyx')
-    
+        def test_s2_export(self):
+            if EXPORT_CONTENT != EXPORT_GAME:
+                self.assertEqual(EXPORT_CONTENT.parts.count('content'), 1)
+                self.assertEqual(EXPORT_GAME.parts.count('game'), 1)
+
+        def test_export_exist(self):
+            self.assertTrue(EXPORT_CONTENT.is_dir())
+            self.assertTrue(EXPORT_GAME.is_dir())
     unittest.main()
     raise SystemExit
-else:
-    pass
-    #print(__name__, 'is uncovered.')
 
 importing = Path()
 
@@ -319,7 +314,6 @@ def collect(root, inExt, outExt, existing:bool = False, outNameRule = None, sear
                 continue #del files_with_ext[files_with_ext.index(filePath)]
             yield filePath
 
-        print()
         print(' '*4 + f"Skipped: " + f"{skipCountExists} already imported | "*(not existing) +\
                                  f"{skipCountBlacklist} found in blacklist"
         )
@@ -327,7 +321,7 @@ def collect(root, inExt, outExt, existing:bool = False, outNameRule = None, sear
         print("ERROR while searching: Does not exist:", searchPath)
 
 
-def source2namefixup(path):
+def source2namefixup(path: Path):
     return path.parent / path.name.lower().replace(' ', '_')
 
 #def overwrite_allowed(path, bAllowed=import_context['overwrite']):
