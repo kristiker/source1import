@@ -594,14 +594,14 @@ class DataModel:
 		if len(self.elements) == 1: self.root = elem
 		return elem
 		
-	def find_elements(self,name=None,id=None,elemtype=None) -> Optional[Iterable[Element]]:
+	def find_elements(self,name=None,id=None,elemtype=None) -> Iterable[Element]:
 		out = []
 		if isinstance(id, str): id = uuid.UUID(id)
 		for elem in self.elements:
 			if elem.id == id: return [elem]
 			if elem.name == name: out.append(elem)
 			if elem.type == elemtype: out.append(elem)
-		if len(out): return out
+		return out
 		
 	def _write(self,value, elem = None, suppress_dict = None):
 		t = type(value)

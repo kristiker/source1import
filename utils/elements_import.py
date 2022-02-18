@@ -13,37 +13,31 @@ def ImportSFMSession(session_path: Path):
         return print("Error while reading:", session_path.local)
 
     # Map
-    if (dme_clips := session.find_elements(elemtype='DmeFilmClip')) is not None:
-        for clip in dme_clips:
-            clip['mapname'] = clip.get('mapname', '').replace('.bsp', '.vmap')
+    for clip in session.find_elements(elemtype='DmeFilmClip'):
+        clip['mapname'] = clip.get('mapname', '').replace('.bsp', '.vmap')
 
     # Materials
-    if (dme_overlays := session.find_elements(elemtype='DmeMaterialOverlayFXClip')) is not None:
-        for overlay in dme_overlays:
-            overlay['material'] = overlay.get('material', '').replace('.vmt', '.vmat')
+    for overlay in session.find_elements(elemtype='DmeMaterialOverlayFXClip'):
+        overlay['material'] = overlay.get('material', '').replace('.vmt', '.vmat')
 
     # Models
-    if (dme_models := session.find_elements(elemtype='DmeGameModel')) is not None:
-        for game_model in dme_models:
-            game_model['modelName'] = game_model.get('modelName', '').replace('.mdl', '.vmdl')
+    for game_model in session.find_elements(elemtype='DmeGameModel'):
+        game_model['modelName'] = game_model.get('modelName', '').replace('.mdl', '.vmdl')
 
     # Particles
-    if (dme_particles := session.find_elements(elemtype='DmeGameParticleSystem')) is not None:
-        for game_particle in dme_particles:
-            game_particle['particleSystemType'] = sh.RemapTable.get('vpcf', {}).get(game_particle.get('particleSystemType', ''), '')
+    for game_particle in session.find_elements(elemtype='DmeGameParticleSystem'):
+        game_particle['particleSystemType'] = sh.RemapTable.get('vpcf', {}).get(game_particle.get('particleSystemType', ''), '')
 
     # Projected Lights (cookies)
-    if (dme_lights := session.find_elements(elemtype='DmeProjectedLight')) is not None:
-        for projected_light in dme_lights:
-            projected_light['texture'] = projected_light.get('texture', '').replace('.vtf', '.vtex')
+    for projected_light in session.find_elements(elemtype='DmeProjectedLight'):
+        projected_light['texture'] = projected_light.get('texture', '').replace('.vtf', '.vtex')
 
     # Sounds
-    if (dme_sounds := session.find_elements(elemtype='DmeGameSound')) is not None:
-        for game_sound in dme_sounds:
-            game_sound.name = game_sound.name.replace('\\', '/')
-            file = Path(game_sound.get('soundname', '')) # 'sounds'/ 
-            if file.name:
-                game_sound['soundname'] = file.with_suffix('.vsnd').as_posix()
+    for game_sound in session.find_elements(elemtype='DmeGameSound'):
+        game_sound.name = game_sound.name.replace('\\', '/')
+        file = Path(game_sound.get('soundname', '')) # 'sounds'/ 
+        if file.name:
+            game_sound['soundname'] = file.with_suffix('.vsnd').as_posix()
 
     session_out_path = sh.output(session_path, dest=sh.EXPORT_GAME)
     session_out_path.parent.MakeDir()
