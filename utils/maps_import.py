@@ -149,6 +149,7 @@ class CMapWorld(_BaseEnt):
         ...
 
     class CMapGroup(_BaseNode):
+        """Group of CMapMesh-es"""
         pass
 
     class CMapMesh(_BaseNode):
@@ -162,8 +163,9 @@ class CMapWorld(_BaseEnt):
 
             # above element_array participant
             class CDmePolygonMeshDataStream(_CustomElement):
-                standardAttributeName: str = ""#Literal[, ""]
-                semanticName: str = ""
+                NAME = Literal["position","textureScale","textureAxisU","textureAxisV","materialindex","flags","lightmapScaleBias","texcoord","normal","tangent"]
+                standardAttributeName: NAME = ""
+                semanticName: NAME = ""
                 semanticIndex: int = 0
                 vertexBufferLocation: int = 0
                 dataStateFlags: int = 0
@@ -208,11 +210,11 @@ class CMapWorld(_BaseEnt):
                     ),
                     self.CDmePolygonMeshDataStream(
                         name='textureAxisU:0',
-                        data=vector4_array([])
+                        data=vector4_array([]) # x x x shift
                     ),
                     self.CDmePolygonMeshDataStream(
                         name='textureAxisV:0',
-                        data=vector4_array([])
+                        data=vector4_array([]) # x x x shift
                     ),
                     self.CDmePolygonMeshDataStream(
                         name='materialindex:0',
@@ -265,24 +267,22 @@ class CMapWorld(_BaseEnt):
                 self = self(name='meshData')
                 # vertexEdgeIndices
                 self.vertexEdgeIndices.extend(  [0, 3, 5])
+                self.vertexEdgeIndices += [0, 3, 5]
                 # vertexDataIndices
-                self.vertexDataIndices.extend(  [0, 1, 2])
+                self.vertexDataIndices += [0, 1, 2]
                 # edgeVertexIndices
-                self.edgeVertexIndices.extend(  [1, 0, 1, 2, 2, 0])
+                self.edgeVertexIndices += [1, 0, 1, 2, 2, 0]
                 # edgeOppositeIndices
-                self.edgeOppositeIndices.extend([1, 0, 3, 2, 5, 4])
+                self.edgeOppositeIndices+=[1, 0, 3, 2, 5, 4]
                 # edgeNextIndices
-                self.edgeNextIndices.extend(    [3, 4, 1, 5, 2, 0])
+                self.edgeNextIndices +=   [3, 4, 1, 5, 2, 0]
                 # edgeFaceIndices
-                self.edgeFaceIndices.extend(    [0,-1,-1, 0,-1, 0])
-
+                self.edgeFaceIndices +=   [0,-1,-1, 0,-1, 0]
                 # edgeDataIndices
                 for n in range(3):
-                    self.edgeDataIndices.append(n)
-                    self.edgeDataIndices.append(n)
-
+                    self.edgeDataIndices += [n,n]
                 # edgeVertexDataIndices
-                self.edgeVertexDataIndices.extend(n for n in range((6)))
+                self.edgeVertexDataIndices += [n for n in range(6)]
                 # faceEdgeIndices
                 self.faceEdgeIndices.append(3)
                 # faceDataIndices
@@ -291,32 +291,35 @@ class CMapWorld(_BaseEnt):
                 self.materials.append("materials/dev/reflectivity_30.vmat")
                 # vertexData
                 self.vertexData.size = 3
-                self.vertexData.streams[0].data.append(Vector3("-3 -3 0".split()))
-                self.vertexData.streams[0].data.append(Vector3("3 -3 0".split()))
-                self.vertexData.streams[0].data.append(Vector3("-3 3 0".split()))
-
+                self.vertexData.streams[0].data += [
+                    Vector3("-3 -3 0".split()),
+                    Vector3("3 -3 0".split()),
+                    Vector3("-3 3 0".split())
+                ]
                 # faceVertexData
                 self.faceVertexData.size = 6
                 for _ in range(6):
                     self.faceVertexData.streams[0].data.append(Vector2("0 0".split())) # texcoord
-                self.faceVertexData.streams[1].data.append(Vector3("0 0 1".split())) # normal
-                self.faceVertexData.streams[1].data.append(Vector3("0 0 0".split()))
-                self.faceVertexData.streams[1].data.append(Vector3("0 0 0".split()))
-                self.faceVertexData.streams[1].data.append(Vector3("0 0 1".split()))
-                self.faceVertexData.streams[1].data.append(Vector3("0 0 0".split()))
-                self.faceVertexData.streams[1].data.append(Vector3("0 0 1".split()))
-                self.faceVertexData.streams[2].data.append(Vector4("1 0 0 -1".split())) # tangent
-                self.faceVertexData.streams[2].data.append(Vector4("0 0 0 0".split()))
-                self.faceVertexData.streams[2].data.append(Vector4("0 0 0 0".split()))
-                self.faceVertexData.streams[2].data.append(Vector4("1 0 0 -1".split()))
-                self.faceVertexData.streams[2].data.append(Vector4("0 0 0 0".split()))
-                self.faceVertexData.streams[2].data.append(Vector4("1 0 0 -1".split()))
-
+                self.faceVertexData.streams[1].data += [ # normal
+                    Vector3("0 0 1".split()),
+                    Vector3("0 0 0".split()),
+                    Vector3("0 0 0".split()),
+                    Vector3("0 0 1".split()),
+                    Vector3("0 0 0".split()),
+                    Vector3("0 0 1".split())
+                ]
+                self.faceVertexData.streams[2].data += [ # tangent
+                    Vector4("1 0 0 -1".split()),
+                    Vector4("0 0 0 0".split()),
+                    Vector4("0 0 0 0".split()),
+                    Vector4("1 0 0 -1".split()),
+                    Vector4("0 0 0 0".split()),
+                    Vector4("1 0 0 -1".split())
+                ]
                 # edgeData
                 for n in range(3):
                     self.edgeData.size+=1
                     self.edgeData.streams[0].data.append(0)
-
                 # faceData
                 self.faceData.size +=1
                 self.faceData.streams[0].data.append(Vector2("0.25 0.25".split()))
@@ -325,41 +328,37 @@ class CMapWorld(_BaseEnt):
                 self.faceData.streams[3].data.append(0)
                 self.faceData.streams[4].data.append(0)
                 self.faceData.streams[5].data.append(0)
-
                 # subdivisionData
                 for n in range(6):
                     self.subdivisionData.subdivisionLevels.append(0)
-                
+
                 return self
 
             @classmethod
             def SampleQuad(self):
                 """
-                test if you can even create a hammer polygon
+                sample hammer quad
                 
-                data from utils/dev/sample_triangle.vmap.txt
+                data from utils/dev/sample_quad.vmap.txt
                 """
                 self = self(name='meshData')
                 # vertexEdgeIndices
-                self.vertexEdgeIndices.extend(  [0, 1, 2, 3])
+                self.vertexEdgeIndices +=   [0, 1, 2, 3]
                 # vertexDataIndices
-                self.vertexDataIndices.extend(  [0, 1, 2, 3])
+                self.vertexDataIndices +=   [0, 1, 2, 3]
                 # edgeVertexIndices
-                self.edgeVertexIndices.extend(  [1, 0, 3, 2, 2, 0, 1, 3])
+                self.edgeVertexIndices +=   [1, 0, 3, 2, 2, 0, 1, 3]
                 # edgeOppositeIndices
-                self.edgeOppositeIndices.extend([1, 0, 3, 2, 5, 4, 7, 6])
+                self.edgeOppositeIndices += [1, 0, 3, 2, 5, 4, 7, 6]
                 # edgeNextIndices
-                self.edgeNextIndices.extend(    [7, 4, 6, 5, 2, 0, 1, 3])
+                self.edgeNextIndices +=     [7, 4, 6, 5, 2, 0, 1, 3]
                 # edgeFaceIndices
-                self.edgeFaceIndices.extend(    [0,-1,-1, 0,-1, 0,-1, 0])
-
+                self.edgeFaceIndices +=     [0,-1,-1, 0,-1, 0,-1, 0]
                 # edgeDataIndices
                 for n in range(4):
-                    self.edgeDataIndices.append(n)
-                    self.edgeDataIndices.append(n)
-
+                    self.edgeDataIndices += [n,n]
                 # edgeVertexDataIndices
-                self.edgeVertexDataIndices.extend(n for n in range((8)))
+                self.edgeVertexDataIndices += [n for n in range(8)]
                 # faceEdgeIndices
                 self.faceEdgeIndices.append(3)
                 # faceDataIndices
@@ -368,31 +367,44 @@ class CMapWorld(_BaseEnt):
                 self.materials.append("materials/dev/reflectivity_30.vmat")
                 # vertexData
                 self.vertexData.size = 4
-                self.vertexData.streams[0].data.append(Vector3("-3.5 -3.5 0".split()))
-                self.vertexData.streams[0].data.append(Vector3("3.5 -3.5 0".split()))
-                self.vertexData.streams[0].data.append(Vector3("-3.5 3.5 0".split()))
-                self.vertexData.streams[0].data.append(Vector3("3.5 3.5 0".split()))
-
+                self.vertexData.streams[0].data += [ # position
+                    Vector3("-3.5 -3.5 0".split()),
+                    Vector3("3.5 -3.5 0".split()),
+                    Vector3("-3.5 3.5 0".split()),
+                    Vector3("3.5 3.5 0".split())
+                ]
                 # faceVertexData
                 self.faceVertexData.size = 8
-                for _ in range(8):
-                    self.faceVertexData.streams[0].data.append(Vector2("0 0".split())) # texcoord
-                self.faceVertexData.streams[1].data.append(Vector3("0 0 1".split())) # normal
-                self.faceVertexData.streams[1].data.append(Vector3("0 0 0".split()))
-                self.faceVertexData.streams[1].data.append(Vector3("0 0 0".split()))
-                self.faceVertexData.streams[1].data.append(Vector3("0 0 1".split()))
-                self.faceVertexData.streams[1].data.append(Vector3("0 0 0".split()))
-                self.faceVertexData.streams[1].data.append(Vector3("0 0 1".split()))
-                self.faceVertexData.streams[1].data.append(Vector3("0 0 0".split()))
-                self.faceVertexData.streams[1].data.append(Vector3("0 0 1".split()))
-                self.faceVertexData.streams[2].data.append(Vector4("1 0 0 1".split())) # tangent
-                self.faceVertexData.streams[2].data.append(Vector4("0 0 0 0".split()))
-                self.faceVertexData.streams[2].data.append(Vector4("0 0 0 0".split()))
-                self.faceVertexData.streams[2].data.append(Vector4("1 0 0 1".split()))
-                self.faceVertexData.streams[2].data.append(Vector4("0 0 0 0".split()))
-                self.faceVertexData.streams[2].data.append(Vector4("1 0 0 1".split()))
-                self.faceVertexData.streams[2].data.append(Vector4("0 0 0 0".split()))
-                self.faceVertexData.streams[2].data.append(Vector4("1 0 0 1".split()))
+                self.faceVertexData.streams[0].data += [ # texcoord
+                    Vector2("1 1".split()),
+                    Vector2("0 0".split()),
+                    Vector2("0 0".split()),
+                    Vector2("0 0".split()),
+                    Vector2("0 0".split()),
+                    Vector2("0 1".split()),
+                    Vector2("0 0".split()),
+                    Vector2("1 0".split())
+                ]
+                self.faceVertexData.streams[1].data += [ # normal
+                    Vector3("0 0 1".split()),
+                    Vector3("0 0 0".split()),
+                    Vector3("0 0 0".split()),
+                    Vector3("0 0 1".split()),
+                    Vector3("0 0 0".split()),
+                    Vector3("0 0 1".split()),
+                    Vector3("0 0 0".split()),
+                    Vector3("0 0 1".split())
+                ]
+                self.faceVertexData.streams[2].data += [ # tangent
+                    Vector4("1 0 0 -1".split()),
+                    Vector4("0 0 0 0".split()),
+                    Vector4("0 0 0 0".split()),
+                    Vector4("1 0 0 -1".split()),
+                    Vector4("0 0 0 0".split()),
+                    Vector4("1 0 0 -1".split()),
+                    Vector4("0 0 0 0".split()),
+                    Vector4("1 0 0 -1".split())
+                ]
 
                 # edgeData
                 for n in range(4):
@@ -401,15 +413,181 @@ class CMapWorld(_BaseEnt):
 
                 # faceData
                 self.faceData.size +=1
-                self.faceData.streams[0].data.append(Vector2("1 1".split()))
-                self.faceData.streams[1].data.append(Vector4("1 0 0 0".split()))
-                self.faceData.streams[2].data.append(Vector4("0 1 0 0".split()))
+                self.faceData.streams[0].data.append(Vector2("0.0137 0.0137".split()))
+                self.faceData.streams[1].data.append(Vector4("1 0 0 256".split()))
+                self.faceData.streams[2].data.append(Vector4("0 -1 0 256".split()))
                 self.faceData.streams[3].data.append(0)
                 self.faceData.streams[4].data.append(0)
                 self.faceData.streams[5].data.append(0)
 
                 # subdivisionData
                 for n in range(8):
+                    self.subdivisionData.subdivisionLevels.append(0)
+                
+                return self
+
+            @classmethod
+            def SampleBox(self):
+                """
+                sample hammer box
+                
+                data from utils/dev/literal_box_hammer_export.txt
+                """
+                self = self(name='meshData')
+                # vertexEdgeIndices
+                self.vertexEdgeIndices += [14,23,18,22,10, 6,16, 7]
+                # vertexDataIndices
+                self.vertexDataIndices += [0, 1, 2, 3, 4, 5, 6, 7]
+                # edgeVertexIndices
+                self.edgeVertexIndices += [6, 0, 2, 6, 3, 2, 7, 5, 4, 5, 1, 4, 7, 1, 4, 0, 5, 6, 7, 2, 3, 0, 1, 3]
+                # edgeOppositeIndices
+                self.edgeOppositeIndices+=[1, 0, 3, 2, 5, 4, 7, 6, 9, 8,11,10,13,12,15,14,17,16,19,18,21,20,23,22]
+                # edgeNextIndices
+                self.edgeNextIndices +=   [2,14, 4,16,21,18,19, 8,10,17,12,15, 7,23, 9,20, 6, 1,13, 3,22, 0,11, 5]
+                # edgeFaceIndices
+                self.edgeFaceIndices +=   [0, 3, 0, 4, 0, 2, 4, 1, 1, 3, 1, 5, 1, 2, 3, 5, 4, 3, 2, 4, 5, 0, 5, 2]
+                # edgeDataIndices
+                for n in range(12):
+                    self.edgeDataIndices += [n, n]
+                # edgeVertexDataIndices
+                self.edgeVertexDataIndices += [23,1,4,2,15,3,17,19,12,5,8,6,16,7,0,14,11,18,20,10,13,21,9,22]
+                # faceEdgeIndices
+                self.faceEdgeIndices += [21, 7, 23, 17, 19, 15]
+                # faceDataIndices
+                self.faceDataIndices += [n for n in range(6)]
+                # materials
+                self.materials.append("materials/dev/reflectivity_30.vmat")
+                # vertexData
+                self.vertexData.size = 8
+                self.vertexData.streams[0].data += [ # position
+                    Vector3("512 -512 256".split()),
+                    Vector3("-512 -512 -256".split()),
+                    Vector3("-512 512 256".split()),
+                    Vector3("-512 -512 256".split()),
+                    Vector3("512 -512 -256".split()),
+                    Vector3("512 512 -256".split()),
+                    Vector3("512 512 256".split()),
+                    Vector3("-512 512 -256".split())
+                ]
+                # faceVertexData
+                self.faceVertexData.size = 24
+                self.faceVertexData.streams[0].data += [ # texcoord
+                    Vector2("-128 0".split()),
+                    Vector2("-128 -128".split()),
+                    Vector2("128 -128".split()),
+                    Vector2("128 -128".split()),
+                    Vector2("-2048 -2048".split()),
+                    Vector2("128 0".split()),
+                    Vector2("128 0".split()),
+                    Vector2("-128 0".split()),
+                    Vector2("-128 128".split()),
+                    Vector2("-128 0".split()),
+                    Vector2("-128 -128".split()),
+                    Vector2("128 0".split()),
+                    Vector2("128 128".split()),
+                    Vector2("-128 -128".split()),
+                    Vector2("128 -128".split()),
+                    Vector2("-2048 2048".split()),
+                    Vector2("-128 -128".split()),
+                    Vector2("-128 0".split()),
+                    Vector2("128 -128".split()),
+                    Vector2("128 -128".split()),
+                    Vector2("128 0".split()),
+                    Vector2("2048 2048".split()),
+                    Vector2("-128 -128".split()),
+                    Vector2("2048 -2048".split())
+                ]
+                self.faceVertexData.streams[1].data += [ # normal
+                    Vector3("1 0 0".split()),
+                    Vector3("1 0 0".split()),
+                    Vector3("0 1 0".split()),
+                    Vector3("-1 0 0".split()),
+                    Vector3("0 0 1".split()),
+                    Vector3("1 0 0".split()),
+                    Vector3("0 -1 0".split()),
+                    Vector3("-1 0 0".split()),
+                    Vector3("0 0 -1".split()),
+                    Vector3("0 -1 0".split()),
+                    Vector3("0 1 0".split()),
+                    Vector3("0 1 0".split()),
+                    Vector3("0 0 -1".split()),
+                    Vector3("0 -1 0".split()),
+                    Vector3("0 -1 0".split()),
+                    Vector3("0 0 1".split()),
+                    Vector3("0 0 -1".split()),
+                    Vector3("0 1 0".split()),
+                    Vector3("1 0 0".split()),
+                    Vector3("0 0 -1".split()),
+                    Vector3("-1 0 0".split()),
+                    Vector3("0 0 1".split()),
+                    Vector3("-1 0 0".split()),
+                    Vector3("0 0 1".split())
+                ]
+
+                self.faceVertexData.streams[2].data += [ # tangent
+                    Vector4("0 1 0 -1".split()),
+                    Vector4("0 1 0 -1".split()),
+                    Vector4("1 -0 0 1".split()),
+                    Vector4("0 1 0 1".split()),
+                    Vector4("1 0 0 -1".split()),
+                    Vector4("0 1 0 -1".split()),
+                    Vector4("1 0 0 -1".split()),
+                    Vector4("0 1 0 1".split()),
+                    Vector4("1 0 0 1".split()),
+                    Vector4("1 0 0 -1".split()),
+                    Vector4("1 -0 0 1".split()),
+                    Vector4("1 -0 0 1".split()),
+                    Vector4("1 0 0 1".split()),
+                    Vector4("1 0 0 -1".split()),
+                    Vector4("1 0 0 -1".split()),
+                    Vector4("1 0 0 -1".split()),
+                    Vector4("1 0 0 1".split()),
+                    Vector4("1 -0 0 1".split()),
+                    Vector4("0 1 0 -1".split()),
+                    Vector4("1 0 0 1".split()),
+                    Vector4("0 1 0 1".split()),
+                    Vector4("1 0 0 -1".split()),
+                    Vector4("0 1 0 1".split()),
+                    Vector4("1 0 0 -1".split())
+                ]
+
+                # edgeData
+                for n in range(12):
+                    self.edgeData.size+=1
+                    self.edgeData.streams[0].data.append(0)
+
+                # faceData
+                self.faceData.size = 6
+                self.faceData.streams[0].data += [
+                    Vector2("0.0004882813 0.0004882813".split()),
+                    Vector2("0.0078125 0.0078125".split()),
+                    Vector2("0.0078125 0.0078125".split()),
+                    Vector2("0.0078125 0.0078125".split()),
+                    Vector2("0.0078125 0.0078125".split()),
+                    Vector2("0.0078125 0.0078125".split())
+                ]
+                self.faceData.streams[2].data += [
+                    Vector4("0 -1 0 0".split()),
+                    Vector4("0 -1 0 0".split()),
+                    Vector4("0 0 -1 0".split()),
+                    Vector4("0 0 -1 0".split()),
+                    Vector4("0 0 -1 0".split()),
+                    Vector4("0 0 -1 0".split())
+                ]
+                self.faceData.streams[1].data += [
+                    Vector4("1 0 0 0".split()),
+                    Vector4("1 0 0 0".split()),
+                    Vector4("0 1 0 0".split()),
+                    Vector4("0 1 0 0".split()),
+                    Vector4("1 0 0 0".split()),
+                    Vector4("1 0 0 0".split())
+                ]
+                self.faceData.streams[3].data += [0]*6
+                self.faceData.streams[4].data += [0]*6
+                self.faceData.streams[5].data += [0]*6
+
+                # subdivisionData
+                for n in range(24):
                     self.subdivisionData.subdivisionLevels.append(0)
                 
                 return self
@@ -426,7 +604,6 @@ class CMapWorld(_BaseEnt):
                 self.faceData.streams[3].data.append(materialindex)
                 self.faceData.streams[4].data.append(0)
                 self.faceData.streams[5].data.append(lightmapScaleBias)
-                
 
         cubeMapName: str = ""
         lightGroup: str = ""
@@ -499,6 +676,7 @@ class CMapWorld(_BaseEnt):
 
         # For each side...
         for (i, key), side_kv in keyvalues.items(indexed_keys=True):
+            break
             if key != 'side':
                 continue
             # Texture Data
@@ -562,11 +740,30 @@ if __name__ == "__main__":
     print('Source 2 VMAP Generator!')
     out_vmap = create_fresh_vmap()
     vmap = out_vmap.root
-    mesh = CMapWorld.CMapMesh()
-    mesh.origin = Vector3([0,0,0])
-    mesh.meshData = CMapWorld.CMapMesh.CDmePolygonMesh.SampleQuad()
-    out_vmap.prefix_attributes['map_asset_references'].append("materials/dev/reflectivity_30.vmat")
-    vmap['world']['children'].append(mesh.get_element(vmap))
-    out_vmap.write("utils/dev/out_sample_quad.vmap.txt", 'keyvalues2', 4)
-    print("Saved", "utils/dev/out_sample_quad.vmap.txt")
+    def test_triangle():
+        mesh = CMapWorld.CMapMesh()
+        mesh.origin = Vector3([3,3,0])
+        mesh.meshData = CMapWorld.CMapMesh.CDmePolygonMesh.SampleTriangle()
+        out_vmap.prefix_attributes['map_asset_references'].append("materials/dev/reflectivity_30.vmat")
+        vmap['world']['children'].append(mesh.get_element(vmap))
+        out_vmap.write("utils/dev/out_sample_triangle.vmap.txt", 'keyvalues2', 4)
+        print("Saved", "utils/dev/out_sample_triangle.vmap.txt")
 
+    def test_quad():
+        mesh = CMapWorld.CMapMesh()
+        mesh.origin = Vector3([0,0,0])
+        mesh.meshData = CMapWorld.CMapMesh.CDmePolygonMesh.SampleQuad()
+        out_vmap.prefix_attributes['map_asset_references'].append("materials/dev/reflectivity_30.vmat")
+        vmap['world']['children'].append(mesh.get_element(vmap))
+        out_vmap.write("utils/dev/out_sample_quad.vmap.txt", 'keyvalues2', 4)
+        print("Saved", "utils/dev/out_sample_quad.vmap.txt")
+
+    def test_box():
+        mesh = CMapWorld.CMapMesh()
+        mesh.origin = Vector3([0,0,256])
+        mesh.meshData = CMapWorld.CMapMesh.CDmePolygonMesh.SampleBox()
+        out_vmap.prefix_attributes['map_asset_references'].append("materials/dev/reflectivity_30.vmat")
+        vmap['world']['children'].append(mesh.get_element(vmap))
+        out_vmap.write("utils/dev/out_sample_box.vmap.txt", 'keyvalues2', 4)
+        print("Saved", "utils/dev/out_sample_box.vmap.txt")
+    test_box()
