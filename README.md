@@ -4,14 +4,16 @@ Set of scripts for importing Source 1 assets such as materials, models, and part
 ## Usage
 #### Note:
 * Make sure to extract assets from VPK archives.
-* Make sure to import texture content first (`.vtf` files), via VTFEdit :: Tools -> Convert folder.  
+* Make sure to import texture content first (`.vtf` files), via VTFEdit :: Tools -> Convert folder. Or use 'Import Textures'.  
     Materials and particles won't convert correctly if `.tga` files aren't present inside `/content/<modname>/materials/` 
+* Make sure to copy the entire s1 `models` folder over to `content/`. Or move it (no copy) once the script is finished.
+* Make sure to rename the `sound` folder to `sounds` for s2.
 
 Download app from [Releases](https://github.com/kristiker/source1import/releases).  
-The app can be slow to open up, but has no prerequisites. If that's not ideal, run the advanced way.
+The app can be slow to open up, but has no prerequisites. If you want to make edits to the scripts, run the advanced way.
 ## Advanced:
 ### GUI:
-* Double-click on `source1import.pyw`.
+* Just double-click on `source1import.pyw`.
 
 Building GUI:
 ```bash
@@ -38,3 +40,4 @@ python materials_import.py -i "C:/.../Half-Life Alyx/game/ep2" -e hlvr  "materia
 ### [Inferno Source 2 Comparison - YouTube](https://www.youtube.com/watch?v=e-kcE9F_uH0)
 <img src="https://i.imgur.com/qxNDhEE.jpeg" width=100%>
 <img src="https://i.imgur.com/zhHOMWJ.png" width=100%>
+* bsp not supported yet, converted via hammer 5
