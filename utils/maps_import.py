@@ -265,18 +265,11 @@ class CMapWorld(_BaseEnt):
                 data from utils/dev/sample_triangle.vmap.txt
                 """
                 self = self(name='meshData')
-                # vertexEdgeIndices
-                self.vertexEdgeIndices.extend(  [0, 3, 5])
                 self.vertexEdgeIndices += [0, 3, 5]
-                # vertexDataIndices
                 self.vertexDataIndices += [0, 1, 2]
-                # edgeVertexIndices
                 self.edgeVertexIndices += [1, 0, 1, 2, 2, 0]
-                # edgeOppositeIndices
                 self.edgeOppositeIndices+=[1, 0, 3, 2, 5, 4]
-                # edgeNextIndices
                 self.edgeNextIndices +=   [3, 4, 1, 5, 2, 0]
-                # edgeFaceIndices
                 self.edgeFaceIndices +=   [0,-1,-1, 0,-1, 0]
                 # edgeDataIndices
                 for n in range(3):
@@ -342,17 +335,11 @@ class CMapWorld(_BaseEnt):
                 data from utils/dev/sample_quad.vmap.txt
                 """
                 self = self(name='meshData')
-                # vertexEdgeIndices
                 self.vertexEdgeIndices +=   [0, 1, 2, 3]
-                # vertexDataIndices
                 self.vertexDataIndices +=   [0, 1, 2, 3]
-                # edgeVertexIndices
                 self.edgeVertexIndices +=   [1, 0, 3, 2, 2, 0, 1, 3]
-                # edgeOppositeIndices
                 self.edgeOppositeIndices += [1, 0, 3, 2, 5, 4, 7, 6]
-                # edgeNextIndices
                 self.edgeNextIndices +=     [7, 4, 6, 5, 2, 0, 1, 3]
-                # edgeFaceIndices
                 self.edgeFaceIndices +=     [0,-1,-1, 0,-1, 0,-1, 0]
                 # edgeDataIndices
                 for n in range(4):
@@ -434,17 +421,11 @@ class CMapWorld(_BaseEnt):
                 data from utils/dev/literal_box_hammer_export.txt
                 """
                 self = self(name='meshData')
-                # vertexEdgeIndices
                 self.vertexEdgeIndices += [14,23,18,22,10, 6,16, 7]
-                # vertexDataIndices
                 self.vertexDataIndices += [0, 1, 2, 3, 4, 5, 6, 7]
-                # edgeVertexIndices
                 self.edgeVertexIndices += [6, 0, 2, 6, 3, 2, 7, 5, 4, 5, 1, 4, 7, 1, 4, 0, 5, 6, 7, 2, 3, 0, 1, 3]
-                # edgeOppositeIndices
                 self.edgeOppositeIndices+=[1, 0, 3, 2, 5, 4, 7, 6, 9, 8,11,10,13,12,15,14,17,16,19,18,21,20,23,22]
-                # edgeNextIndices
                 self.edgeNextIndices +=   [2,14, 4,16,21,18,19, 8,10,17,12,15, 7,23, 9,20, 6, 1,13, 3,22, 0,11, 5]
-                # edgeFaceIndices
                 self.edgeFaceIndices +=   [0, 3, 0, 4, 0, 2, 4, 1, 1, 3, 1, 5, 1, 2, 3, 5, 4, 3, 2, 4, 5, 0, 5, 2]
                 # edgeDataIndices
                 for n in range(12):
