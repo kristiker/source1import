@@ -37,9 +37,10 @@ class SampleApp(Tk):
         self.Particles = IntVar(name='particles')
         self.Scenes = IntVar(name='scenes')
         self.Scripts = IntVar(name='scripts')
+        self.Sessions = IntVar(name='sessions')
 
         self.vars = (self.in_path, self.out_path, self.Overwrite, self.Textures,
-            self.Materials, self.Models, self.Models_move,self.Particles,self.Scenes,self.Scripts,
+            self.Materials, self.Models, self.Models_move,self.Particles,self.Scenes,self.Scripts,self.Sessions,
         )
 
         self.widgets: dict[Widget] = {}
@@ -94,11 +95,14 @@ class SampleApp(Tk):
         self.widgets[14] = Checkbutton(self, text="Import Particles", variable=self.Particles, command=self.checkbutton_tree_update,bd = 0,selectcolor=bg1)
         self.widgets[14].grid(row = 4, in_=self.sett_grid, sticky="w")
 
-        self.widgets[15] = Checkbutton(self, text="Import Scenes", variable=self.Scenes, command=self.checkbutton_tree_update,bd = 0,selectcolor=bg1)
+        self.widgets[15] = Checkbutton(self, text="Import Filmmaker Sessions", variable=self.Sessions, command=self.checkbutton_tree_update,bd = 0,selectcolor=bg1)
         self.widgets[15].grid(row = 5, in_=self.sett_grid, sticky="w")
 
-        self.widgets[16] = Checkbutton(self, text="Import Scripts", variable=self.Scripts, command=self.checkbutton_tree_update,bd = 0,selectcolor=bg1)
+        self.widgets[16] = Checkbutton(self, text="Import Scenes", variable=self.Scenes, command=self.checkbutton_tree_update,bd = 0,selectcolor=bg1)
         self.widgets[16].grid(row = 6, in_=self.sett_grid, sticky="w")
+
+        self.widgets[17] = Checkbutton(self, text="Import Scripts", variable=self.Scripts, command=self.checkbutton_tree_update,bd = 0,selectcolor=bg1)
+        self.widgets[17].grid(row = 7, in_=self.sett_grid, sticky="w")
 
         self.widgets[19]=Text(self, wrap=NONE, bd=1, relief=SUNKEN, height=7) #, textvariable=self.status
         self.widgets[19].see(END)
@@ -113,7 +117,7 @@ class SampleApp(Tk):
             if widget in (19, 999): # depth
                 self.widgets[widget].configure(bg=bg2)
 
-            if widget in (1,4,5,7,9,10,11,12,13,14,15,16): # buttons
+            if widget in (1,4,5,7,9,10,11,12,13,14,15,16,17): # buttons
                 self.widgets[widget].configure(activebackground = bg2, activeforeground = "white")
 
         self.go_and_status = Frame(self, bg=bg1)
@@ -203,7 +207,7 @@ class SampleApp(Tk):
         def stop():
             self.is_running = False
             self.gobutton_update()
-        if not any(method.get() for method in (self.Textures,self.Materials,self.Models,self.Particles,self.Scenes,self.Scripts)):
+        if not any(method.get() for method in (self.Textures,self.Materials,self.Models,self.Particles,self.Scenes,self.Scripts,self.Sessions)):
             messagebox.showinfo(title=self.APP_TITLE, message="No import function was selected")
             return stop()
         
@@ -270,6 +274,15 @@ class SampleApp(Tk):
                 print(e, "\nSomething went wrong while importing scripts!\n\t", e)
             print('=========================================================')
 
+        if self.Sessions.get():
+            from utils import elements_import
+            elements_import.sh = sh
+            elements_import.SHOULD_OVERWRITE = self.Overwrite.get()
+            try:elements_import.main()
+            except Exception as e:
+                print(e, "\nSomething went wrong while importing sessions!\n\t", e)
+            print('=========================================================')
+
         messagebox.showinfo(title=self.APP_TITLE, message="Looks like we are done!")
         return stop()
 
@@ -283,6 +296,7 @@ class SampleApp(Tk):
         self.Particles.set(self.allChecked)
         self.Scenes.set(self.allChecked)
         self.Scripts.set(self.allChecked)
+        self.Sessions.set(self.allChecked)
 
         self.checkbutton_tree_update()
 
