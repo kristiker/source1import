@@ -57,13 +57,17 @@ class half_edge:
             
     def __repr__(self):
         if self.incident_face.idx > -1:
-            face_id = chr(0x278a + (self.incident_face.idx*-1))#str(self.incident_face.idx)
+            face_id = str(self.incident_face.idx)# chr(0x278a + (self.incident_face.idx))#
         else:
             face_id = chr(0x277f + (self.incident_face.idx*-1))
         return f"{face_id}({getattr(self.origin, 'idx', 'N')}, {getattr(self.dest, 'idx', 'N')})"
+
     @property
     def loop_count(self):
         return len([*self.__iter__()])
+    @property
+    def loop_path(self):
+        return Path(self, self.previous)
 
 @dataclass
 class Path:
@@ -99,55 +103,47 @@ class DCEL:
     """Doubly connected edge list (strong directed graph)"""
     FINF = face(-1)
     def __init__(self):
-        self.edgeList: list[half_edge] = []
+        self.faces: list[half_edge] = []
+        self.holes: list[half_edge] = []
         """Contains one half_edge for each loop"""
     
     def __repr__(self):
         return f"<DCEL {self.vert_count} nodes {self.edge_count} edges {self.face_count} faces>"
 
     @property
-    def face_count(self):
-        if not self.edgeList:
-            return 0
-        return len(self.edgeList)-1
+    def face_count(self): return len(self.faces)
+    @property
+    def hole_count(self): return len(self.holes)
 
     @property
     def edge_count(self):
-        return sum([len([h for h in loop]) for loop in self.edgeList])//2
+        return sum([len([h for h in loop]) for loop in self.faces] + [len([h for h in loop]) for loop in self.holes])//2
 
     @property
     def vert_count(self):
         v = set()
-        for loop in self.edgeList:
+        for loop in self.faces:
             for half_edge in loop:
                 v.add(half_edge.origin.idx)
         return len(v)
 
-    def add_edge(self, edge: tuple, positions:'list[coord3d]') -> 'tuple[half_edge]':
-        left = half_edge(vertex(edge[0]))
-        right = half_edge(vertex(edge[1]))
-        if not self.edges:
-            self.edges += [left, right]
-        else:
-            self.edges += [right, left]
-
-        return left, right
-
     def add_half(self, half: half_edge):
-        if self.face_count == 0: # adding first inner edge
-            if self.face_count == half.incident_face.idx:
-                self.edgeList = [half,None]
-            elif half.incident_face.idx == -1:
-                self.edgeList = [None,half]
-            else:
-                raise ValueError("First edge added to a DCEL should belong to the first face.")
-        elif self.face_count < half.incident_face.idx+1:
-            if self.face_count == half.incident_face.idx:
-                self.edgeList.insert(half.incident_face.idx, half)
+        if half.incident_face.idx < 0:
+            actual_index = ((1 + half.incident_face.idx) * -1)
+            count = self.hole_count
+            lst = self.holes
+        else:
+            actual_index = half.incident_face.idx
+            count = self.face_count
+            lst = self.faces
+
+        if count <= actual_index:
+            if count == actual_index:
+                lst.append(half)
             else:
                 raise ValueError("Edge is too disconnected. Add edges from a closer face first.")
-        elif self.edgeList[half.incident_face.idx] == None:
-            self.edgeList[half.incident_face.idx] = half
+            #else:
+            #    lst[actual_index] = half
 
     @classmethod
     def new_face(cls, vertices, face_verts):
@@ -179,7 +175,7 @@ class DCEL:
             prevRightEdge = right
 
 
-        firstLeftEdge, firstRightEdge = self.edgeList[0], self.edgeList[1]
+        firstLeftEdge, firstRightEdge = self.faces[0], self.holes[0]
         prevLeftEdge.next = firstLeftEdge
         #prevRightEdge.next = firstRightEdge
         #firstLeftEdge.next = prevLeftEdge
@@ -210,8 +206,9 @@ class DCEL:
         f = face(self.face_count)
         print("Joining face", self.face_count)
         bMatchedOnce = False
-        existing_outers = [*iter(self.edgeList[-1])]
-        new_outers = [*iter(face_dcel.edgeList[-1])]
+        bFullLoop = False
+        existing_outers = [*iter(self.holes[0])]
+        new_outers = [*iter(face_dcel.holes[0])]
         for right_edge in existing_outers:
 
             #assert (right_edge.incident_face == self.FINF), "Already a face?, %s" % right_edge
@@ -220,12 +217,12 @@ class DCEL:
                     or right_edge.dest.idx != other_right_edge.origin.idx
                     ):
                     continue
-                #if bMatchedOnce:
                 #    # matched and attached once, but matched again with a different path
                 #    self.form_hole(f.idx)
                 #    break
                 #bMatchedOnce=True
-                print("True, there is a match", self.edgeList[-1].distance_to(right_edge), "with", face_dcel.edgeList[-1].distance_to(other_right_edge))
+
+                print("True, there is a match", self.holes[0].distance_to(right_edge), "with", face_dcel.holes[0].distance_to(other_right_edge))
                 print(right_edge, "with", other_right_edge)
                 # See if there is more
                 path = Path(start=right_edge, finish=right_edge)                   # start [ 5 --> (1 --> 0) --> 4]finish
@@ -241,13 +238,14 @@ class DCEL:
                     path.start = path.start.previous
                     other_path.finish = other_path.finish.next
                 
-                if len(path) == 4 == self.edgeList[-1].loop_count:
-                    assert path.is_loop, path
+                #if len(path) == 4 == self.holes[0].loop_count:
+                #    assert path.is_loop, path
                 if path.is_loop:
                     print("Path is full loop, filling with face", f)
                     for edge in path:
                         edge.incident_face = f
-                    # FIXME No more FINF. edgeList[-1]...
+                    self.add_half(self.holes.pop(0))
+                    bFullLoop=True
                     break
                 print("Splittin and joining")
                 
@@ -257,8 +255,8 @@ class DCEL:
                 print(f"Cplm: {[e for e in outer_complement_path]}")
 
                 # outer loop (FINF)
-                if self.edgeList[-1] in path:
-                    self.edgeList[-1] = outer_complement_path.start
+                if self.holes[0] in path:
+                    self.holes[0] = outer_complement_path.start
     
                 # join end of existing outer loop with start of other outer loop
                 # path.start.previous == cplm.finish
@@ -284,30 +282,43 @@ class DCEL:
                 #other_right_edge.next.opposite .next = right_edge
                 print(f"New face edges: {path.start.loop_count} ({len(path)}+{len(outer_complement_path)})")
 
+                if bMatchedOnce:
+                    # matched and attached once, but matched again with a different path
+                    self.detect_holes()
                 for new_loop_edge in path.start:
                     new_loop_edge.incident_face = f
                     self.add_half(new_loop_edge)
                 print("Face count", self.face_count)
-
-
-                if bMatchedOnce:
-                    # matched and attached once, but matched again with a different path
-                    self.detect_holes()
+                print("Hole count", self.hole_count)
 
                 bMatchedOnce=True
-
 
                 [(0, 1), (1, 0), (2, 3), (3, 2), (0, 2), (2, 0), (3, 1), (1, 3)]
                 [(0, 1), (1, 0), (2, 3), (3, 2), (0, 2), (2, 0), (3, 1), (1, 3), (2, 1), (1, 2)]
                 [0,-1,-1, 0,-1, 0,-1, 0]
                 [1,-1,-1, 0,-1, 1,-1, 0, 0, 1]
-
+            if bFullLoop:
+                break
         #assert self.face_count == f.idx+1, ([*self.edgeList[-1]], [*face_dcel.edgeList[-1]])
         return
     
     def detect_holes(self):
-        print("Detecting Holes")
-        print([edge for edge in self.edgeList[-1]], self.edgeList[-1].loop_count)
+        print("~~~~Detecting Holes")
+        for inner_edge in self.faces[-1]: # last face
+            outer = inner_edge.opposite
+            # if outer faces a hole
+            if outer.incident_face.idx == self.holes[-1].incident_face.idx:
+                print("TRUEEEEEEEE", outer)
+                # skip if already part of existing hole
+                if outer in self.holes[-1]:
+                    print("Continue")
+                    continue
+                # for each next edge from this outer
+                f = face(-(self.hole_count+1))
+                for outer in outer:
+                    outer.incident_face = f
+                self.add_half(outer)
+                print("Detected hole", f, "from edge", outer)
 
 def triangle() -> 'list[half_edge]':
     rv = []
@@ -344,7 +355,8 @@ def pydata2():
         [[0, 3, 1],
         [0, 2, 3]]
 )
-e = pydata2()
+pydata2()
+e = pydata()
 print(e)
 if __name__ == '__main__':
     import unittest
@@ -355,6 +367,7 @@ if __name__ == '__main__':
         expected_edges: int
         expected_faces: int
         expected_verts: int
+        expected_holes: int
     class Test_DCEL(unittest.TestCase):
         triangle=Polygon(
             coords=[coord3d(-3, -3, 0), coord3d(3, -3, 0), coord3d(-3, 3, 0)],
@@ -362,6 +375,7 @@ if __name__ == '__main__':
             expected_edges=3,
             expected_faces=1,
             expected_verts=3,
+            expected_holes=1,
         )
         quad=Polygon(
             coords=[coord3d(-3.5, -3.5, 0),coord3d(3.5, -3.5, 0),coord3d(-3.5, 3.5, 0),coord3d(3.5, 3.5, 0)],
@@ -369,6 +383,7 @@ if __name__ == '__main__':
             expected_edges=4,
             expected_faces=1,
             expected_verts=4,
+            expected_holes=1,
         )
         splitquad=Polygon(
             coords=[coord3d(-3.5, -3.5, 0),coord3d(3.5, -3.5, 0),coord3d(-3.5, 3.5, 0),coord3d(3.5, 3.5, 0)],
@@ -376,6 +391,7 @@ if __name__ == '__main__':
             expected_edges=5,
             expected_faces=2,
             expected_verts=4,
+            expected_holes=1,
         )
         block=Polygon(
             coords=
@@ -397,10 +413,11 @@ if __name__ == '__main__':
             expected_edges=12,
             expected_faces=6,
             expected_verts=8,
+            expected_holes=0,
         )
         def test_default(self):
             d = DCEL()
-            self.assertEqual(d.edgeList, [])
+            self.assertEqual(d.faces, [])
             self.assertEqual(d.edge_count, 0)
             self.assertEqual(d.face_count, 0)
             self.assertEqual(d.vert_count, 0)
@@ -413,11 +430,10 @@ if __name__ == '__main__':
             self.assertEqual(d.edge_count, p.expected_edges)
             self.assertEqual(d.face_count, p.expected_faces)
             self.assertEqual(d.vert_count, p.expected_verts)
-
-            self.assertEqual(len(d.edgeList), p.expected_faces+1)
+            self.assertEqual(d.hole_count, p.expected_holes)
             
             # verify data for each half edge
-            for loop_edges in d.edgeList:
+            for loop_edges in d.faces:
                 previouses = []
                 actuals = []
                 nexts = []
@@ -444,25 +460,26 @@ if __name__ == '__main__':
                     self.assertIs(half, actuals[i-1], halves_msg)
                     self.assertIs(half, nexts[i-2], halves_msg)
 
-            inner_path = Path(d.edgeList[0], d.edgeList[0])
-            for i, inner_half_edge in enumerate(d.edgeList[0]):
+            inner_path = Path(d.faces[0], d.faces[0])
+            for i, inner_half_edge in enumerate(d.faces[0]):
                 self.assertLess(i, p.expected_edges, f"More than {p.expected_edges} inner edges")
                 self.assertEqual(inner_half_edge.incident_face.idx, 0)
                 inner_path.finish = inner_half_edge
 
             # test path logic (provided h-edge.previous is correct)
-            self.assertIs(d.edgeList[0].previous, inner_path.finish,
-                msg=f"\n{[asd for asd in d.edgeList[0]]}\n{[asd.previous for asd in d.edgeList[0]]}\n{inner_path!r}")
+            self.assertIs(d.faces[0].previous, inner_path.finish,
+                msg=f"\n{[asd for asd in d.faces[0]]}\n{[asd.previous for asd in d.faces[0]]}\n{inner_path!r}")
 
             self.assertEqual([point.origin.idx for point in inner_path], p.verts[0])
 
-            for i, outer_half_edge in enumerate(d.edgeList[-1]):
-                self.assertLess(i, p.expected_edges, f"More than {p.expected_edges} outer edges")
-                self.assertEqual(outer_half_edge.incident_face.idx, -1)
+            if d.hole_count:
+                for i, outer_half_edge in enumerate(d.holes[0]):
+                    self.assertLess(i, p.expected_edges, f"More than {p.expected_edges} outer edges")
+                    self.assertEqual(outer_half_edge.incident_face.idx, -1)
 
             # test DCEL.add_half logic
             # adding edge too disconnected from our list should raise ValueError
-            self.assertRaises(ValueError, d.add_half, half_edge(d.edgeList[0].origin, incident_face=face(p.expected_faces+1)))
+            self.assertRaises(ValueError, d.add_half, half_edge(d.faces[0].origin, incident_face=face(p.expected_faces+1)))
 
             return d
 
@@ -472,8 +489,8 @@ if __name__ == '__main__':
             self.common2d(self.quad)
         def test_splitquad(self):
             self.common2d(self.splitquad)
-        #def test_block(self):
-        #    self.common2d(self.block)
+        def test_block(self):
+            self.common2d(self.block)
     unittest.main()
 
 #quit()
