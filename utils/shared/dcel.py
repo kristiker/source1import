@@ -1,8 +1,8 @@
 from typing import Optional
-import igraph
 
 # https://en.wikipedia.org/wiki/Doubly_connected_edge_list
 
+import openmesh as om
 from dataclassy import dataclass, factory
 
 @dataclass
@@ -98,14 +98,21 @@ class Path:
     def is_loop(self):
         return self.finish.next is self.start 
 
+@dataclass
+class Polytope:
+    vertex_arrangement: 'list[coord3d]'
+    faces: 'list[int]'
 
+# https://observablehq.com/@2talltim/mesh-data-structures-traversal#cell-129
 class DCEL:
     """Doubly connected edge list (strong directed graph)"""
     FINF = face(-1)
     def __init__(self):
         self.faces: list[half_edge] = []
+        "Representative edge for each face"
         self.holes: list[half_edge] = []
-        """Contains one half_edge for each loop"""
+        "Representative edge for each hole (1-dimensional boundary)"
+        self.edgeList=5
     
     def __repr__(self):
         return f"<DCEL {self.vert_count} nodes {self.edge_count} edges {self.face_count} faces>"
@@ -202,7 +209,9 @@ class DCEL:
     
         return self
 
+    # https://en.wikipedia.org/wiki/Manifold#Gluing_along_boundaries
     def join_face(self, face_dcel: 'DCEL'):
+        """Join a face by gluing along common boundaries"""
         f = face(self.face_count)
         print("Joining face", self.face_count)
         bMatchedOnce = False
@@ -306,7 +315,7 @@ class DCEL:
         print("~~~~Detecting Holes")
         for inner_edge in self.faces[-1]: # last face
             outer = inner_edge.opposite
-            # if outer faces a hole
+            # if outer half-edge is a boundary (makes a hole)
             if outer.incident_face.idx == self.holes[-1].incident_face.idx:
                 print("TRUEEEEEEEE", outer)
                 # skip if already part of existing hole
@@ -330,6 +339,21 @@ def triangle() -> 'list[half_edge]':
     return rv
 
 def pydata():
+    """M.G.
+            4---------------5
+           /|              /|
+          / |    /1/      / |
+         /  |            /  |
+        0---+------|2|--1   |
+        |   |           |   |
+        |~4 |           |~5 |
+        |   |           |   |
+        |   6---|0|-----+---7
+        |  /            |  /
+        | /     /3/     | /
+        |/              |/
+        2---------------3
+    """
     return DCEL.from_pydata(
         [coord3d(-512.0, 512.0, 256.0),
         coord3d(-512.0, -512.0, 256.0),
@@ -347,54 +371,112 @@ def pydata():
         [1, 3, 7, 5]]
 )
 def pydata2():
+    """
+        2-------3
+        | [1] / |
+        |   /   |
+        | / [0] |
+        0-------1
+    """
     return DCEL.from_pydata(
         [coord3d(-3.5, -3.5, 0),
-        coord3d(3.5, -3.5, 0),
         coord3d(-3.5, 3.5, 0),
+        coord3d(3.5, -3.5, 0),
         coord3d(3.5, 3.5, 0),],
-        [[0, 3, 1],
-        [0, 2, 3]]
+        [[0, 1, 3],
+        [0, 3, 2]]
 )
-pydata2()
-e = pydata()
-print(e)
+def pydata3():
+    """
+        2--------3
+        | \  [1] |
+        |   \    |
+        | [0] \  |
+        0--------1
+    """
+    return DCEL.from_pydata(
+        [coord3d(-3.5, -3.5, 0),
+        coord3d(-3.5, 3.5, 0),
+        coord3d(3.5, -3.5, 0),
+        coord3d(3.5, 3.5, 0),],
+        [[0, 1, 2],
+        [1, 3, 2]]
+)
+e0 = DCEL.from_pydata(
+    [coord3d(-3.5, -3.5, 0),
+    coord3d(-3.5, 3.5, 0),
+    coord3d(3.5, -3.5, 0),
+    coord3d(3.5, 3.5, 0),],
+    [[0, 2, 3, 1]]
+)
+
+
+m0 = om.PolyMesh()
+# add a a couple of vertices to the mesh
+vh0 = m0.add_vertex([-3.5, -3.5, 0])
+vh1 = m0.add_vertex([-3.5, 3.5, 0])
+vh2 = m0.add_vertex([3.5, -3.5, 0])
+vh3 = m0.add_vertex([3.5, 3.5, 0])
+
+# add a couple of faces to the mesh
+fh0 = m0.add_face(vh0, vh2, vh3, vh1)
+
+e3 = pydata()
+
+e1 = pydata2()
+e2 = pydata3()
+
+assert repr(e0.edgeList) == '[0(0, 1), ➀(1, 0), ➀(2, 3), 0(3, 2), ➀(0, 2), 0(2, 0), ➀(3, 1), 0(1, 3)]'
+assert repr(e2.edgeList) == '[1(0, 1), ➀(1, 0), ➀(2, 3), 0(3, 2), ➀(0, 2), 1(2, 0), ➀(3, 1), 0(1, 3), 0(2, 1), 1(1, 2)]'
+
+#e = pydata()
+#print(e)
+from timeit import default_timer as timer
+start = timer()
+_print=print
+print = lambda *s:...
+for _ in range(1000):
+    pydata()
+end = timer()
+print = _print
+print("Time taken:", end-start)
+quit()
+    
+
 if __name__ == '__main__':
-    import unittest
-    @dataclass
-    class Polygon:
-        coords: 'list[coord3d]'
-        verts: 'list[int]'
+    class TestPolytope(Polytope):
         expected_edges: int
         expected_faces: int
         expected_verts: int
         expected_holes: int
+    import unittest    
     class Test_DCEL(unittest.TestCase):
-        triangle=Polygon(
-            coords=[coord3d(-3, -3, 0), coord3d(3, -3, 0), coord3d(-3, 3, 0)],
-            verts=[[0,1,2]],
+        triangle=TestPolytope(
+            vertex_arrangement=[coord3d(-3, -3, 0), coord3d(3, -3, 0), coord3d(-3, 3, 0)],
+            faces=[[0,1,2]],
             expected_edges=3,
             expected_faces=1,
             expected_verts=3,
             expected_holes=1,
         )
-        quad=Polygon(
-            coords=[coord3d(-3.5, -3.5, 0),coord3d(3.5, -3.5, 0),coord3d(-3.5, 3.5, 0),coord3d(3.5, 3.5, 0)],
-            verts=[[0, 1, 3, 2]],
+        quad=TestPolytope(
+            vertex_arrangement=[coord3d(-3.5, -3.5, 0),coord3d(3.5, -3.5, 0),coord3d(-3.5, 3.5, 0),coord3d(3.5, 3.5, 0)],
+           faces=[[0, 1, 3, 2]],
             expected_edges=4,
             expected_faces=1,
             expected_verts=4,
             expected_holes=1,
         )
-        splitquad=Polygon(
-            coords=[coord3d(-3.5, -3.5, 0),coord3d(3.5, -3.5, 0),coord3d(-3.5, 3.5, 0),coord3d(3.5, 3.5, 0)],
-            verts=[[0, 3, 1],[0, 2, 3]],
+        splitquad=TestPolytope(
+            vertex_arrangement=[coord3d(-3.5, -3.5, 0),coord3d(3.5, -3.5, 0),coord3d(-3.5, 3.5, 0),coord3d(3.5, 3.5, 0)],
+           faces=[[0, 3, 1],[0, 2, 3]],
             expected_edges=5,
             expected_faces=2,
             expected_verts=4,
             expected_holes=1,
         )
-        block=Polygon(
-            coords=
+        block=TestPolytope(
+            vertex_arrangement=
                 [coord3d(-512.0, 512.0, 256.0),
                 coord3d(-512.0, -512.0, 256.0),
                 coord3d(512.0, 512.0, 256.0),
@@ -403,7 +485,7 @@ if __name__ == '__main__':
                 coord3d(-512.0, -512.0, -256.0),
                 coord3d(512.0, 512.0, -256.0),
                 coord3d(512.0, -512.0, -256.0)],
-            verts=
+           faces=
                 [[0, 2, 3, 1],
                 [0, 1, 5, 4],
                 [4, 5, 7, 6],
@@ -422,10 +504,10 @@ if __name__ == '__main__':
             self.assertEqual(d.face_count, 0)
             self.assertEqual(d.vert_count, 0)
 
-        def common2d(self, p: Polygon):
+        def common(self, p: TestPolytope):
             d = DCEL.from_pydata(
-                p.coords,
-                p.verts.copy()
+                p.vertex_arrangement,
+                p.faces.copy()
             )
             self.assertEqual(d.edge_count, p.expected_edges)
             self.assertEqual(d.face_count, p.expected_faces)
@@ -470,7 +552,7 @@ if __name__ == '__main__':
             self.assertIs(d.faces[0].previous, inner_path.finish,
                 msg=f"\n{[asd for asd in d.faces[0]]}\n{[asd.previous for asd in d.faces[0]]}\n{inner_path!r}")
 
-            self.assertEqual([point.origin.idx for point in inner_path], p.verts[0])
+            self.assertEqual([point.origin.idx for point in inner_path], p.faces[0])
 
             if d.hole_count:
                 for i, outer_half_edge in enumerate(d.holes[0]):
@@ -484,116 +566,12 @@ if __name__ == '__main__':
             return d
 
         def test_triangle(self):
-            self.common2d(self.triangle)
+            self.common(self.triangle)
         def test_quad(self):
-            self.common2d(self.quad)
+            self.common(self.quad)
         def test_splitquad(self):
-            self.common2d(self.splitquad)
+            self.common(self.splitquad)
         def test_block(self):
-            self.common2d(self.block)
+            self.common(self.block)
+
     unittest.main()
-
-#quit()
-
-g = igraph.Graph(edges=[(0,1), (1,2), (2,0)]).as_directed()
-
-class DCEL2(igraph.Graph):
-    @classmethod
-    def FromVmeshEdges(cls, n, edgeVertex: list, edgeOpposite: list, edgeNext: list, edgeVertexData: list):
-        g = igraph.Graph(directed=True)        
-        starting_verts = [None] * len(edgeVertex)
-        start = 0
-        current = 0#edgeVertexData.index()
-        last_vert = None
-        while None in starting_verts:
-            print(f"{current=}, {last_vert=}, {edgeVertex[current]=}")
-
-            starting_verts[current] = last_vert
-            if last_vert is not None and current == start:
-                try:
-                    current = start = starting_verts.index(None)
-                    last_vert = None
-                except ValueError:
-                    break
-                print("currenting a new one", current)
-                continue
-            starting_verts[edgeOpposite[current]] = edgeVertex[current]
-
-            last_vert = edgeVertex[current]
-            current = edgeNext[current]#edgeVertexData.index()
-        if None in starting_verts:
-            raise RuntimeError("Not all half-edges were travelled through: %r" % starting_verts)
-        g.add_vertices(n)
-        print(*zip(starting_verts, edgeVertex))
-        g.add_edges([*zip(starting_verts, edgeVertex)])
-        return g  
-
-    @classmethod
-    def FromVmesh2(cls, n, edgeVertex: list):
-        g = igraph.Graph(directed=True)        
-        edges = [None] * len(edgeVertex)
-        for i, (end, start) in enumerate(zip_longest(*[iter(edgeVertex)]*2)):
-            edges[2*i] = (start, end)
-            edges[2*i+1] = (end, start)
-        g.add_vertices(n)
-        g.add_edges(edges)
-        return g
-    def __init2__(self, edge_list=[(0,1), (1,2), (2,0)]) -> None:
-        g = igraph.Graph(edges=edge_list)
-        if g.ecount() < 3:
-            raise ValueError("Need at least 3 edges.")
-        if g.vcount() < 3:
-             raise ValueError("Need at least 3 vertices.")
-        g: igraph.Graph = g.as_directed()
-        # igraph: (+,+,+,-,-,-)
-        # here: (+,-,+,-,+,-)
-        # vmap?: (+,-,-,+,-,+)
-        for edge in range(len(edge_list)):
-            h1 = half_edge(*g.es[edge].tuple)
-            h2 = half_edge(*g.es[edge+len(edge_list)].tuple)
-            h1.opposite = h2
-            h2.opposite = h1
-            half_edges.append(h1)
-            half_edges.append(h2)
-
-    def plot(self):
-        layout = [[0,0], [0,1], [1,1], [1,0], ]
-        color_dict = {"clockwise": "green", "counter-clockwise": "red"}
-        igraph.plot(self, layout=layout,
-        vertex_color='cyan',
-        vertex_shape='rectangle',
-        vertex_size=14,
-        vertex_label = self.vertexData,
-        edge_color=["green", "green", "green", "green", "red", "red", "red", "red"],#[color_dict[clockrot] for clockrot in self.es["rotation"]],
-        #edge_label= self.edgeVertexData,
-        edge_curved=0.001,
-        edge_arrow_size=2,
-        edge_arrow_width=1,
-        edge_width=4,)
-
-
-#DCEL.FromVmeshEdges(3, [1, 0, 1, 2, 2, 0], [1, 0, 3, 2, 5, 4], [3, 4, 1, 5, 2, 0], [0,1,2,3,4,5])
-#quit()
-
-layout = [[0,0], [0,1], [1,1], [1,0], ]
-color_dict = {"clockwise": "green", "counter-clockwise": "red"}
-igraph.plot(
-    #DCEL.FromVmeshEdges(8,
-    #    [6, 0, 2, 6, 3, 2, 7, 5, 4, 5, 1, 4, 7, 1, 4, 0, 5, 6, 7, 2, 3, 0, 1, 3],
-    #    [1, 0, 3, 2, 5, 4, 7, 6, 9, 8,11,10,13,12,15,14,17,16,19,18,21,20,23,22],
-    #    [2,14, 4,16,21,18,19, 8,10,17,12,15, 7,23, 9,20, 6, 1,13, 3,22, 0,11, 5],
-    #    [23,1,4,2,15,3,17,19,12,5,8,6,16,7,0,14,11,18,20,10,13,21,9,22]),
-    #DCEL.FromVmeshEdges(3, [1, 0, 1, 2, 2, 0], [1, 0, 3, 2, 5, 4], [3, 4, 1, 5, 2, 0], [0,1,2,3,4,5]),
-    DCEL.FromVmesh2(4, [1,0,3,2,2,0,1,3,1,2]),
-    #DCEL2.FromVmesh2(4, [1,0,3,2,2,0,1,3]),
-layout=[[0,1], [0,0], [1,1], [1,0], ],
-vertex_color='cyan',
-vertex_shape='rectangle',
-vertex_size=14,
-vertex_label = [0, 1, 2, 3],
-#edge_color=["green", "red", "red", "green", "red", "green", "red", "green"],
-#edge_label= self.edgeVertexData,
-edge_curved=0.001,
-edge_arrow_size=2,
-edge_arrow_width=1,
-edge_width=4,)
