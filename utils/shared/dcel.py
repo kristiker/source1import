@@ -1,5 +1,6 @@
+from functools import cached_property, lru_cache
 from typing import Optional
-
+from array import array
 # https://en.wikipedia.org/wiki/Doubly_connected_edge_list
 
 import openmesh as om
@@ -108,12 +109,57 @@ class DCEL:
     """Doubly connected edge list (strong directed graph)"""
     FINF = face(-1)
     def __init__(self):
-        self.faces: list[half_edge] = []
-        "Representative edge for each face"
-        self.holes: list[half_edge] = []
+        #self.vertexEdgeIndices = array('i')
+        self.vertexPositions = []
+        "Positions of each vertex"
+        self.vertexDataIndices = array('i')
+        "Vertices"
+
+        self.edgeVertexIndices = array('i')
+        "Origin vertex of each edge"
+        self.edgeOppositeIndices = array('i')
+        "Opposite/Twin of each edge"
+        self.edgeNextIndices = array('i')
+        "Next of each edge"
+        self.edgeFaceIndices = array('i')
+        "Incident face of each edge"
+        self.edgeVertexDataIndices = array('i')
+        "Edges"
+        self.faceEdgeIndices = array('i')
+        "Incident edge of each face"
+        self.faceDataIndices = array('i')
+        "Faces"
+
+    @lru_cache
+    def get(self, index: int)-> half_edge:
+        "Get half_edge() at this index"
+        print(self.vertexDataIndices, self.edgeVertexIndices, index)
+        return half_edge(
+            origin=vertex(self.vertexDataIndices[
+                self.edgeVertexIndices[index]],
+            self.vertexPositions[self.edgeVertexIndices[index]]),
+            next=self.get(self.edgeNextIndices[index]),
+            opposite=self.get(self.edgeOppositeIndices[index]),
+            incident_face=self.edgeFaceIndices[index],
+        )
+
+    def get_index(self, half: half_edge)-> int:
+        return self.edgeVertexIndices.index(half.origin.idx)
+
+    @property
+    def faces(self):
+        "Representative hedge for each face"
+        return [self.get(index) for index in self.faceDataIndices]
+        
+    @property
+    def holes(self):
         "Representative edge for each hole (1-dimensional boundary)"
-        self.edgeList=5
-    
+        rv = []
+        for i, edge_idx in enumerate(self.edgeFaceIndices):
+            if edge_idx == -1:
+                rv.append(i)
+        return rv
+
     def __repr__(self):
         return f"<DCEL {self.vert_count} nodes {self.edge_count} edges {self.face_count} faces>"
 
@@ -123,8 +169,16 @@ class DCEL:
     def hole_count(self): return len(self.holes)
 
     @property
+    def half_edge_count(self):
+        return len(self.edgeVertexIndices)
+
+    @property
     def edge_count(self):
-        return sum([len([h for h in loop]) for loop in self.faces] + [len([h for h in loop]) for loop in self.holes])//2
+        return len(self.edgeNextIndices)//2
+
+    @property
+    def edge_count_old(self):
+        return sum([len([h for h in loop]) for loop in self.faces] + len(self.holes))//2
 
     @property
     def vert_count(self):
@@ -133,62 +187,60 @@ class DCEL:
             for half_edge in loop:
                 v.add(half_edge.origin.idx)
         return len(v)
+    
+    @property
+    def edgeList(self):
+        face0 = self.faces[0]
+        face0_path = Path(face0, face0.previous)#Path(face0.previous, face0.previous.previous)
+        rv = []#array('i')
+        for half in face0_path:
+            rv.append(half)
+            rv.append(half.opposite)
+        
+        return rv
 
-    def add_half(self, half: half_edge):
-        if half.incident_face.idx < 0:
-            actual_index = ((1 + half.incident_face.idx) * -1)
-            count = self.hole_count
-            lst = self.holes
-        else:
-            actual_index = half.incident_face.idx
-            count = self.face_count
-            lst = self.faces
+    def verify(self):
+        assert self.vert_count-self.edge_count+(self.face_count+self.hole_count) == 2
 
-        if count <= actual_index:
-            if count == actual_index:
-                lst.append(half)
-            else:
-                raise ValueError("Edge is too disconnected. Add edges from a closer face first.")
-            #else:
-            #    lst[actual_index] = half
+    def getMeshHoles(self):
+        ...
+    def isHomeomorphicTo(self, other):
+        ...
+#    @property
+#    def edgeVertexIndices(self):
+#    
+    def add_face(self, face_verts):
+        self.faceDataIndices.append(0)
+        prevRight: Optional[int] = -1
+        prevLeft: Optional[int] = -1
+        for right, vert_idx in enumerate(face_verts):
+            left = right+1
+            self.edgeFaceIndices.append(0)
+            self.edgeFaceIndices.append(-1)
 
-    @classmethod
-    def new_face(cls, vertices, face_verts):
-        self = cls()
-        f = face(0)
-        #self.face_count+=1
-        prevLeftEdge = None
-        prevRightEdge = None
-        for vert_idx in face_verts:
-            v = vertex(idx=vert_idx, position=vertices[vert_idx])
-            left, right = half_edge(), half_edge()
-            left.incident_face = f
-            left.next = None
-            left.origin = v
-            left.opposite = right
-            right.incident_face = self.FINF
-            right.next = prevRightEdge
-            right.origin = None
-            right.opposite = left
+            self.edgeNextIndices.append(-1)
+            self.edgeNextIndices.append(prevLeft)
 
-            self.add_half(left)
-            self.add_half(right)
-            if prevLeftEdge is not None:
-                prevLeftEdge.next = left
-            if prevRightEdge is not None:
-                prevRightEdge.origin = v
+            self.edgeVertexIndices.append(vert_idx)
+            self.edgeVertexIndices.append(-1)
+
+            self.edgeOppositeIndices.append(left)
+            self.edgeOppositeIndices.append(right)
+
+            if prevRight != -1:
+                self.edgeNextIndices[prevRight] = right
+            if prevLeft != -1:
+                self.edgeVertexIndices[prevLeft] = vert_idx
             
-            prevLeftEdge = left
-            prevRightEdge = right
+            prevRight = right
+            prevLeft = left
 
+            #print([[a for a in asd] for asd in self.edgeList])
 
-        firstLeftEdge, firstRightEdge = self.faces[0], self.holes[0]
-        prevLeftEdge.next = firstLeftEdge
-        #prevRightEdge.next = firstRightEdge
-        #firstLeftEdge.next = prevLeftEdge
-        firstRightEdge.next = prevRightEdge
-        prevRightEdge.origin = firstLeftEdge.origin
-        return self
+        self.edgeNextIndices[prevRight] = 0
+        self.edgeNextIndices[prevLeft] = 1
+        #print([[a for a in asd] for asd in self.edgeList], '1-final')
+        self.edgeVertexIndices[prevLeft] = self.edgeVertexIndices[0]
 
     @classmethod
     def from_pydata(cls, vertices: 'list[coord3d]', faces: 'list[list[int]]'):
@@ -199,7 +251,11 @@ class DCEL:
         #nwise_longest = lambda g, *, n=2, fv=object(): zip_longest(*(islice(g, i, None) for i, g in enumerate(tee(g, n))), fillvalue=fv)
         #verts = []
         print("Building face 0")
-        self = cls.new_face(vertices, faces.pop(0))
+        self = cls()
+        self.vertexPositions.extend(vertices)
+        self.vertexDataIndices.extend([range(max(max(v) for v in fv) for fv in faces)])
+        self.add_face(vertices, faces.pop(0))
+        print("Main Inner:", [asd for asd in self.faces[0]])
 
         for face_verts in faces:
             face_dcel = cls.new_face(vertices, face_verts)
@@ -212,7 +268,8 @@ class DCEL:
     # https://en.wikipedia.org/wiki/Manifold#Gluing_along_boundaries
     def join_face(self, face_dcel: 'DCEL'):
         """Join a face by gluing along common boundaries"""
-        f = face(self.face_count)
+        f = self.face_count
+        self.faceDataIndices.append(f)
         print("Joining face", self.face_count)
         bMatchedOnce = False
         bFullLoop = False
@@ -253,7 +310,7 @@ class DCEL:
                     print("Path is full loop, filling with face", f)
                     for edge in path:
                         edge.incident_face = f
-                    self.add_half(self.holes.pop(0))
+                    self.faceEdgeIndices.append(self.get_index(path.start))
                     bFullLoop=True
                     break
                 print("Splittin and joining")
@@ -264,8 +321,8 @@ class DCEL:
                 print(f"Cplm: {[e for e in outer_complement_path]}")
 
                 # outer loop (FINF)
-                if self.holes[0] in path:
-                    self.holes[0] = outer_complement_path.start
+                #if self.holes[0] in path:
+                #    self.holes[0] = outer_complement_path.start
     
                 # join end of existing outer loop with start of other outer loop
                 # path.start.previous == cplm.finish
@@ -296,7 +353,7 @@ class DCEL:
                     self.detect_holes()
                 for new_loop_edge in path.start:
                     new_loop_edge.incident_face = f
-                    self.add_half(new_loop_edge)
+                self.faceEdgeIndices.append(self.get_index(path.start))
                 print("Face count", self.face_count)
                 print("Hole count", self.hole_count)
 
@@ -324,9 +381,9 @@ class DCEL:
                     continue
                 # for each next edge from this outer
                 f = face(-(self.hole_count+1))
+                self.faceEdgeIndices.append(self.get_index(outer))
                 for outer in outer:
                     outer.incident_face = f
-                self.add_half(outer)
                 print("Detected hole", f, "from edge", outer)
 
 def triangle() -> 'list[half_edge]':
