@@ -103,6 +103,29 @@ class Polytope:
     vertex_arrangement: 'list[coord3d]'
     faces: 'list[int]'
 
+from prettytable import PrettyTable
+
+class DCEA:
+    """Doubly connected edge array"""
+    def __init__(self) -> None:
+        self.vertexEdgeIndices: list[int] = []
+        self.vertexDataIndices: list[int] = []
+        self.edgeVertexIndices: list[int] = []
+        self.edgeOppositeIndices: list[int] = []
+        self.edgeNextIndices: list[int] = []
+        self.edgeFaceIndices: list[int] = []
+        self.edgeDataIndices: list[int] = []
+        self.edgeVertexDataIndices: list[int] = []
+        self.faceEdgeIndices: list[int] = []
+        self.faceDataIndices: list[int] = []
+
+    def __repr__(self):
+        e = PrettyTable(['E', 'V', 'O', 'V->D', 'F', 'N'])
+        for i, v in enumerate(self.edgeVertexIndices):
+            arc = f"{v}->{self.edgeVertexIndices[self.edgeNextIndices[i]]}"
+            e.add_row([i, v, self.edgeOppositeIndices[i], arc, self.edgeFaceIndices[i], self.edgeNextIndices[i]])
+        return str(e)
+
 # https://observablehq.com/@2talltim/mesh-data-structures-traversal#cell-129
 class DCEL:
     """Doubly connected edge list (strong directed graph)"""
@@ -112,7 +135,6 @@ class DCEL:
         "Representative edge for each face"
         self.holes: list[half_edge] = []
         "Representative edge for each hole (1-dimensional boundary)"
-        self.edgeList=5
     
     def __repr__(self):
         return f"<DCEL {self.vert_count} nodes {self.edge_count} edges {self.face_count} faces>"
@@ -133,6 +155,66 @@ class DCEL:
             for half_edge in loop:
                 v.add(half_edge.origin.idx)
         return len(v)
+    
+    @property
+    def edgeList(self):
+        face0 = self.faces[0]
+        face0_path = Path(face0, face0.previous)#Path(face0.previous, face0.previous.previous)
+        rv: list[half_edge] = []#array('i')
+        for half in face0_path:
+            rv.append(half)
+            #rv.append(half.opposite)
+        
+        return rv
+
+    def asArray(self)->DCEA:
+        "only support single-face 4-vertex"
+        a = DCEA()
+        a.vertexEdgeIndices += [*range(self.vert_count)]
+        a.vertexDataIndices += [*range(self.vert_count)]
+
+        # prefill
+        #a.edgeNextIndices = [None] * self.edge_count*2
+        a.edgeOppositeIndices = [None] * self.edge_count*2
+
+        el = self.edgeList
+        el.insert(0, el.pop())
+        #for i, edge in enumerate(self.edgeList):
+        _order = []
+
+        """ Edge indices as per vmap
+                5
+            2<-------3
+            |   8    |
+          1 | 3    0 | 2
+            |   6    |
+            0-------->1
+                7
+        """
+        # vmap holds edges in this order (^parallel), probably as optimisation
+        for i in [0, 2, 1, 3]:
+            edge = el[i]
+            if i:
+                # Flip because we are clockwise, vmap has it counter-cw
+                edge = edge.opposite
+            assert edge != edge.opposite
+            assert edge == edge.opposite.opposite
+            assert edge.opposite == edge.opposite.opposite.opposite
+            _order.append(edge)
+            _order.append(edge.opposite)
+            a.edgeVertexIndices.append(edge.origin.idx)
+            a.edgeVertexIndices.append(edge.opposite.origin.idx)
+            a.edgeOppositeIndices[2*i]= 1 if not i else 2*i+1
+            a.edgeOppositeIndices[2*i+1] = 2*i
+            a.edgeFaceIndices.append(max(edge.incident_face.idx, -1))
+            a.edgeFaceIndices.append(max(edge.opposite.incident_face.idx, -1))
+        for i in [0, 2, 1, 3]:
+            edge = el[i]
+            if i:
+                edge = edge.opposite
+            a.edgeNextIndices.append(_order.index(edge.previous)) 
+            a.edgeNextIndices.append(_order.index(edge.opposite.previous))
+        return a
 
     def add_half(self, half: half_edge):
         if half.incident_face.idx < 0:
@@ -251,6 +333,8 @@ class DCEL:
                 #    assert path.is_loop, path
                 if path.is_loop:
                     print("Path is full loop, filling with face", f)
+                    if len(path) != self.holes[0].loop_count:
+                        raise ValueError(f"Face with Vertex Set {self.holes[0].loop_path} does not fit in boundary {self.holes[0].loop_path}")
                     for edge in path:
                         edge.incident_face = f
                     self.add_half(self.holes.pop(0))
@@ -426,8 +510,8 @@ e3 = pydata()
 e1 = pydata2()
 e2 = pydata3()
 
-assert repr(e0.edgeList) == '[0(0, 1), ➀(1, 0), ➀(2, 3), 0(3, 2), ➀(0, 2), 0(2, 0), ➀(3, 1), 0(1, 3)]'
-assert repr(e2.edgeList) == '[1(0, 1), ➀(1, 0), ➀(2, 3), 0(3, 2), ➀(0, 2), 1(2, 0), ➀(3, 1), 0(1, 3), 0(2, 1), 1(1, 2)]'
+#assert repr(e0.edgeList) == '[0(0, 1), ➀(1, 0), ➀(2, 3), 0(3, 2), ➀(0, 2), 0(2, 0), ➀(3, 1), 0(1, 3)]'
+#assert repr(e2.edgeList) == '[1(0, 1), ➀(1, 0), ➀(2, 3), 0(3, 2), ➀(0, 2), 1(2, 0), ➀(3, 1), 0(1, 3), 0(2, 1), 1(1, 2)]'
 
 #e = pydata()
 #print(e)
@@ -440,8 +524,7 @@ for _ in range(1000):
 end = timer()
 print = _print
 print("Time taken:", end-start)
-quit()
-    
+
 
 if __name__ == '__main__':
     class TestPolytope(Polytope):

@@ -24,10 +24,11 @@ from shared.datamodel import (
 
 )
 from shared.datamodel import Vector2, Vector3, Vector4
+import shared.dcel as dcel
 string = str
 
 """
-Silly vmf to vmap test
+Silly vmf to vmap test 🔨
 """
 
 # https://developer.valvesoftware.com/wiki/Valve_Map_Format
@@ -335,12 +336,22 @@ class CMapWorld(_BaseEnt):
                 data from utils/dev/sample_quad.vmap.txt
                 """
                 self = self(name='meshData')
-                self.vertexEdgeIndices +=   [0, 1, 2, 3]
-                self.vertexDataIndices +=   [0, 1, 2, 3]
-                self.edgeVertexIndices +=   [1, 0, 3, 2, 2, 0, 1, 3]
-                self.edgeOppositeIndices += [1, 0, 3, 2, 5, 4, 7, 6]
-                self.edgeNextIndices +=     [7, 4, 6, 5, 2, 0, 1, 3]
-                self.edgeFaceIndices +=     [0,-1,-1, 0,-1, 0,-1, 0]
+                if False:
+                    self.vertexEdgeIndices +=   [0, 1, 2, 3]
+                    self.vertexDataIndices +=   [0, 1, 2, 3]
+                    self.edgeVertexIndices +=   [1, 0, 3, 2, 2, 0, 1, 3]
+                    self.edgeOppositeIndices += [1, 0, 3, 2, 5, 4, 7, 6]
+                    self.edgeNextIndices +=     [7, 4, 6, 5, 2, 0, 1, 3]
+                    #[7, 4, 6, 5, 2, 8, 1, 9, 3, 0]
+                    self.edgeFaceIndices +=     [0,-1,-1, 0,-1, 0,-1, 0]
+                else:
+                    PolygonMesh = dcel.e0.asArray()
+                    self.vertexEdgeIndices += PolygonMesh.vertexEdgeIndices
+                    self.vertexDataIndices += PolygonMesh.vertexDataIndices
+                    self.edgeVertexIndices += PolygonMesh.edgeVertexIndices
+                    self.edgeOppositeIndices += PolygonMesh.edgeOppositeIndices
+                    self.edgeNextIndices += PolygonMesh.edgeNextIndices
+                    self.edgeFaceIndices += PolygonMesh.edgeFaceIndices
                 # edgeDataIndices
                 for n in range(4):
                     self.edgeDataIndices += [n,n]
@@ -747,4 +758,4 @@ if __name__ == "__main__":
         vmap['world']['children'].append(mesh.get_element(vmap))
         out_vmap.write("utils/dev/out_sample_box.vmap.txt", 'keyvalues2', 4)
         print("Saved", "utils/dev/out_sample_box.vmap.txt")
-    test_box()
+    test_quad()
