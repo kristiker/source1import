@@ -113,17 +113,19 @@ class DCEA:
         self.edgeVertexIndices: list[int] = []
         self.edgeOppositeIndices: list[int] = []
         self.edgeNextIndices: list[int] = []
+        "Next of/Previous??"
         self.edgeFaceIndices: list[int] = []
+        "Incident face"
         self.edgeDataIndices: list[int] = []
         self.edgeVertexDataIndices: list[int] = []
         self.faceEdgeIndices: list[int] = []
         self.faceDataIndices: list[int] = []
 
     def __repr__(self):
-        e = PrettyTable(['E', 'V', 'O', 'V->D', 'F', 'N'])
+        e = PrettyTable(['E', 'O', 'N', 'F', 'V->D'])
         for i, v in enumerate(self.edgeVertexIndices):
-            arc = f"{v}->{self.edgeVertexIndices[self.edgeNextIndices[i]]}"
-            e.add_row([i, v, self.edgeOppositeIndices[i], arc, self.edgeFaceIndices[i], self.edgeNextIndices[i]])
+            arc = f"{v}->{self.edgeVertexIndices[self.edgeOppositeIndices[i]]}"
+            e.add_row([i, self.edgeOppositeIndices[i], self.edgeNextIndices[i], self.edgeFaceIndices[i], arc])
         return str(e)
 
 # https://observablehq.com/@2talltim/mesh-data-structures-traversal#cell-129
@@ -158,17 +160,25 @@ class DCEL:
     
     @property
     def edgeList(self):
-        face0 = self.faces[0]
-        face0_path = Path(face0, face0.previous)#Path(face0.previous, face0.previous.previous)
+        #face0 = self.faces[0]
+        #face0_path = Path(face0, face0.previous)#Path(face0.previous, face0.previous.previous)
         rv: list[half_edge] = []#array('i')
-        for half in face0_path:
-            rv.append(half)
-            #rv.append(half.opposite)
+        inner_halve_paths = [iter(Path(f, f.previous)) for f in self.faces]
+        while len(rv) < self.edge_count:
+            for i in range(self.face_count):
+                half = next(inner_halve_paths[i], None)
+                # Loop for this face finished
+                if half is None:
+                    continue
+                # one half edge from this edge already in list
+                if half.opposite in rv:
+                    continue
+                rv.append(half)
         
         return rv
 
     def asArray(self)->DCEA:
-        "only support single-face 4-vertex"
+        """Transfer half-edge data: linked-list structure to array based structure"""
         a = DCEA()
         a.vertexEdgeIndices += [*range(self.vert_count)]
         a.vertexDataIndices += [*range(self.vert_count)]
@@ -182,18 +192,40 @@ class DCEL:
         #for i, edge in enumerate(self.edgeList):
         _order = []
 
-        """ Edge indices as per vmap
-                5
-            2<-------3
-            |   8    |
-          1 | 3    0 | 2
-            |   6    |
-            0-------->1
-                7
+        """ Half-edge indices of a vmap quad
+                6              w/ a diagonal:  
+           [1]⇄⇄⇄⇄[3]       [1]          [3]
+            ↑↓   7   ↑↓        ^\          ^/
+          1 ↑↓ 0   3 ↑↓ 2     9 \\ 8      //
+            ↑↓   5   ↑↓          \v      /v
+           [0]⇄⇄⇄⇄[2]          [2]    [0]
+                4
+            
+            [0,-1, -1, 0, -1, 0, -1, 0] = edgeFaceIndices
+               +      +      +      +          
+            [1, 0,  3, 2,  2, 0,  1, 3] = edgeVertexIndices
+               ↧      ↧      ↧      ↧     (Note:not in order, 4 != next of 6, edgeNextIndices dictates)
+            0(1,0)-1(3,2)-1(2,0)-1(1,3) =    0⟶2⬅4⬅6⬅     alternating opposites but
+           -1(0,1) 0(2,3) 0(0,2) 0(3,1) =    1⬅3⟶5⟶7⟶   swap first with second
+                                                  ⤋
+                    edgeOppositeIndices =  [1, 0, 3, 2, 5, 4, 7, 6]
+
+            [7, 4, 6, 5, 2, 0, 1, 3]    = edgeNextIndices
+            Edge 0 is next of edge 7 : 0(1,0) next of 0(3,1) --> 7 = half_edge(origin=3, next=0(1,0), face=0)
+            Edge 1 is next of edge 4 :-1(0,1) next of-1(2,0) --> 4 = half_edge(origin=2, next=-1(0,1), face=-1)
+            ...
         """
         # vmap holds edges in this order (^parallel), probably as optimisation
-        for i in [0, 2, 1, 3]:
-            edge = el[i]
+
+        def this_specific_order(el):
+            for i in range(len(el)):
+                if i == 1:
+                    i = 2
+                elif i == 2:
+                    i = 1
+                yield i, el[i]
+
+        for i, edge in this_specific_order(el):
             if i:
                 # Flip because we are clockwise, vmap has it counter-cw
                 edge = edge.opposite
@@ -208,8 +240,7 @@ class DCEL:
             a.edgeOppositeIndices[2*i+1] = 2*i
             a.edgeFaceIndices.append(max(edge.incident_face.idx, -1))
             a.edgeFaceIndices.append(max(edge.opposite.incident_face.idx, -1))
-        for i in [0, 2, 1, 3]:
-            edge = el[i]
+        for i, edge in this_specific_order(el):
             if i:
                 edge = edge.opposite
             a.edgeNextIndices.append(_order.index(edge.previous)) 
@@ -656,5 +687,33 @@ if __name__ == '__main__':
             self.common(self.splitquad)
         def test_block(self):
             self.common(self.block)
+
+    class Test_Array(unittest.TestCase):
+        quad_arrangement = [
+            coord3d(-3.5, -3.5, 0),
+            coord3d(-3.5, 3.5, 0),
+            coord3d(3.5, -3.5, 0),
+            coord3d(3.5, 3.5, 0)
+        ]
+        rotated_quads = [
+            (DCEL.from_pydata(quad_arrangement, [[0, 2, 3, 1]]), [1, 0, 3, 2, 2, 0, 1, 3]),
+            (DCEL.from_pydata(quad_arrangement, [[1, 0, 2, 3]]), [3, 1, 2, 0, 0, 1, 3, 2]),
+            (DCEL.from_pydata(quad_arrangement, [[3, 1, 0, 2]]), [2, 3, 0, 1, 1, 3, 2, 0]),
+            (DCEL.from_pydata(quad_arrangement, [[2, 3, 1, 0]]), [0, 2, 1, 3, 3, 2, 0, 1]),
+        ]
+        
+        def test_quad_output_all_rotations(self):
+            "Only thing that changes is origin of each edge. Edge order is kept intact."
+            for rotated_quad, expected_edgeVertexIndices in self.rotated_quads:
+                arr = rotated_quad.asArray()
+                # These dont change
+                self.assertEqual(arr.vertexEdgeIndices, [0, 1, 2, 3])
+                self.assertEqual(arr.vertexDataIndices, [0, 1, 2, 3])
+                # This changes
+                self.assertEqual(arr.edgeVertexIndices, expected_edgeVertexIndices)
+                # These dont change
+                self.assertEqual(arr.edgeOppositeIndices, [1, 0, 3, 2, 5, 4, 7, 6])
+                self.assertEqual(arr.edgeNextIndices, [7, 4, 6, 5, 2, 0, 1, 3])
+                self.assertEqual(arr.edgeFaceIndices, [0, -1, -1, 0, -1, 0, -1, 0])
 
     unittest.main()
