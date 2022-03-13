@@ -424,6 +424,117 @@ class CMapWorld(_BaseEnt):
                 
                 return self
 
+ 
+            @classmethod
+            def SampleJoinedTriangles(self):
+                """
+                sample joined triangles, similar to quad but with an extra edge
+                
+                """
+                self = self(name='meshData')
+                if False:
+                    self.vertexEdgeIndices +=   [0, 1, 2, 3]
+                    self.vertexDataIndices +=   [0, 1, 2, 3]
+                    self.edgeVertexIndices +=   [1, 0, 3, 2, 2, 0, 1, 3, 1, 2]
+                    self.edgeOppositeIndices += [1, 0, 3, 2, 5, 4, 7, 6, 9, 8]
+                    self.edgeNextIndices +=     [9, 4, 6, 8, 2, 0, 1, 3, 7, 5]#[7, 4, 6, 5, 2, 0, 1, 3]
+                    #[7, 4, 6, 5, 2, 8, 1, 9, 3, 0]
+                    self.edgeFaceIndices +=     [1,-1,-1, 0,-1, 1,-1, 0, 0, 1]
+                else:
+                    PolygonMesh = dcel.e2.asArray()
+                    print(PolygonMesh)
+                    self.vertexEdgeIndices += PolygonMesh.vertexEdgeIndices
+                    self.vertexDataIndices += PolygonMesh.vertexDataIndices
+                    self.edgeVertexIndices += PolygonMesh.edgeVertexIndices
+                    self.edgeOppositeIndices += PolygonMesh.edgeOppositeIndices
+                    self.edgeNextIndices += PolygonMesh.edgeNextIndices
+                    self.edgeFaceIndices += PolygonMesh.edgeFaceIndices
+                # edgeDataIndices
+                for n in range(5):
+                    self.edgeDataIndices += [n,n]
+                # edgeVertexDataIndices
+                self.edgeVertexDataIndices += [n for n in range(10)]
+                # faceEdgeIndices
+                self.faceEdgeIndices.append(9)
+                self.faceEdgeIndices.append(8)
+                # faceDataIndices
+                self.faceDataIndices.append(0)
+                self.faceDataIndices.append(1)
+                # materials
+                self.materials.append("materials/dev/reflectivity_30.vmat")
+                # vertexData
+                self.vertexData.size = 4
+                self.vertexData.streams[0].data += [ # position
+                    Vector3("-3.5 -3.5 0".split()),
+                    Vector3("3.5 -3.5 0".split()),
+                    Vector3("-3.5 3.5 0".split()),
+                    Vector3("3.5 3.5 0".split())
+                ]
+                # faceVertexData
+                self.faceVertexData.size = 10
+                self.faceVertexData.streams[0].data += [ # texcoord
+                    Vector2("1 1".split()),
+                    Vector2("0 0".split()),
+                    Vector2("0 0".split()),
+                    Vector2("0 0".split()),
+                    Vector2("0 0".split()),
+                    Vector2("0 1".split()),
+                    Vector2("0 0".split()),
+                    Vector2("1 0".split()),
+                    Vector2("1 1".split()),
+                    Vector2("0 0".split())
+                ]
+                self.faceVertexData.streams[1].data += [ # normal
+                    Vector3("0 0 1".split()),
+                    Vector3("0 0 0".split()),
+                    Vector3("0 0 0".split()),
+                    Vector3("0 0 1".split()),
+                    Vector3("0 0 0".split()),
+                    Vector3("0 0 1".split()),
+                    Vector3("0 0 0".split()),
+                    Vector3("0 0 1".split()),
+                    Vector3("0 0 1".split()),
+                    Vector3("0 0 1".split())
+                ]
+                self.faceVertexData.streams[2].data += [ # tangent
+                    Vector4("1 0 0 -1".split()),
+                    Vector4("0 0 0 0".split()),
+                    Vector4("0 0 0 0".split()),
+                    Vector4("1 0 0 -1".split()),
+                    Vector4("0 0 0 0".split()),
+                    Vector4("1 0 0 -1".split()),
+                    Vector4("0 0 0 0".split()),
+                    Vector4("1 0 0 -1".split()),
+                    Vector4("1 0 0 -1".split()),
+                    Vector4("1 0 0 -1".split()),
+                ]
+
+                # edgeData
+                for n in range(5):
+                    self.edgeData.size+=1
+                    self.edgeData.streams[0].data.append(0)
+
+                # faceData
+                self.faceData.size +=2
+                self.faceData.streams[0].data.append(Vector2("0.0137 0.0137".split()))
+                self.faceData.streams[0].data.append(Vector2("0.0137 0.0137".split()))
+                self.faceData.streams[1].data.append(Vector4("1 0 0 256".split()))
+                self.faceData.streams[1].data.append(Vector4("1 0 0 256".split()))
+                self.faceData.streams[2].data.append(Vector4("0 -1 0 256".split()))
+                self.faceData.streams[2].data.append(Vector4("0 -1 0 256".split()))
+                self.faceData.streams[3].data.append(0)
+                self.faceData.streams[4].data.append(0)
+                self.faceData.streams[5].data.append(0)
+                self.faceData.streams[3].data.append(0)
+                self.faceData.streams[4].data.append(0)
+                self.faceData.streams[5].data.append(0)
+
+                # subdivisionData
+                for n in range(10):
+                    self.subdivisionData.subdivisionLevels.append(0)
+                
+                return self
+
             @classmethod
             def SampleBox(self):
                 """
@@ -744,7 +855,7 @@ if __name__ == "__main__":
     def test_quad():
         mesh = CMapWorld.CMapMesh()
         mesh.origin = Vector3([0,0,0])
-        mesh.meshData = CMapWorld.CMapMesh.CDmePolygonMesh.SampleQuad()
+        mesh.meshData = CMapWorld.CMapMesh.CDmePolygonMesh.SampleJoinedTriangles()
         out_vmap.prefix_attributes['map_asset_references'].append("materials/dev/reflectivity_30.vmat")
         vmap['world']['children'].append(mesh.get_element(vmap))
         out_vmap.write("utils/dev/out_sample_quad.vmap.txt", 'keyvalues2', 4)
@@ -759,3 +870,20 @@ if __name__ == "__main__":
         out_vmap.write("utils/dev/out_sample_box.vmap.txt", 'keyvalues2', 4)
         print("Saved", "utils/dev/out_sample_box.vmap.txt")
     test_quad()
+    import subprocess, shutil
+    shutil.copy("utils/dev/out_sample_quad.vmap.txt", "D:/Games/steamapps/common/Half-Life Alyx/content/hlvr_addons/test/maps/test.vmap")
+    p = subprocess.run(
+        args=[
+            "-game", "hlvr",
+            "-i", "D:/Games/steamapps/common/Half-Life Alyx/content/hlvr_addons/test/maps/test.vmap",
+            "-fshallow",
+            "-world",
+            "nominidumps"
+        ],
+        executable=r"D:\Games\steamapps\common\Half-Life Alyx\game\bin\win64\resourcecompiler.exe",
+    )
+    if p:
+        if p.returncode == 0:
+            print("Parsed and compiled sucesfully")
+        else:
+            print("Error parsing map!")

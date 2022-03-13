@@ -1,3 +1,4 @@
+from itertools import zip_longest
 from typing import Optional
 
 # https://en.wikipedia.org/wiki/Doubly_connected_edge_list
@@ -127,6 +128,24 @@ class DCEA:
             arc = f"{v}->{self.edgeVertexIndices[self.edgeOppositeIndices[i]]}"
             e.add_row([i, self.edgeOppositeIndices[i], self.edgeNextIndices[i], self.edgeFaceIndices[i], arc])
         return str(e)
+    
+    @property
+    def halfList(self) -> list:
+        "All halves, proper order."
+        half_edges: list[half_edge] = []
+        for i, (v0, v1) in enumerate(zip_longest(*[iter(self.edgeVertexIndices)]*2)):
+            half_edges.append(half_edge(origin=vertex(idx=v0,position=None), incident_face=face(self.edgeFaceIndices[2*i])))
+            half_edges.append(half_edge(origin=vertex(idx=v1,position=None), incident_face=face(self.edgeFaceIndices[2*i+1])))
+
+            # edgeOppositeIndices always the same, skip it
+            half_edges[i].opposite = half_edges[i+1]
+            half_edges[i+1].opposite = half_edges[i]
+        
+        for this_is_next_of, this in enumerate(self.edgeNextIndices):
+            half_edges[this].next = half_edges[this_is_next_of]
+        
+        return half_edges
+
 
 # https://observablehq.com/@2talltim/mesh-data-structures-traversal#cell-129
 class DCEL:
@@ -137,6 +156,7 @@ class DCEL:
         "Representative edge for each face"
         self.holes: list[half_edge] = []
         "Representative edge for each hole (1-dimensional boundary)"
+        self.halfList: list[half_edge] = []
     
     def __repr__(self):
         return f"<DCEL {self.vert_count} nodes {self.edge_count} edges {self.face_count} faces>"
@@ -160,6 +180,7 @@ class DCEL:
     
     @property
     def edgeList(self):
+        "One half per each edge, bad order"
         #face0 = self.faces[0]
         #face0_path = Path(face0, face0.previous)#Path(face0.previous, face0.previous.previous)
         rv: list[half_edge] = []#array('i')
@@ -187,8 +208,19 @@ class DCEL:
         #a.edgeNextIndices = [None] * self.edge_count*2
         a.edgeOppositeIndices = [None] * self.edge_count*2
 
+        
+        #[0(0, 2), 1(1, 2), 1(2, 3), 0(1, 0), 1(3, 1)]
+
+        #[0(1, 0), 1(2, 3), 0(0, 2), 1(3, 1), 1(1, 2)]
+        
         el = self.edgeList
-        el.insert(0, el.pop())
+        print(el)
+        el.insert(1, el.pop(0))
+        el.insert(1, el.pop())
+        el = el[::-1]
+        #el.append(el.pop(2))
+
+        #el.insert(0, el.pop())
         #for i, edge in enumerate(self.edgeList):
         _order = []
 
@@ -226,7 +258,7 @@ class DCEL:
                 yield i, el[i]
 
         for i, edge in this_specific_order(el):
-            if i:
+            if i and i !=4:
                 # Flip because we are clockwise, vmap has it counter-cw
                 edge = edge.opposite
             assert edge != edge.opposite
@@ -241,7 +273,7 @@ class DCEL:
             a.edgeFaceIndices.append(max(edge.incident_face.idx, -1))
             a.edgeFaceIndices.append(max(edge.opposite.incident_face.idx, -1))
         for i, edge in this_specific_order(el):
-            if i:
+            if i and i !=4:
                 edge = edge.opposite
             a.edgeNextIndices.append(_order.index(edge.previous)) 
             a.edgeNextIndices.append(_order.index(edge.opposite.previous))
@@ -286,6 +318,8 @@ class DCEL:
 
             self.add_half(left)
             self.add_half(right)
+            self.halfList.append(right)
+            self.halfList.append(left)
             if prevLeftEdge is not None:
                 prevLeftEdge.next = left
             if prevRightEdge is not None:
@@ -412,6 +446,9 @@ class DCEL:
                 for new_loop_edge in path.start:
                     new_loop_edge.incident_face = f
                     self.add_half(new_loop_edge)
+                    self.halfList.append(new_loop_edge)
+                    self.halfList.append(new_loop_edge.opposite)
+
                 print("Face count", self.face_count)
                 print("Hole count", self.hole_count)
 
@@ -514,15 +551,16 @@ def pydata3():
         coord3d(-3.5, 3.5, 0),
         coord3d(3.5, -3.5, 0),
         coord3d(3.5, 3.5, 0),],
-        [[0, 1, 2],
-        [1, 3, 2]]
+        [[0, 2, 1],
+        [1, 2, 3]]
 )
 e0 = DCEL.from_pydata(
     [coord3d(-3.5, -3.5, 0),
     coord3d(-3.5, 3.5, 0),
     coord3d(3.5, -3.5, 0),
     coord3d(3.5, 3.5, 0),],
-    [[0, 2, 3, 1]]
+    #[[0, 2, 3, 1]]
+    [[0, 1, 3, 2]]
 )
 
 
