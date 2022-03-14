@@ -1,5 +1,9 @@
 from itertools import islice, tee, zip_longest
+import os
 import sys
+
+from prettytable import PrettyTable
+
 if sys.version_info.minor != 8:
     print("Python version 3.8 is required")
     sys.exit(1)
@@ -258,6 +262,175 @@ class CMapWorld(_BaseEnt):
                     )
                 )
 
+            def __repr__(self):
+                e = PrettyTable(['E', 'O', 'N', 'F', 'V->D'])
+                for i, v in enumerate(self.edgeVertexIndices):
+                    arc = f"{v}->{self.edgeVertexIndices[self.edgeOppositeIndices[i]]}"
+                    e.add_row([i, self.edgeOppositeIndices[i], self.edgeNextIndices[i], self.edgeFaceIndices[i], arc])
+                return str(e)
+
+            @property
+            def halfList(self):
+                "All halves, proper order."
+                half_edges: list[dcel.half_edge] = []
+                for i, (v0, v1) in enumerate(zip_longest(*[iter(self.edgeVertexIndices)]*2)):
+                    half_edges.append(dcel.half_edge(origin=dcel.vertex(idx=v0,position=None), incident_face=dcel.face(self.edgeFaceIndices[2*i])))
+                    half_edges.append(dcel.half_edge(origin=dcel.vertex(idx=v1,position=None), incident_face=dcel.face(self.edgeFaceIndices[2*i+1])))
+
+                    # edgeOppositeIndices always the same, skip it
+                    half_edges[i].opposite = half_edges[i+1]
+                    half_edges[i+1].opposite = half_edges[i]
+                
+                for this_is_next_of, this in enumerate(self.edgeNextIndices):
+                    half_edges[this].next = half_edges[this_is_next_of]
+                
+                return half_edges
+
+            @classmethod
+            def FromDCEL(cls, dcel: dcel.DCEL):
+                """Code friendly Linked-list structure to array based serializable structure"""
+                a = cls(name='meshData')
+                vertex_count = dcel.vert_count
+                edge_count = dcel.edge_count
+                half_edge_count = dcel.edge_count*2
+                face_count = dcel.face_count
+
+                a.vertexEdgeIndices += [*range(vertex_count)]
+                a.vertexDataIndices += [*range(vertex_count)]
+
+                # prefill
+                #a.edgeNextIndices = [None] * dcel.edge_count*2
+                opposites = [None] * dcel.edge_count*2
+                
+                el = dcel.edgeList
+                print(el)
+                ## Start with an edge pointing at 0, incident to face0
+                el.insert(1, el.pop(0))
+                el.insert(1, el.pop())
+                el = el[::-1]
+                #el.insert(3, el.pop())
+                #el.insert(0, el.pop())
+                #el.append(el.pop(2))
+
+                #el.insert(0, el.pop())
+                #for i, edge in enumerate(dcel.edgeList):
+                _order = []
+                def this_specific_order(el):
+                    for i in range(len(el)):
+                        yield i, el[i]
+
+                for i, edge in this_specific_order(el):
+                    if i:
+                        # Flip because we are clockwise, vmap has it counter-cw
+                        edge = edge.opposite
+
+                    #print(edge)
+                    assert edge != edge.opposite
+                    assert edge == edge.opposite.opposite
+                    assert edge.opposite == edge.opposite.opposite.opposite
+                    _order.append(edge)
+                    _order.append(edge.opposite)
+                    a.edgeVertexIndices.append(edge.origin.idx)
+                    a.edgeVertexIndices.append(edge.opposite.origin.idx)
+                    opposites[2*i]= 1 if not i else 2*i+1
+                    opposites[2*i+1] = 2*i
+                    a.edgeFaceIndices.append(max(edge.incident_face.idx, -1))
+                    a.edgeFaceIndices.append(max(edge.opposite.incident_face.idx, -1))
+                
+                a.edgeOppositeIndices += opposites
+                
+                for i, edge in this_specific_order(el):
+                    if i:
+                        edge = edge.opposite
+                    a.edgeNextIndices.append(_order.index(edge.previous)) 
+                    a.edgeNextIndices.append(_order.index(edge.opposite.previous))
+                    #a.edgeNextIndices[2*i] = _order.index(edge.previous)
+                    #a.edgeNextIndices[2*i+1] = _order.index(edge.opposite.previous)
+
+                # edgeDataIndices
+                for n in range(edge_count):
+                    a.edgeDataIndices += [n,n]
+                # edgeVertexDataIndices
+                a.edgeVertexDataIndices += [n for n in range(half_edge_count)]
+                # faceEdgeIndices
+                a.faceEdgeIndices.append(8)
+                a.faceEdgeIndices.append(9)
+                # faceDataIndices
+                a.faceDataIndices+= [n for n in range(face_count)]
+                self = a
+                self.materials.append("materials/dev/reflectivity_30.vmat")
+                # vertexData
+                self.vertexData.size = vertex_count
+                self.vertexData.streams[0].data += [ # position
+                    Vector3("-3.5 -3.5 0".split()),
+                    Vector3("3.5 -3.5 0".split()),
+                    Vector3("-3.5 3.5 0".split()),
+                    Vector3("3.5 3.5 0".split())
+                ]
+                # faceVertexData
+                self.faceVertexData.size = half_edge_count
+                self.faceVertexData.streams[0].data += [ # texcoord
+                    Vector2("1 1".split()),
+                    Vector2("0 0".split()),
+                    Vector2("0 0".split()),
+                    Vector2("0 0".split()),
+                    Vector2("0 0".split()),
+                    Vector2("0 1".split()),
+                    Vector2("0 0".split()),
+                    Vector2("1 0".split()),
+                    Vector2("1 1".split()),
+                    Vector2("0 0".split())
+                ]
+                self.faceVertexData.streams[1].data += [ # normal
+                    Vector3("0 0 1".split()),
+                    Vector3("0 0 0".split()),
+                    Vector3("0 0 0".split()),
+                    Vector3("0 0 1".split()),
+                    Vector3("0 0 0".split()),
+                    Vector3("0 0 1".split()),
+                    Vector3("0 0 0".split()),
+                    Vector3("0 0 1".split()),
+                    Vector3("0 0 1".split()),
+                    Vector3("0 0 1".split())
+                ]
+                self.faceVertexData.streams[2].data += [ # tangent
+                    Vector4("1 0 0 -1".split()),
+                    Vector4("0 0 0 0".split()),
+                    Vector4("0 0 0 0".split()),
+                    Vector4("1 0 0 -1".split()),
+                    Vector4("0 0 0 0".split()),
+                    Vector4("1 0 0 -1".split()),
+                    Vector4("0 0 0 0".split()),
+                    Vector4("1 0 0 -1".split()),
+                    Vector4("1 0 0 -1".split()),
+                    Vector4("1 0 0 -1".split()),
+                ]
+
+                # edgeData
+                self.edgeData.size = edge_count
+                for n in range(edge_count):
+                    self.edgeData.streams[0].data.append(0)
+
+                # faceData
+                self.faceData.size = face_count
+                self.faceData.streams[0].data.append(Vector2("0.0137 0.0137".split()))
+                self.faceData.streams[0].data.append(Vector2("0.0137 0.0137".split()))
+                self.faceData.streams[1].data.append(Vector4("1 0 0 256".split()))
+                self.faceData.streams[1].data.append(Vector4("1 0 0 256".split()))
+                self.faceData.streams[2].data.append(Vector4("0 -1 0 256".split()))
+                self.faceData.streams[2].data.append(Vector4("0 -1 0 256".split()))
+                self.faceData.streams[3].data.append(0)
+                self.faceData.streams[4].data.append(0)
+                self.faceData.streams[5].data.append(0)
+                self.faceData.streams[3].data.append(0)
+                self.faceData.streams[4].data.append(0)
+                self.faceData.streams[5].data.append(0)
+
+                # subdivisionData
+                for n in range(half_edge_count):
+                    self.subdivisionData.subdivisionLevels.append(0)
+                return a
+
             @classmethod
             def SampleTriangle(self):
                 """
@@ -431,108 +604,12 @@ class CMapWorld(_BaseEnt):
                 sample joined triangles, similar to quad but with an extra edge
                 
                 """
-                self = self(name='meshData')
-                if False:
-                    self.vertexEdgeIndices +=   [0, 1, 2, 3]
-                    self.vertexDataIndices +=   [0, 1, 2, 3]
-                    self.edgeVertexIndices +=   [1, 0, 3, 2, 2, 0, 1, 3, 1, 2]
-                    self.edgeOppositeIndices += [1, 0, 3, 2, 5, 4, 7, 6, 9, 8]
-                    self.edgeNextIndices +=     [9, 4, 6, 8, 2, 0, 1, 3, 7, 5]#[7, 4, 6, 5, 2, 0, 1, 3]
-                    #[7, 4, 6, 5, 2, 8, 1, 9, 3, 0]
-                    self.edgeFaceIndices +=     [1,-1,-1, 0,-1, 1,-1, 0, 0, 1]
-                else:
-                    PolygonMesh = dcel.e2.asArray()
-                    print(PolygonMesh)
-                    self.vertexEdgeIndices += PolygonMesh.vertexEdgeIndices
-                    self.vertexDataIndices += PolygonMesh.vertexDataIndices
-                    self.edgeVertexIndices += PolygonMesh.edgeVertexIndices
-                    self.edgeOppositeIndices += PolygonMesh.edgeOppositeIndices
-                    self.edgeNextIndices += PolygonMesh.edgeNextIndices
-                    self.edgeFaceIndices += PolygonMesh.edgeFaceIndices
-                # edgeDataIndices
-                for n in range(5):
-                    self.edgeDataIndices += [n,n]
-                # edgeVertexDataIndices
-                self.edgeVertexDataIndices += [n for n in range(10)]
-                # faceEdgeIndices
-                self.faceEdgeIndices.append(9)
-                self.faceEdgeIndices.append(8)
-                # faceDataIndices
-                self.faceDataIndices.append(0)
-                self.faceDataIndices.append(1)
-                # materials
-                self.materials.append("materials/dev/reflectivity_30.vmat")
-                # vertexData
-                self.vertexData.size = 4
-                self.vertexData.streams[0].data += [ # position
-                    Vector3("-3.5 -3.5 0".split()),
-                    Vector3("3.5 -3.5 0".split()),
-                    Vector3("-3.5 3.5 0".split()),
-                    Vector3("3.5 3.5 0".split())
-                ]
-                # faceVertexData
-                self.faceVertexData.size = 10
-                self.faceVertexData.streams[0].data += [ # texcoord
-                    Vector2("1 1".split()),
-                    Vector2("0 0".split()),
-                    Vector2("0 0".split()),
-                    Vector2("0 0".split()),
-                    Vector2("0 0".split()),
-                    Vector2("0 1".split()),
-                    Vector2("0 0".split()),
-                    Vector2("1 0".split()),
-                    Vector2("1 1".split()),
-                    Vector2("0 0".split())
-                ]
-                self.faceVertexData.streams[1].data += [ # normal
-                    Vector3("0 0 1".split()),
-                    Vector3("0 0 0".split()),
-                    Vector3("0 0 0".split()),
-                    Vector3("0 0 1".split()),
-                    Vector3("0 0 0".split()),
-                    Vector3("0 0 1".split()),
-                    Vector3("0 0 0".split()),
-                    Vector3("0 0 1".split()),
-                    Vector3("0 0 1".split()),
-                    Vector3("0 0 1".split())
-                ]
-                self.faceVertexData.streams[2].data += [ # tangent
-                    Vector4("1 0 0 -1".split()),
-                    Vector4("0 0 0 0".split()),
-                    Vector4("0 0 0 0".split()),
-                    Vector4("1 0 0 -1".split()),
-                    Vector4("0 0 0 0".split()),
-                    Vector4("1 0 0 -1".split()),
-                    Vector4("0 0 0 0".split()),
-                    Vector4("1 0 0 -1".split()),
-                    Vector4("1 0 0 -1".split()),
-                    Vector4("1 0 0 -1".split()),
-                ]
-
-                # edgeData
-                for n in range(5):
-                    self.edgeData.size+=1
-                    self.edgeData.streams[0].data.append(0)
-
-                # faceData
-                self.faceData.size +=2
-                self.faceData.streams[0].data.append(Vector2("0.0137 0.0137".split()))
-                self.faceData.streams[0].data.append(Vector2("0.0137 0.0137".split()))
-                self.faceData.streams[1].data.append(Vector4("1 0 0 256".split()))
-                self.faceData.streams[1].data.append(Vector4("1 0 0 256".split()))
-                self.faceData.streams[2].data.append(Vector4("0 -1 0 256".split()))
-                self.faceData.streams[2].data.append(Vector4("0 -1 0 256".split()))
-                self.faceData.streams[3].data.append(0)
-                self.faceData.streams[4].data.append(0)
-                self.faceData.streams[5].data.append(0)
-                self.faceData.streams[3].data.append(0)
-                self.faceData.streams[4].data.append(0)
-                self.faceData.streams[5].data.append(0)
-
-                # subdivisionData
-                for n in range(10):
-                    self.subdivisionData.subdivisionLevels.append(0)
-                
+                self = self.FromDCEL(dcel.e2)
+                self.edgeVertexIndices.clear();self.edgeVertexIndices +=   [1, 0, 3, 2, 2, 0, 1, 3, 1, 2]
+                self.edgeOppositeIndices.clear();self.edgeOppositeIndices += [1, 0, 3, 2, 5, 4, 7, 6, 9, 8]
+                self.edgeNextIndices.clear();self.edgeNextIndices +=     [9, 4, 6, 8, 2, 0, 1, 3, 7, 5]#[7, 4, 6, 5, 2, 0, 1, 3]
+                #[7, 4, 6, 5, 2, 8, 1, 9, 3, 0]
+                self.edgeFaceIndices.clear();self.edgeFaceIndices +=     [1,-1,-1, 0,-1, 1,-1, 0, 0, 1]
                 return self
 
             @classmethod
@@ -855,11 +932,20 @@ if __name__ == "__main__":
     def test_quad():
         mesh = CMapWorld.CMapMesh()
         mesh.origin = Vector3([0,0,0])
-        mesh.meshData = CMapWorld.CMapMesh.CDmePolygonMesh.SampleJoinedTriangles()
+        mesh.meshData = CMapWorld.CMapMesh.CDmePolygonMesh.SampleQuad()
         out_vmap.prefix_attributes['map_asset_references'].append("materials/dev/reflectivity_30.vmat")
         vmap['world']['children'].append(mesh.get_element(vmap))
         out_vmap.write("utils/dev/out_sample_quad.vmap.txt", 'keyvalues2', 4)
         print("Saved", "utils/dev/out_sample_quad.vmap.txt")
+
+    def test_joinedtris():
+        mesh = CMapWorld.CMapMesh()
+        mesh.origin = Vector3([0,0,0])
+        mesh.meshData = CMapWorld.CMapMesh.CDmePolygonMesh.FromDCEL(dcel.e2)
+        out_vmap.prefix_attributes['map_asset_references'].append("materials/dev/reflectivity_30.vmat")
+        vmap['world']['children'].append(mesh.get_element(vmap))
+        out_vmap.write("utils/dev/out_sample_joinedtris.vmap.txt", 'keyvalues2', 4)
+        print("Saved", "utils/dev/out_sample_joinedtris.vmap.txt")
 
     def test_box():
         mesh = CMapWorld.CMapMesh()
@@ -869,21 +955,32 @@ if __name__ == "__main__":
         vmap['world']['children'].append(mesh.get_element(vmap))
         out_vmap.write("utils/dev/out_sample_box.vmap.txt", 'keyvalues2', 4)
         print("Saved", "utils/dev/out_sample_box.vmap.txt")
-    test_quad()
+    test_joinedtris()
     import subprocess, shutil
-    shutil.copy("utils/dev/out_sample_quad.vmap.txt", "D:/Games/steamapps/common/Half-Life Alyx/content/hlvr_addons/test/maps/test.vmap")
+    shutil.copy("utils/dev/out_sample_joinedtris.vmap.txt", "D:/Games/steamapps/common/Half-Life Alyx/content/hlvr_addons/test/maps/test.vmap")
     p = subprocess.run(
         args=[
             "-game", "hlvr",
             "-i", "D:/Games/steamapps/common/Half-Life Alyx/content/hlvr_addons/test/maps/test.vmap",
             "-fshallow",
             "-world",
-            "nominidumps"
+            #"nominidumps"
         ],
         executable=r"D:\Games\steamapps\common\Half-Life Alyx\game\bin\win64\resourcecompiler.exe",
+        stdout=subprocess.PIPE
     )
     if p:
         if p.returncode == 0:
-            print("Parsed and compiled sucesfully")
+            print("Parsed sucesfully.")
+            if b"Created 1 world node" in p.stdout:
+                print("Mesh was valid!")
+            else:
+                print(p.stdout.decode('utf-8'))
+
         else:
-            print("Error parsing map!")
+            print("Mesh was corrupted!")
+            # delete dumps
+            test = os.listdir(".")
+            for item in test:
+                if item.endswith(".mdmp"):
+                    os.remove(os.path.join(item))
