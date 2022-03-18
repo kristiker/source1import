@@ -17,6 +17,7 @@ arg_parser.add_argument("-game", "-e", help="Specify the S2 mod/addon to import 
 
 _args_known, args_unknown = arg_parser.parse_known_args()
 
+#_args_known.src1gameinfodir = 'D:/Games/steamapps/common/Half-Life Alyx/game/csgo'
 '-src1gameinfodir "D:/Games/steamapps/common/Half-Life Alyx/game/csgo" -game hlvr_addons/csgo'
 
 class KVUtilFile(KV):
@@ -44,9 +45,23 @@ class KVUtilFile(KV):
         return super().save(self.path, quoteKeys=True)
 
 
-from enum import Enum
+from enum import Enum, unique, auto
+
+@unique
+class eEngineUtils(Enum):
+    def _generate_next_value_(name: str, *_) -> str:
+        return name+".exe"
+    @property
+    def full_path(self) -> Path:
+        return BIN / "win64" / self.value
+    @property
+    def avaliable(self):
+        return self.full_path.is_file()
+    
+                stdout=subprocess.PIPE,
+                creationflags= subprocess.CREATE_NO_WINDOW | subprocess.DETACHED_PROCESS,
 class eEngineFolder(Enum):
-    "Source 2 main folders"
+    "Source 2 main folders relative to root"
     ROOT = Path()
     CONTENTROOT = Path("content")
     GAMEROOT = Path("game")

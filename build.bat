@@ -1,5 +1,5 @@
 taskkill /IM source1import.exe /t /f
-pyinstaller ^
+python -m PyInstaller ^
     -F ^
     -p utils ^
     --distpath=./ ^
