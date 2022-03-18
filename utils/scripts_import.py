@@ -198,7 +198,7 @@ def _handle_range(k, v):
     try:
         mm = tuple(v.split(',', 1))
         min, max = float(mm[0]), float(mm[1])
-    except: return
+    except Exception: return
     else:
         rv = {}
         out_v = min+max / 2
@@ -301,34 +301,13 @@ def ImportGameSound(asset_path: Path):
                             if v.startswith('SNDLVL_'):
                                 try:
                                     out_v = int(v[7:-2])
-                                except:
+                                except Exception:
                                     print(v[7:])
                             else: print(v)
             elif k == 'delay_msec': out_k, out_v = 'delay', v/1000
             elif k == 'ignore_occlusion': out_k, out_v = 'occlusion_scale', (1 if not v else 0)#'sa_enable_occlusion'
             elif k == 'operator_stacks':  # this only exists in globul offensif
                 ...
-                continue
-                #print("~~~~~ stack")
-                op_stacks[v.ToStr()] = op_stacks.get(v.ToStr(), 0) + 1
-
-                if mx:=v.get('update_stack', {}).get('mixer', {}).get('mixgroup'):
-                    out_kv['mixgroup'] = mx
-                #for opk, opv in v.items():
-                #    #input(f"{opk} {opv.ToStr()}")
-                #    if opk == 'update_stack':
-                #        for up_k, up_v in opv.items():
-                #            ...
-                            #if isinstance(up_v, dict):
-                            #    if mx:=up_v.get('mixgroup'):
-                            #        out_kv['mixgroup'] = mx
-                # update stack
-                    # volume_falloff
-                    # {
-                    #         input_max       "800"
-                    #         input_curve_amount      "0.9"
-                    # }
-                    # volume_fallof_max/min in out_kv
                 continue
             elif k in ('soundentry_version', 'alert', 'hrtf_follow','gamedata',): # skiplist
                 continue
@@ -439,17 +418,8 @@ if __name__ == '__main__':
     sh.parse_argv()
     main()  
 
-    raise SystemExit(0)
-    for k, v in collected.items():
-        print(k, v[1])
-    for opstack, count in op_stacks.items():
-        print()
-        print(count)
-        print(opstack)
-
 def ImportUpdateResourceRefs(asset_path: Path):
     ...
-    # we ported .wavs to vsnds,
     # this func is for other generic scripts to update their resource refs
     # eg. search for each value and see if its a ref and replace each
     # after that just integ

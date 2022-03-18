@@ -1,6 +1,5 @@
 from pathlib import Path
 from shutil import copyfile
-from difflib import get_close_matches
 from PIL import Image, ImageOps
 
 import shared.base_utils2 as sh
@@ -12,12 +11,10 @@ import numpy as np
 from shared import PFM
 
 # generic, blend instead of vr_complex, vr_simple_2wayblend etc...
-LEGACY_SHADER = False
-NEW_SH = not LEGACY_SHADER
+GENERIC_SHADER = False
+COMPLEX_SH = not GENERIC_SHADER
 
-# Path to content root, before /materials/
-
-# Set this to True if you wish to overwrite your old vmat files. Same as adding -f to launch parameters
+# Set this to True if you wish to overwrite your old vmat files.
 OVERWRITE_VMAT = True
 OVERWRITE_SKYBOX_VMATS = True
 OVERWRITE_SKYCUBES = True
@@ -28,8 +25,7 @@ NORMALMAP_G_VTEX_INVERT = True
 BASIC_PBR = True
 MISSING_TEXTURE_SET_DEFAULT = True
 USE_SUGESTED_DEFAULT_ROUGHNESS = True
-SURFACEPROP_AS_IS = False
-PRINT_LEGACY_IMPORT = False  # Print vmt inside vmat for debug? purposes. Increases file size.
+PRINT_LEGACY_IMPORT = False  # Print vmt inside vmat as reference. Increases file size.
 
 sh.DEBUG = False
 msg = sh.msg
@@ -188,7 +184,7 @@ def chooseShader():
             failureList.add(f"{vmt.shader} unsupported shader", vmt.path)
         return "vr_black_unlit"
 
-    if LEGACY_SHADER:   d["generic"] += 1
+    if GENERIC_SHADER:   d["generic"] += 1
     else:               d[shaderDict[vmt.shader]] += 1
 
     if vmt.KeyValues['$beachfoam']: return "csgo_beachfoam"
@@ -447,7 +443,7 @@ def fixVector(s, addAlpha = 1, returnList = False):
     s = s.strip().replace(",", "").strip('][}{').strip(')(')
 
     try: originalValueList = [str(float(i)) for i in s.split(' ') if i != '']
-    except: return None #originalValueList =  [1.000000, 1.000000, 1.000000]
+    except ValueError: return None #originalValueList =  [1.000000, 1.000000, 1.000000]
 
     dimension = len(originalValueList)
     if dimension < 3: likelyColorInt = False
@@ -526,21 +522,21 @@ class TexTransform:
         for i, term in enumerate(mxTerms):
 
             try: nextTerm = float(mxTerms[i+1])
-            except: continue
+            except (IndexError, ValueError): continue
 
             if term == 'rotate':
                 self.rotate = nextTerm
                 continue
 
             try: nextnextTerm =  float(mxTerms[i+2])
-            except: continue
+            except (IndexError, ValueError): continue
 
             if term in ('center', 'scale', 'translate'):
                 setattr(self, term, (nextTerm, nextnextTerm))
 
 def is_convertible_to_float(value):
     try: float(value)
-    except: return False
+    except ValueError: return False
     else: return True
 
 
@@ -602,13 +598,13 @@ vmt_to_vmat = {
 
     ## Layer blend mask
     '$blendmodulatetexture':\
-                        ('TextureMask',             '_mask',   [createMask, 'G', False], ('F_BLEND', 1)) if NEW_SH else \
+                        ('TextureMask',             '_mask',   [createMask, 'G', False], ('F_BLEND', 1)) if COMPLEX_SH else \
                         ('TextureLayer1RevealMask', '_blend',  [createMask, 'G', False], ('F_BLEND', 1)),
     ## Layer 1
-    '$basetexture2':    ('TextureColorB' if NEW_SH else 'TextureLayer1Color',  '_color',  [formatNewTexturePath]),
+    '$basetexture2':    ('TextureColorB' if COMPLEX_SH else 'TextureLayer1Color',  '_color',  [formatNewTexturePath]),
     # There is also Texture2Color, F_TWOTEXTURE, Texture2Translucency, g_vTexCoord2
-    '$texture2':        ('TextureColorB' if NEW_SH else 'TextureLayer1Color',   '_color',  [formatNewTexturePath]),  # UnlitTwoTexture
-    '$bumpmap2':        ('TextureNormalB' if NEW_SH else 'TextureLayer1Normal', '_normal', [formatNewTexturePath], None if NEW_SH else ('F_BLEND_NORMALS',  1)),
+    '$texture2':        ('TextureColorB' if COMPLEX_SH else 'TextureLayer1Color',   '_color',  [formatNewTexturePath]),  # UnlitTwoTexture
+    '$bumpmap2':        ('TextureNormalB' if COMPLEX_SH else 'TextureLayer1Normal', '_normal', [formatNewTexturePath], None if COMPLEX_SH else ('F_BLEND_NORMALS',  1)),
 
     ## Layer 2-3
     '$basetexture3':    ('TextureLayer2Color',  '_color',  [formatNewTexturePath]),
@@ -637,14 +633,14 @@ vmt_to_vmat = {
 
     # Next script should take care of these, unless BASIC_PBR
     '$envmapmask':  ('$envmapmask',         '_env_mask',   [formatNewTexturePath]) if not BASIC_PBR else \
-                    ('TextureRoughness',    '_rough',      [createMask, 'L', True]) if not LEGACY_SHADER else \
+                    ('TextureRoughness',    '_rough',      [createMask, 'L', True]) if not GENERIC_SHADER else \
                     ('TextureGlossiness',   '_gloss',      [formatNewTexturePath]),
 
                     #if out dota2 ('TextureCubeMapSeparateMask', '_mask', ('F_MASK_CUBE_MAP_BY_SEPARATE_MASK' 1))
 
     ('$phong', 1): {
         '$phongmask':   ('$phongmask',          '_phong_mask', [formatNewTexturePath]) if not BASIC_PBR else \
-                        ('TextureRoughness',    '_rough',      [formatNewTexturePath]) if not LEGACY_SHADER else \
+                        ('TextureRoughness',    '_rough',      [formatNewTexturePath]) if not GENERIC_SHADER else \
                         ('TextureGlossiness',   '_gloss',      [formatNewTexturePath]),
     },
 },
@@ -1115,11 +1111,6 @@ def collectSkybox(name:str, face: str, vmt: VMT):
             sh.UpdateJson(face_collect_path, Collect)
 
         return face_collect_path
-
-    if False: #bHasLDRFallback: TODO
-        ldr_vmtPath = "1"
-        ldr_vmtKeyValues = "2"
-        collectSkybox(ldr_vmtPath, ldr_vmtKeyValues)
 
 def _ImportVMTtoExtraVMAT(vmt_path: Path, shader = None, path = None):
     global vmat, import_extra

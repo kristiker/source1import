@@ -236,7 +236,7 @@ from enum import IntEnum, Enum
 from typing import Generator, Optional, Sequence, Union, Iterable, TypedDict
 try:
     from cstr import strtol, strtod
-except:
+except ImportError:
     from shared.cstr import strtol, strtod
 class KeyValues: pass # Prototype LUL ( for typing to work inside own class functions)
 

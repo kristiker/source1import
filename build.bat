@@ -1,3 +1,4 @@
+taskkill /IM source1import.exe /t /f
 pyinstaller ^
     -F ^
     -p utils ^

@@ -2,8 +2,6 @@ import shared.base_utils2 as sh
 
 SHOULD_OVERWRITE = False
 
-#@sh.s1import('.vmdl')
-#def ImportMDLtoVMDL(mdl_path, vmdl_path, move_s1_assets = False):
 def ImportMDLtoVMDL(mdl_path, move_s1_assets = False):
 
     vmdl_path = sh.output(mdl_path, '.vmdl')
