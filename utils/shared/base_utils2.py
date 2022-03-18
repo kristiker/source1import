@@ -2,8 +2,9 @@
 from contextlib import suppress
 from pathlib import Path
 from enum import Enum
+import subprocess
 from types import GeneratorType
-from typing import Callable
+from typing import Callable, Optional
 try:
     from keyvalues1 import KV
 except ImportError:
@@ -17,7 +18,6 @@ arg_parser.add_argument("-game", "-e", help="Specify the S2 mod/addon to import 
 
 _args_known, args_unknown = arg_parser.parse_known_args()
 
-#_args_known.src1gameinfodir = 'D:/Games/steamapps/common/Half-Life Alyx/game/csgo'
 '-src1gameinfodir "D:/Games/steamapps/common/Half-Life Alyx/game/csgo" -game hlvr_addons/csgo'
 
 class KVUtilFile(KV):
@@ -58,8 +58,21 @@ class eEngineUtils(Enum):
     def avaliable(self):
         return self.full_path.is_file()
     
+    def __call__(self, args: list[str] = []) -> Optional[subprocess.CompletedProcess]:
+        if self.avaliable:
+            #os.system(f'"{self.full_path}" {" ".join(args)}')
+            return subprocess.run(
+                args,
+                executable=self.full_path,
+                #shell=True,
                 stdout=subprocess.PIPE,
                 creationflags= subprocess.CREATE_NO_WINDOW | subprocess.DETACHED_PROCESS,
+            )
+
+    dmxconvert = auto()
+    resourcecompiler = auto()
+    resourcecopy = auto()
+
 class eEngineFolder(Enum):
     "Source 2 main folders relative to root"
     ROOT = Path()
@@ -68,16 +81,16 @@ class eEngineFolder(Enum):
     SRC = Path("src")
     BIN = GAMEROOT / "bin"
     CORE_GAME = GAMEROOT / "core"
+    @classmethod
+    def update_root(__class__, s2_root = None):
+        "Update ROOT, as well as paths deriving from it (GAMEROOT, CONTENTROOT, SRC...)"
+        for folder in __class__:
+            if s2_root is None:
+                globals()[folder.name] = None
+                continue
+            globals()[folder.name] = s2_root / folder.value
 
-def update_root(s2_root):
-    "Update ROOT, as well as paths deriving from it (GAMEROOT, CONTENTROOT, SRC...)"
-    for folder in eEngineFolder:
-        if s2_root is None:
-            globals()[folder.name] = None
-            continue
-        globals()[folder.name] = s2_root / folder.value
-
-update_root(None)  # Add ROOT, CONTENTROOT, CORE_GAME... to globals() as None
+eEngineFolder.update_root(None)  # Add ROOT, CONTENTROOT, CORE_GAME... to globals() as None
 IMPORT_CONTENT: Path = None
 IMPORT_GAME: Path = None
 EXPORT_CONTENT: Path = None
@@ -143,7 +156,7 @@ def parse_in_path():
         print("Warning: Error reading gameinfo.txt")
     IMPORT_GAME = in_path
     if IMPORT_GAME.parent.name == 'game':  # Source 2 dir
-        update_root(IMPORT_GAME.parents[1])
+        eEngineFolder.update_root(IMPORT_GAME.parents[1])
         IMPORT_CONTENT = CONTENTROOT / IMPORT_GAME.name
 
 def parse_out_path(source2_mod: Path):
@@ -163,7 +176,7 @@ def parse_out_path(source2_mod: Path):
                     p_index+=len(source2_mod.parts)-3
                     # Importing from a source 2 app into different source 2 app.
                     # The latter becomes root (script's working environment).
-                    update_root(Path(*source2_mod.parts[:p_index]))
+                    eEngineFolder.update_root(Path(*source2_mod.parts[:p_index]))
                     source2_mod = Path(*source2_mod.parts[p_index+1:])
                     break
             if p not in ('content', 'game'):  # Export game has no game-content structure (sbox?)
@@ -260,6 +273,9 @@ elif __name__ == '__main__':
 
 importing = Path()
 
+import fnmatch
+filter_=None
+
 @add_method(Path)
 def without_spaces(self, repl = '_') -> Path:
     return self.parent / self.name.replace(' ', repl)
@@ -295,16 +311,19 @@ def collect(root, inExt, outExt, existing:bool = False, outNameRule = None, sear
 
     elif searchPath.is_dir():
         skipCountExists, skipCountBlacklist = 0, 0
-        print(f'\n- Searching %sfor%s %s files...' % (
-            "non-recursively "*(not _recurse()),
+        print(f'\n- %sSearching for%s %s files...' % (
+            "Shallow "*(not _recurse()),
             " unimported"*(not existing),
             f"[ {match} ]" if match else inExt,
         ))
         if match is None:
-            match = ('**/'*_recurse()) + '*' + inExt  
+            match = ('**/'*_recurse()) + '*' + inExt
 
         for filePath in searchPath.glob(match):
             skip_reason = ''
+            if filter_ is not None:
+                if not fnmatch.fnmatch(filePath, filter_):
+                    continue
             if outNameRule:
                 possibleNameList = outNameRule(filePath)
             else: possibleNameList = filePath
@@ -329,9 +348,10 @@ def collect(root, inExt, outExt, existing:bool = False, outNameRule = None, sear
                 continue #del files_with_ext[files_with_ext.index(filePath)]
             yield filePath
 
-        print(' '*4 + f"Skipped: " + f"{skipCountExists} already imported | "*(not existing) +\
-                                 f"{skipCountBlacklist} found in blacklist"
-        )
+        if skipCountExists or skipCountBlacklist:
+            print(' '*4 + f"Skipped: " + f"{skipCountExists} already imported | "*(not existing) +\
+                                    f"{skipCountBlacklist} found in blacklist"
+            )
     else:
         print("ERROR while searching: Does not exist:", searchPath)
 

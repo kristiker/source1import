@@ -822,14 +822,12 @@ for d in vmt_to_vmat.values():
         KNOWN[k] = v
 
 def convertVmtToVmat():
-
     # For each key-value in the vmt file...
     for vmtKey, vmtVal in vmt.KeyValues.iteritems():
-
         outKey = outVal = ''
 
         vmtKey = vmtKey.lower()
-        vmtVal = str(vmtVal).strip().strip('"' + "'").strip(' \n\t"') # FIXME temp str
+        vmtVal = str(vmtVal).strip().strip('"' + "'").strip(' \n\t"')
 
         # search through the dictionary above to find the appropriate replacement.
         for keyType in vmt_to_vmat:
@@ -1285,7 +1283,7 @@ def main():
         print(f"Total extra :\t{import_extra}")
 
     except Exception: pass
-    # csgo -> 206 / 14792 | 1.39 % Error rate -- 4681 / 15308 | 30.58 % Skip rate
+    # csgo -> 183 / 15308 | 1.20 % Error rate -- 4842 / 15308 | 31.63 % Skip rate
     # l4d2 -> 504 / 3675 | 13.71 % Error rate -- 374 / 3675 | 10.18 % Skip rate
     print("\nFinished! Your materials are now ready.")
 

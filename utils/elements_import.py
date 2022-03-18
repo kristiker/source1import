@@ -3,6 +3,7 @@ import shared.datamodel as dmx
 from pathlib import Path
 
 SHOULD_OVERWRITE = False
+KEEP_AS_TEXT = True
 
 def ImportSFMSession(session_path: Path):
     """Update SFM resource references for S2FM."""
@@ -52,6 +53,18 @@ def main():
     sh.import_context['dest'] = sh.EXPORT_GAME
     for session in sh.collect('elements', '.dmx', '.dmx', SHOULD_OVERWRITE, searchPath=sh.src('elements/sessions')):
         ImportSFMSession(session)
+    
+    if False and not KEEP_AS_TEXT:
+        # convert to binary through dmxconvert.exe
+        # won't accept args somehow
+        sh.eEngineUtils.dmxconvert([
+            f'-i {imported.parent}\demo.dmx"',
+            '-ie', "keyvalues2",
+            f'-o {imported.parent}\demo.dmx',
+            "-oe", "binary",
+            "-of", "sfm_session",
+        ])
+
     print("Looks like we are done!")
 
 if __name__ == "__main__":

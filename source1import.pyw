@@ -27,6 +27,7 @@ class SampleApp(Tk):
 
         self.in_path = StringVar(name="IMPORT_GAME")
         self.out_path = StringVar(name="EXPORT_GAME")
+        self.filter = StringVar(name="filter")
 
         self.Overwrite = IntVar(name='overwrite_all')
 
@@ -39,11 +40,11 @@ class SampleApp(Tk):
         self.Scripts = IntVar(name='scripts')
         self.Sessions = IntVar(name='sessions')
 
-        self.vars = (self.in_path, self.out_path, self.Overwrite, self.Textures,
+        self.vars = (self.in_path, self.out_path, self.filter, self.Overwrite, self.Textures,
             self.Materials, self.Models, self.Models_move,self.Particles,self.Scenes,self.Scripts,self.Sessions,
         )
 
-        self.widgets: dict[Widget] = {}
+        self.widgets: dict[int, Widget] = {}
         self.iconbitmap(Path(__file__).parent / 'utils/shared/icon.ico')
         self.minsize(480, 330)
         self.title(self.APP_TITLE)
@@ -68,6 +69,12 @@ class SampleApp(Tk):
         self.widgets[8].grid(row=2, column= 1, columnspan=2, in_=self.io_grid,sticky="we", pady=5, padx=3, ipady=2)
         self.widgets[7] = Button(text=" ... ", command=lambda: self.pick_out_path(),relief=GROOVE,state=DISABLED)
         self.widgets[7].grid(row=2, column = 3, in_=self.io_grid)#.grid(row=2, column = 3, columnspan=2, rowspan = 1,in_=self.io_grid, sticky="wens")
+
+        # Filter
+        Label(self, text="Filter :", bg=bg1, fg = fg1).grid(in_=self.io_grid,row=3,column=0,sticky="w")
+        self.widgets[2] = Entry(self, textvariable=self.filter, fg="white", bg=bg2, width=40, relief=GROOVE)
+        self.widgets[2].grid(row=3, column= 1, columnspan=2, in_=self.io_grid,sticky="we", pady=5, padx=3, ipady=2)
+        Button(text=" X ", command=lambda: self.filter.set(''),fg=fg1,bg=bg1,relief=GROOVE).grid(row=3, column = 3, in_=self.io_grid)
 
         # Settings grid
         self.sett_grid = Frame(self, width=310, height=100, bg=bg1)
@@ -112,7 +119,8 @@ class SampleApp(Tk):
         sys.stdout = self.Console
         #font=('arial',16,'normal')
         for widget in self.widgets:
-            self.widgets[widget].configure(bg=bg1, fg =fg1, highlightbackground=bg1, highlightcolor = bg1, relief=GROOVE, font='Helvetica 10 bold' if widget in (5,7) else 'Helvetica 10')
+            if widget != 2:
+                self.widgets[widget].configure(bg=bg1, fg =fg1, highlightbackground=bg1, highlightcolor = bg1, relief=GROOVE, font='Helvetica 10 bold' if widget in (5,7) else 'Helvetica 10')
 
             if widget in (19, 999): # depth
                 self.widgets[widget].configure(bg=bg2)
@@ -211,6 +219,12 @@ class SampleApp(Tk):
             messagebox.showinfo(title=self.APP_TITLE, message="No import function was selected")
             return stop()
         
+        if self.filter.get():
+            print(self.filter.get())
+            sh.filter_ = self.filter.get()
+            if "*" not in sh.filter_:
+                sh.filter_ = "*" + sh.filter_  + "*"
+
         if self.Textures.get():
             from utils import vtf_to_tga
             vtf_to_tga.sh = sh
