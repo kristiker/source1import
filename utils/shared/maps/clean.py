@@ -21,7 +21,7 @@ def _plane_from_points(p1: Vector, p2: Vector, p3: Vector) -> VectorPair:
     normal = geometry.normal(vectors)
     return ((vectors[0] + vectors[2]) / 2, normal)
 
-def _intersect_planes(p1: VectorPair, p2: VectorPair, p3: VectorPair) -> Optional[Vector]:
+def GetIntersection(p1: VectorPair, p2: VectorPair, p3: VectorPair) -> Optional[Vector]:
     line: VectorPair = geometry.intersect_plane_plane(*p1, *p2)
     if line[0] is None:
         return None
@@ -73,10 +73,12 @@ def _load_solid(solid: vmfpy.VMFSolid, parent: str):#,
     idx_b: int
     idx_c: int
     for idx_a, idx_b, idx_c in combinations(range(len(side_planes)), 3):
-        point = _intersect_planes(side_planes[idx_a], side_planes[idx_b], side_planes[idx_c])
+        point = GetIntersection(side_planes[idx_a], side_planes[idx_b], side_planes[idx_c])
         if point is None:
             continue
         # check that the point is not outside the brush (cut off by any other plane)
+        # because every brush is convex, if any point lies in front of any plane in
+        # the brush, it is outside of the model.
         for idx, side_plane in enumerate(side_planes):
             if idx == idx_a or idx == idx_b or idx == idx_c:
                 continue

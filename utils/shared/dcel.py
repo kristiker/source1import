@@ -11,6 +11,8 @@ class coord3d:
     x: float = 0
     y: float = 0
     z: float = 0
+    def __str__(self):
+        return f"{self.x} {self.y} {self.z}"
 
 @dataclass
 class vertex:
@@ -106,8 +108,30 @@ class Polytope:
 
 from prettytable import PrettyTable
 
-class DCEA:
+class DoublyConnectedEdgeArrayList:
     """Doubly connected edge array"""
+    """ Half-edge indices of a vmap quad
+            6              w/ a diagonal:  
+       [1]⇄⇄⇄⇄[3]       [1]          [3]
+        ↑↓   7   ↑↓        ^\          ^/
+      1 ↑↓ 0   3 ↑↓ 2     9 \\ 8      //
+        ↑↓   5   ↑↓          \v      /v
+       [0]⇄⇄⇄⇄[2]          [2]    [0]
+            4
+        
+        [0,-1, -1, 0, -1, 0, -1, 0] = edgeFaceIndices
+           +      +      +      +          
+        [1, 0,  3, 2,  2, 0,  1, 3] = edgeVertexIndices
+           ↧      ↧      ↧      ↧     (Note:not in order, 4 != next of 6, edgeNextIndices dictates)
+        0(1,0)-1(3,2)-1(2,0)-1(1,3) =    0⟶2⬅4⬅6⬅     alternating opposites but
+       -1(0,1) 0(2,3) 0(0,2) 0(3,1) =    1⬅3⟶5⟶7⟶   swap first with second
+                                              ⤋
+                edgeOppositeIndices =  [1, 0, 3, 2, 5, 4, 7, 6]
+        [7, 4, 6, 5, 2, 0, 1, 3]    = edgeNextIndices
+        Edge 0 is next of edge 7 : 0(1,0) next of 0(3,1) --> 7 = half_edge(origin=3, next=0(1,0), face=0)
+        Edge 1 is next of edge 4 :-1(0,1) next of-1(2,0) --> 4 = half_edge(origin=2, next=-1(0,1), face=-1)
+        ...
+    """
     def __init__(self) -> None:
         self.vertexEdgeIndices: list[int] = []
         self.vertexDataIndices: list[int] = []
@@ -180,7 +204,7 @@ class DCEL:
     
     @property
     def edgeList(self):
-        "One half per each edge, bad order"
+        "One half per each edge"
         #face0 = self.faces[0]
         #face0_path = Path(face0, face0.previous)#Path(face0.previous, face0.previous.previous)
         rv: list[half_edge] = []#array('i')
@@ -198,86 +222,14 @@ class DCEL:
         
         return rv
 
-    def asArray(self)->DCEA:
-        """Transfer half-edge data: linked-list structure to array based structure"""
-        a = DCEA()
-        a.vertexEdgeIndices += [*range(self.vert_count)]
-        a.vertexDataIndices += [*range(self.vert_count)]
+    def verify(self):
+        assert self.vert_count-self.edge_count+(self.face_count+self.hole_count) == 2 *(1-self.getMeshGenus())
 
-        # prefill
-        #a.edgeNextIndices = [None] * self.edge_count*2
-        a.edgeOppositeIndices = [None] * self.edge_count*2
-
-        
-        #[0(0, 2), 1(1, 2), 1(2, 3), 0(1, 0), 1(3, 1)]
-
-        #[0(1, 0), 1(2, 3), 0(0, 2), 1(3, 1), 1(1, 2)]
-        
-        el = self.edgeList
-        print(el)
-        el.insert(1, el.pop(0))
-        el.insert(1, el.pop())
-        el = el[::-1]
-        #el.append(el.pop(2))
-
-        #el.insert(0, el.pop())
-        #for i, edge in enumerate(self.edgeList):
-        _order = []
-
-        """ Half-edge indices of a vmap quad
-                6              w/ a diagonal:  
-           [1]⇄⇄⇄⇄[3]       [1]          [3]
-            ↑↓   7   ↑↓        ^\          ^/
-          1 ↑↓ 0   3 ↑↓ 2     9 \\ 8      //
-            ↑↓   5   ↑↓          \v      /v
-           [0]⇄⇄⇄⇄[2]          [2]    [0]
-                4
-            
-            [0,-1, -1, 0, -1, 0, -1, 0] = edgeFaceIndices
-               +      +      +      +          
-            [1, 0,  3, 2,  2, 0,  1, 3] = edgeVertexIndices
-               ↧      ↧      ↧      ↧     (Note:not in order, 4 != next of 6, edgeNextIndices dictates)
-            0(1,0)-1(3,2)-1(2,0)-1(1,3) =    0⟶2⬅4⬅6⬅     alternating opposites but
-           -1(0,1) 0(2,3) 0(0,2) 0(3,1) =    1⬅3⟶5⟶7⟶   swap first with second
-                                                  ⤋
-                    edgeOppositeIndices =  [1, 0, 3, 2, 5, 4, 7, 6]
-
-            [7, 4, 6, 5, 2, 0, 1, 3]    = edgeNextIndices
-            Edge 0 is next of edge 7 : 0(1,0) next of 0(3,1) --> 7 = half_edge(origin=3, next=0(1,0), face=0)
-            Edge 1 is next of edge 4 :-1(0,1) next of-1(2,0) --> 4 = half_edge(origin=2, next=-1(0,1), face=-1)
-            ...
-        """
-        # vmap holds edges in this order (^parallel), probably as optimisation
-
-        def this_specific_order(el):
-            for i in range(len(el)):
-                if i == 1:
-                    i = 2
-                elif i == 2:
-                    i = 1
-                yield i, el[i]
-
-        for i, edge in this_specific_order(el):
-            if i and i !=4:
-                # Flip because we are clockwise, vmap has it counter-cw
-                edge = edge.opposite
-            assert edge != edge.opposite
-            assert edge == edge.opposite.opposite
-            assert edge.opposite == edge.opposite.opposite.opposite
-            _order.append(edge)
-            _order.append(edge.opposite)
-            a.edgeVertexIndices.append(edge.origin.idx)
-            a.edgeVertexIndices.append(edge.opposite.origin.idx)
-            a.edgeOppositeIndices[2*i]= 1 if not i else 2*i+1
-            a.edgeOppositeIndices[2*i+1] = 2*i
-            a.edgeFaceIndices.append(max(edge.incident_face.idx, -1))
-            a.edgeFaceIndices.append(max(edge.opposite.incident_face.idx, -1))
-        for i, edge in this_specific_order(el):
-            if i and i !=4:
-                edge = edge.opposite
-            a.edgeNextIndices.append(_order.index(edge.previous)) 
-            a.edgeNextIndices.append(_order.index(edge.opposite.previous))
-        return a
+    def getMeshGenus(self):
+        "All convex meshes have genus of 0"
+        return 0
+    def isHomeomorphicTo(self, other):
+        ...
 
     def add_half(self, half: half_edge):
         if half.incident_face.idx < 0:
@@ -345,7 +297,7 @@ class DCEL:
         #g.add_edge()
         #nwise_longest = lambda g, *, n=2, fv=object(): zip_longest(*(islice(g, i, None) for i, g in enumerate(tee(g, n))), fillvalue=fv)
         #verts = []
-        print("Building face 0")
+        #print("Building face 0")
         self = cls.new_face(vertices, faces.pop(0))
 
         for face_verts in faces:
@@ -360,7 +312,7 @@ class DCEL:
     def join_face(self, face_dcel: 'DCEL'):
         """Join a face by gluing along common boundaries"""
         f = face(self.face_count)
-        print("Joining face", self.face_count)
+        #print("Joining face", self.face_count)
         bMatchedOnce = False
         bFullLoop = False
         existing_outers = [*iter(self.holes[0])]
@@ -378,19 +330,19 @@ class DCEL:
                 #    break
                 #bMatchedOnce=True
 
-                print("True, there is a match", self.holes[0].distance_to(right_edge), "with", face_dcel.holes[0].distance_to(other_right_edge))
-                print(right_edge, "with", other_right_edge)
+                #print("True, there is a match", self.holes[0].distance_to(right_edge), "with", face_dcel.holes[0].distance_to(other_right_edge))
+                #print(right_edge, "with", other_right_edge)
                 # See if there is more
                 path = Path(start=right_edge, finish=right_edge)                   # start [ 5 --> (1 --> 0) --> 4]finish
                 other_path = Path(start=other_right_edge, finish=other_right_edge) # finish[ 5 <-- (1 <-- 0) <-- 4] start
                 # walk back
                 while other_path.start.previous.origin.idx == path.finish.next.dest.idx and not path.is_loop:
-                    print("Walk back 1", other_path.start.previous)
+                    #print("Walk back 1", other_path.start.previous)
                     path.finish = path.finish.next
                     other_path.start = other_path.start.previous
                 # walk forward
                 while other_path.finish.next.dest.idx == path.start.previous.origin.idx and not path.is_loop:
-                    print("Walk forward 1",  other_path.finish.next)
+                    #print("Walk forward 1",  other_path.finish.next)
                     path.start = path.start.previous
                     other_path.finish = other_path.finish.next
                 
@@ -405,12 +357,12 @@ class DCEL:
                     self.add_half(self.holes.pop(0))
                     bFullLoop=True
                     break
-                print("Splittin and joining")
+                #print("Splittin and joining")
                 
                 outer_complement_path = other_path.circuit_complement
-                print(f"Path: {[e for e in path]}, started at: {right_edge}")
-                print(f"Othr: {[e for e in other_path]}, started at: {other_right_edge}")
-                print(f"Cplm: {[e for e in outer_complement_path]}")
+                #print(f"Path: {[e for e in path]}, started at: {right_edge}")
+                #print(f"Othr: {[e for e in other_path]}, started at: {other_right_edge}")
+                #print(f"Cplm: {[e for e in outer_complement_path]}")
 
                 # outer loop (FINF)
                 if self.holes[0] in path:
@@ -425,7 +377,7 @@ class DCEL:
                 outer_complement_path.finish.next = path.finish.next
 
                 #other_right_edge.previous .next = right_edge.next
-                print("Outer face edges:", outer_complement_path.start.loop_count)
+                #print("Outer face edges:", outer_complement_path.start.loop_count)
                 #if outer_complement_path.start.loop_count == 4:
                 #    self.bMatched = True
                 
@@ -438,8 +390,6 @@ class DCEL:
 
                 #right_edge .next = other_right_edge.opposite.next
                 #other_right_edge.next.opposite .next = right_edge
-                print(f"New face edges: {path.start.loop_count} ({len(path)}+{len(outer_complement_path)})")
-
                 if bMatchedOnce:
                     # matched and attached once, but matched again with a different path
                     self.detect_holes()
@@ -449,8 +399,8 @@ class DCEL:
                     self.halfList.append(new_loop_edge)
                     self.halfList.append(new_loop_edge.opposite)
 
-                print("Face count", self.face_count)
-                print("Hole count", self.hole_count)
+                #print("Face count", self.face_count)
+                #print("Hole count", self.hole_count)
 
                 bMatchedOnce=True
 
@@ -464,22 +414,19 @@ class DCEL:
         return
     
     def detect_holes(self):
-        print("~~~~Detecting Holes")
         for inner_edge in self.faces[-1]: # last face
             outer = inner_edge.opposite
             # if outer half-edge is a boundary (makes a hole)
             if outer.incident_face.idx == self.holes[-1].incident_face.idx:
-                print("TRUEEEEEEEE", outer)
                 # skip if already part of existing hole
                 if outer in self.holes[-1]:
-                    print("Continue")
                     continue
                 # for each next edge from this outer
                 f = face(-(self.hole_count+1))
                 for outer in outer:
                     outer.incident_face = f
                 self.add_half(outer)
-                print("Detected hole", f, "from edge", outer)
+                #print("Detected hole", f, "from edge", outer)
 
 def triangle() -> 'list[half_edge]':
     rv = []
@@ -521,46 +468,57 @@ def pydata():
         [2, 6, 7, 3],
         [0, 4, 6, 2],
         [1, 3, 7, 5]]
+        #[[0, 3, 2, 6],
+        #[5, 7, 1, 4],
+        #[3, 1, 7, 2],
+        #[0, 6, 5, 4],
+        #[6, 2, 7, 5],
+        #[0, 4, 1, 3]]
 )
-def pydata2():
-    """
-        2-------3
-        | [1] / |
-        |   /   |
-        | / [0] |
-        0-------1
-    """
-    return DCEL.from_pydata(
-        [coord3d(-3.5, -3.5, 0),
-        coord3d(-3.5, 3.5, 0),
-        coord3d(3.5, -3.5, 0),
-        coord3d(3.5, 3.5, 0),],
-        [[0, 1, 3],
-        [0, 3, 2]]
+
+"""
+    1-------3
+    | [0] / |
+    |   /   |
+    | / [1] |
+    0-------2
+"""
+e1 = DCEL.from_pydata(
+    [coord3d(-32, -32, 0),
+    coord3d(32, -32, 0),
+    coord3d(-32, 32, 0),
+    coord3d(32, 32, 0),],
+    [[0, 3, 1],
+    [0, 2, 3]]
 )
-def pydata3():
-    """
-        2--------3
-        | \  [1] |
-        |   \    |
-        | [0] \  |
-        0--------1
-    """
-    return DCEL.from_pydata(
-        [coord3d(-3.5, -3.5, 0),
-        coord3d(-3.5, 3.5, 0),
-        coord3d(3.5, -3.5, 0),
-        coord3d(3.5, 3.5, 0),],
-        [[0, 2, 1],
-        [1, 2, 3]]
+"""
+    1--------3
+    | \  [0] |
+    |   \    |
+    | [1] \  |
+    0--------2
+"""
+e2 = DCEL.from_pydata(
+    [coord3d(-32, -32, 0),
+    coord3d(32, -32, 0),
+    coord3d(-32, 32, 0),
+    coord3d(32, 32, 0),],
+    [[0, 2, 1],
+    [1, 2, 3]]
 )
+"""
+    1------3
+    |      |
+    |      |
+    0------2
+"""
 e0 = DCEL.from_pydata(
     [coord3d(-3.5, -3.5, 0),
     coord3d(-3.5, 3.5, 0),
     coord3d(3.5, -3.5, 0),
     coord3d(3.5, 3.5, 0),],
-    #[[0, 2, 3, 1]]
-    [[0, 1, 3, 2]]
+    [[0, 2, 3, 1]]
+    #[[0, 1, 3, 2]]
 )
 
 
