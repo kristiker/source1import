@@ -385,19 +385,7 @@ def createSkyCubemap(json_collection: Path, maxFaceRes: int = 0):
                 faceImage = faceImage.rotate(faceRotate)
 
             SkyCubemapImage.paste(faceImage, pasteCoord)
-        else:
-            if faceImage.shape[1] != maxFaceRes:
-                ...  # https://stackoverflow.com/questions/41879104/upsample-and-interpolate-a-numpy-array
-                rpt = round(faceImage.height * maxFaceRes/faceImage.shape[1]) / faceImage.shape[1]
-                print("HDR integer scaling  x ", rpt, faceImage.shape[1], maxFaceRes, round(faceImage.height * maxFaceRes/faceImage.shape[1]))
-                try:
-                    assert rpt % 2 == 0
-                    faceImage = faceImage[0].repeat(rpt, axis = 0).repeat(rpt, axis = 1)
-                except AssertionError:
-                    print(".pfm face image is non power-of-two sized")
-                except Exception as ex:
-                    print("Exception while upsampling .pfm face image:", ex)
-                
+        else: 
             if faceRotate:
                 faceImage = np.rot90(faceImage, -1)
 
