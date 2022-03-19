@@ -219,11 +219,12 @@ class SampleApp(Tk):
             messagebox.showinfo(title=self.APP_TITLE, message="No import function was selected")
             return stop()
         
-        if self.filter.get():
-            print(self.filter.get())
+        if len(self.filter.get()):
             sh.filter_ = self.filter.get()
             if "*" not in sh.filter_:
                 sh.filter_ = "*" + sh.filter_  + "*"
+        else:
+            sh.filter_ = None
 
         if self.Textures.get():
             from utils import vtf_to_tga
