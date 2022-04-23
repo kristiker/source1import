@@ -6,9 +6,9 @@ Set of scripts for importing Source 1 assets such as materials, models, and part
 * Make sure to extract s1 assets from VPK archives.
 * Make sure to convert textures before materials. 
 * Make sure to move the entire s1 `models` folder to `content/` **after the script is finished**.
-* Make sure to rename the `sound` folder to `sounds` and move it to `content/` as is.
+* Make sure to move the entire s1 `sound` folder to `content/` and rename it to `sounds`.
 * Make sure to read [this guide](https://developer.valvesoftware.com/wiki/Half-Life:_Alyx_Workshop_Tools/Importing_Source_1_Maps) for importing map files.
-  - It suggests that your s1 files be in `game/<modname>` and imported files be in `content/hlvr_addons/<modname>_imported`
+  - It suggests that your s1 files be in `game/<modname>` and imported files be in `content/hlvr_addons/<modname>_imported` – you will get correct texture scale and fixed up entities *only* that way.
 
 Download app from [Releases](https://github.com/kristiker/source1import/releases).  
 The app can be slow to open up, but has no prerequisites. If you want to make edits to the scripts & have Python installed, run the advanced way by downloading the code.
@@ -16,18 +16,12 @@ The app can be slow to open up, but has no prerequisites. If you want to make ed
 ### GUI:
 * Just double-click on `source1import.pyw`.
 
-Building GUI:
-```bash
-pip install pyinstaller
-./build.bat
-```
 ### CLI:
 ```bash
 cd utils
 python scripts_import.py   -i "C:/.../Team Fortress 2/tf" -e "D:/Games/steamapps/common/sbox/addons/tf_source2"
 python particles_import.py -i "C:/.../Portal 2/portal2" -e "C:/.../Half-Life Alyx/game/hlvr_addons/portal2"
 python scenes_import.py    -i "C:/.../Half-Life Alyx/game/lostcoast" -e hlvr_addons/lostcoast
-python panorama_import.py  -i "C:/.../Half-Life Alyx/game/csgo" -e csgo_imported
 python models_import.py    -i "C:/.../Half-Life Alyx/game/l4d2" -e l4d2_source2
 python materials_import.py -i "C:/.../Half-Life Alyx/game/ep2" -e hlvr  "materials/skybox"
 ```
@@ -38,6 +32,7 @@ python materials_import.py -i "C:/.../Half-Life Alyx/game/ep2" -e hlvr  "materia
 * [Python](https://www.python.org/downloads/) >= 3.9  
 * `pip install -r requirements.txt`
 ## Results
+### [CS:GO Taser - Streamable](https://streamable.com/eders9)
 ### [Inferno Source 2 Comparison - YouTube](https://www.youtube.com/watch?v=e-kcE9F_uH0)
 <img src="https://i.imgur.com/qxNDhEE.jpeg" width=100%>
 <img src="https://i.imgur.com/zhHOMWJ.png" width=100%>
