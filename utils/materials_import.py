@@ -23,8 +23,9 @@ OVERWRITE_SKYCUBES = True
 NORMALMAP_G_VTEX_INVERT = True
 
 BASIC_PBR = True
-MISSING_TEXTURE_SET_DEFAULT = True
+MISSING_TEXTURE_SET_DEFAULT = True # valve uses dev/white
 USE_SUGESTED_DEFAULT_ROUGHNESS = True
+SIMPLE_SHADER_WHERE_POSSIBLE = True
 PRINT_LEGACY_IMPORT = False  # Print vmt inside vmat as reference. Increases file size.
 
 sh.DEBUG = False
@@ -205,7 +206,7 @@ def chooseShader():
 
 ignoreList = [ "dx9", "dx8", "dx7", "dx6", "proxies"]
 
-def default(texture_type):
+def default(texture_type) -> str:
     return VMAT_DEFAULT_PATH.as_posix() + "/default" + texture_type + ".tga"
 
 def OutName(path: Path) -> Path:
@@ -241,7 +242,7 @@ def getTexture(vtf_path):
     # source1import does the same
     return None
 
-def createMask(image_path, copySub = '_mask', channel = 'A', invert = False, queue = True):
+def createMask(image_path, copySub = '_mask', channel = 'A', invert = False, queue = True) -> str:
 
     if not (image_path:=fixVmtTextureDir(image_path)):
         return default(copySub)
@@ -253,7 +254,7 @@ def createMask(image_path, copySub = '_mask', channel = 'A', invert = False, que
     msg(f"createMask{image_path.local.relative_to(materials).as_posix(), copySub, channel, invert, queue} -> {newMaskPath.local}")
 
     if newMaskPath.exists(): #and not DEBUG:
-        return newMaskPath.local
+        return newMaskPath.local.as_posix()
 
     if not image_path.is_file():
         msg("Couldn't find image", image_path)
@@ -289,7 +290,7 @@ def createMask(image_path, copySub = '_mask', channel = 'A', invert = False, que
     bg.close()
     print("+ Saved mask to", newMaskPath.local)
 
-    return newMaskPath.local
+    return newMaskPath.local.as_posix()
 
 ########################################################################
 # Build sky cubemap from sky faces
@@ -643,6 +644,7 @@ vmt_to_vmat = {
                         ('TextureRoughness',    '_rough',      [formatNewTexturePath]) if not GENERIC_SHADER else \
                         ('TextureGlossiness',   '_gloss',      [formatNewTexturePath]),
     },
+    '$phongmask': ('TextureRoughness',    '_rough',      [formatNewTexturePath]),
 },
 
 'transform': {  # Center Scale Rotation Offset F_TEXTURETRANSFORMS
@@ -758,7 +760,7 @@ vmt_to_vmat = {
     '$translucent':                 ('$basetexture',    '$_vmat_transmask', 'A'),
     '$alphatest':                   ('$basetexture',    '$_vmat_transmask', 'A'),
     '$selfillum':                   ('$basetexture',    '$selfillummask',   'A'),
-    #'$phong':                       (normalmap_list,    '$phongmask',       'A'),
+    #'$phong':                       ('$normalmap',    '$phongmask',       '1-A'),
 
     '$rimmask':         ('$phongexponenttexture',       '$_vmat_rimmask',   'A'),
 
@@ -1000,6 +1002,24 @@ def convertVmtToVmat():
 
             vmat.KeyValues.setdefault("TextureRoughnessA", default_rough)
             vmat.KeyValues.setdefault("TextureRoughnessB", default_rough)
+        
+    if SIMPLE_SHADER_WHERE_POSSIBLE:
+        complex_shader_params = {
+            "F_MORPH_SUPPORTED",
+            "F_ALPHA_TEST",
+            "F_TRANSLUCENT",
+            "F_TINT_MASK",
+            "F_UNLIT",
+            "F_SPECULAR",
+            "F_SELF_ILLUM",
+            "F_DETAIL_TEXTURE",
+            "F_SECONDARY_UV",
+        }
+        if vmat.shader == "vr_complex":
+            if not any(key in complex_shader_params for key in vmat.KeyValues):
+                vmat.shader = "vr_simple"
+                if "TextureAmbientOcclusion" in vmat.KeyValues:
+                    vmat.KeyValues['F_AMBIENT_OCCLUSION_TEXTURE'] = 1
 
 def convertSpecials():
 
