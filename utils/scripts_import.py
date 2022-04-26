@@ -178,14 +178,9 @@ vsurf_base_params = {
     'audioparams': ('audioreflectivity','audiohardnessfactor','audioroughnessfactor','scrapeRoughThreshold','impactHardThreshold',),
 }
 
-class CaseInsensitiveKey:
-    def __init__(self, key): self.key = key
-    def __hash__(self): return hash(self.key.lower())
-    def __str__(self): return self.key
-    def __eq__(self, other: str):
-        if isinstance(other, __class__):
-            return self.key.lower() == other.key.lower()
-        return self.key.lower() == other.lower()
+class CaseInsensitiveKey(str):
+    def __hash__(self): return hash(self.lower())
+    def __eq__(self, other: str): return self.lower() == other.lower()
 class CaseInsensitiveDict(dict):
     def __setitem__(self, key, value): super().__setitem__(CaseInsensitiveKey(key), value)
     def __getitem__(self, key): return super().__getitem__(CaseInsensitiveKey(key))
@@ -233,7 +228,7 @@ def ImportSurfaceProperties(asset_path: Path):
             elif key in surface_data["Sounds"]:
                 surface_data["Sounds"][key] = value
 
-        sh.write(dict_to_kv3_text(surface_data), surface_file)
+        sh.write(dict_to_kv3_text(dict(data=surface_data)), surface_file)
         print("+ Saved", surface_file.local)
 
     return surface_folder
