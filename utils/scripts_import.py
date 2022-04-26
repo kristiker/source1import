@@ -1,6 +1,8 @@
 import shared.base_utils2 as sh
 from pathlib import Path
 from shared.keyvalues1 import KV, VDFDict
+from shared.keyvalues3 import dict_to_kv3_text
+import itertools
 
 OVERWRITE_SCRIPTS = True
 
@@ -9,22 +11,16 @@ SOUNDSCAPES_MANIFEST = scripts / "soundscapes_manifest.txt"
 SURFACEPROPERTIES_MANIFEST = scripts / "surfaceproperties_manifest.txt"
 
 def main():
-    sh.import_context['dest'] = sh.EXPORT_GAME
+    sh.import_context['dest'] = sh.EXPORT_CONTENT
     print("Importing Scripts!")
 
-    # soundscapes vsc...
-    for soundscapes_vsc in sh.collect("scripts", ".vsc", ".txt", OVERWRITE_SCRIPTS, match="soundscapes_*.vsc"):
-        ImportSoundscape(soundscapes_vsc)
-
-    # soundscapes txt... (also manifest)
-    for soundscapes_txt in sh.collect("scripts", ".txt", ".txt", OVERWRITE_SCRIPTS, match="soundscapes_*.txt"):
-        if soundscapes_txt.name == SOUNDSCAPES_MANIFEST.name:
-            ImportSoundscapeManifest(soundscapes_txt)
+    for soundscape_collection in itertools.chain(
+        sh.collect(scripts, ".vsc", ".txt", OVERWRITE_SCRIPTS, match="soundscapes_*.vsc"),
+        sh.collect(scripts, ".txt", ".txt", OVERWRITE_SCRIPTS, match="soundscapes_*.txt")
+    ):
+        if soundscape_collection.name == SOUNDSCAPES_MANIFEST.name:
             continue
-        ImportSoundscape(soundscapes_txt)
-
-    # game sounds...
-    sh.import_context['dest'] = sh.EXPORT_CONTENT
+        ImportSoundscape(soundscape_collection)
 
     for file in (sh.src(scripts)).glob('**/game_sounds*.txt'):
         if file.name != 'game_sounds_manifest.txt':
@@ -34,7 +30,7 @@ def main():
         ImportGameSounds(boss)
 
     # surfaceproperties...
-    for surfprop_txt in sh.collect("scripts", ".txt", ".txt", OVERWRITE_SCRIPTS, match="surfaceproperties*.txt"):
+    for surfprop_txt in sh.collect(scripts, ".txt", ".txt", OVERWRITE_SCRIPTS, match="surfaceproperties*.txt"):
         if surfprop_txt.name == SURFACEPROPERTIES_MANIFEST.name:
             continue
         ImportSurfaceProperties(surfprop_txt)
@@ -48,6 +44,9 @@ def fix_wave_resource(old_value):
     return f"sounds/{Path(old_value).with_suffix('.vsnd').as_posix()}"
 
 def ImportSoundscape(file: Path):
+    sndscape_folder = sh.EXPORT_CONTENT / "soundscapes" / file.stem.removeprefix('soundscapes').lstrip("_")
+    sndscape_folder.MakeDir()
+
     soundscapes = KV.CollectionFromFile(file)
     fixups = {'wave': fix_wave_resource}
 
@@ -58,40 +57,44 @@ def ImportSoundscape(file: Path):
             elif (k:=key[1]) in fixups:
                 kv[key] = fixups[k](value)
 
-    recursively_fixup(soundscapes)
+    recursively_fixup(soundscapes)  # change wav to vsnd
     
-    new_soundscapes = ''
-    for key, value in soundscapes.items():
-        if isinstance(value, VDFDict):
-            new_soundscapes += f"{key}{value.ToStr()}"
-        else:
-            new_soundscapes += f'{key}\t"{value}"\n'
+    for name, properties in soundscapes.items():
+        sndscape_data = dict()
+        sndscape_file = sndscape_folder / f'{name}.sndscape'
+        sndscape_data = dict(properties)
+        ...
+        # https://developer.valvesoftware.com/wiki/Soundscape#Rules
+        # soundscape format is not yet clear
+        # source uses .wavs + volume + pitch
+        # .sound assets are similar: .wavs + properties
+        # so might need to convert play* properties to .sound assets
+        """
+        data =
+        {
+            dsp = 5
+            fadetime = 1.0
+            position = 5
+            playrandom = 
+            {
+                sound = "sounds/soundscapes/name.sound"
+            }
+            playlooping =
+            {
+                sound = "sounds/soundscapes/name.sound"
+                origin = [0, 0, 0]
+            }
+            playsoundscape =
+            {
+                soundscape = "soundscapes/name.sndscape"
+                position = 6
+            }
+        }
+        """
+        sh.write(dict_to_kv3_text(dict(data=sndscape_data)), sndscape_file)
+        print("+ Saved", sndscape_file.local)
 
-    newsc_path = sh.output(file, '.txt')
-    newsc_path.parent.MakeDir()
-    sh.write(new_soundscapes, newsc_path)
-    print("+ Saved", newsc_path.local)
-    return newsc_path
-    #soundscapes_manifest.add("file", f'scripts/{newsc_path.name}')
-
-def ImportSoundscapeManifest(asset_path: Path):
-    "Integ, but with '.vsc' fixup for csgo"
-    
-    out_manifest = sh.output(asset_path)
-    out_manifest.parent.MakeDir()
-
-    with open(asset_path) as old, open(out_manifest, 'w') as out:
-        contents = old.read().replace('.vsc', '.txt').replace('soundscaples_manifest', 'soundscapes_manifest')
-        if False:  # importing to an hla addon fix
-            ls = contents.split('{', 1)
-            ls[1] = '\n\t"file"\t"scripts/test123.txt"' + ls[1]
-            contents = '{'.join(ls)
-        out.write(contents)
-
-    print("+ Saved manifest file", out_manifest.local)
-    return out_manifest
-
-from shared.keyvalues3 import dict_to_kv3_text
+    return sndscape_folder
 
 """
 channel ['CHAN_VOICE']
