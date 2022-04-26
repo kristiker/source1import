@@ -4,19 +4,23 @@ from shared.keyvalues1 import KV, VDFDict
 from shared.keyvalues3 import dict_to_kv3_text
 import itertools
 
-OVERWRITE_SCRIPTS = True
+OVERWRITE_ASSETS = False
 
 scripts = Path('scripts')
 SOUNDSCAPES_MANIFEST = scripts / "soundscapes_manifest.txt"
 SURFACEPROPERTIES_MANIFEST = scripts / "surfaceproperties_manifest.txt"
+
+soundscapes = Path('soundscapes')
+sounds = Path('sounds')
+surfaces = Path('surfaces')
 
 def main():
     sh.import_context['dest'] = sh.EXPORT_CONTENT
     print("Importing Scripts!")
 
     for soundscape_collection in itertools.chain(
-        sh.collect(scripts, ".vsc", ".txt", OVERWRITE_SCRIPTS, match="soundscapes_*.vsc"),
-        sh.collect(scripts, ".txt", ".txt", OVERWRITE_SCRIPTS, match="soundscapes_*.txt")
+        (sh.src(scripts)).glob('**/soundscapes_*.vsc'),
+        (sh.src(scripts)).glob('**/soundscapes_*.txt')
     ):
         if soundscape_collection.name == SOUNDSCAPES_MANIFEST.name:
             continue
@@ -30,7 +34,7 @@ def main():
         ImportGameSounds(boss)
 
     # surfaceproperties...
-    for surfprop_txt in sh.collect(scripts, ".txt", ".txt", OVERWRITE_SCRIPTS, match="surfaceproperties*.txt"):
+    for surfprop_txt in (sh.src(scripts)).glob('**/surfaceproperties*.txt'):
         if surfprop_txt.name == SURFACEPROPERTIES_MANIFEST.name:
             continue
         ImportSurfaceProperties(surfprop_txt)
@@ -44,10 +48,11 @@ def fix_wave_resource(old_value):
     return f"sounds/{Path(old_value).with_suffix('.vsnd').as_posix()}"
 
 def ImportSoundscape(file: Path):
-    sndscape_folder = sh.EXPORT_CONTENT / "soundscapes" / file.stem.removeprefix('soundscapes').lstrip("_")
+    "scripts/soundscapes_*.vsc -> (n)[soundscapes/*/a.b.sndscape]"
+    sndscape_folder = sh.EXPORT_CONTENT / soundscapes / file.stem.removeprefix('soundscapes').lstrip("_")
     sndscape_folder.MakeDir()
 
-    soundscapes = KV.CollectionFromFile(file)
+    soundscape_collection = KV.CollectionFromFile(file)
     fixups = {'wave': fix_wave_resource}
 
     def recursively_fixup(kv: VDFDict):
@@ -57,12 +62,15 @@ def ImportSoundscape(file: Path):
             elif (k:=key[1]) in fixups:
                 kv[key] = fixups[k](value)
 
-    recursively_fixup(soundscapes)  # change wav to vsnd
+    recursively_fixup(soundscape_collection)  # change wav to vsnd
     
-    for name, properties in soundscapes.items():
+    for name, properties in soundscape_collection.items():
         sndscape_data = dict()
         sndscape_file = sndscape_folder / f'{name}.sndscape'
         sndscape_data = dict(properties)
+        if not OVERWRITE_ASSETS and sndscape_file.exists():
+            sh.status(f"Skipping {sndscape_file.local} [already-exist]")
+            continue
         ...
         # https://developer.valvesoftware.com/wiki/Soundscape#Rules
         # soundscape format is not yet clear
@@ -105,8 +113,8 @@ wave ['common/null.wav']
 rndwave [VDFDict([('wave', '~player/footsteps/slosh1.wav'), ('wave', '~player/footsteps/slosh2.wav'), ('wave', '~player/footsteps/slosh3.wav'), ('wave', '~player/footsteps/slosh4.wav')])]
 """
 def ImportGameSounds(asset_path: Path):
-    "scripts/game_sounds*.txt -> [sounds/*/major.minor.sound]"
-    game_sound_folder = sh.EXPORT_CONTENT / "sounds" / asset_path.stem.removeprefix('game_sounds_')
+    "scripts/game_sounds*.txt -> (n)[sounds/*/a.b.sound]"
+    game_sound_folder = sh.EXPORT_CONTENT / sounds / asset_path.stem.removeprefix('game_sounds_')
     game_sound_folder.MakeDir()
     PITCH = {
         'PITCH_NORM': 100,
@@ -140,7 +148,8 @@ def ImportGameSounds(asset_path: Path):
             sounds = [],
             selectionmode = "0",
         )
-        if not OVERWRITE_SCRIPTS and sound_file.exists():
+        if not OVERWRITE_ASSETS and sound_file.exists():
+            sh.status(f"Skipping {sound_file.local} [already-exist]")
             continue
         for (_, k), v in gs_data.items(indexed_keys=True):
             ## Turns out you can have multiple 'wave' in counter strike global offensive!
@@ -174,12 +183,7 @@ def ImportGameSounds(asset_path: Path):
                 ...
         sh.write(dict_to_kv3_text(dict(data=sound_data)), sound_file)
         print("+ Saved", sound_file.local)
-
-vsurf_base_params = {
-    'physics': ('density','elasticity','friction','dampening','thickness',),
-    'Sounds':('bulletimpact','scraperough','scrapesmooth','impacthard','impactsoft','rolling','break','strain',),
-    'audioparams': ('audioreflectivity','audiohardnessfactor','audioroughnessfactor','scrapeRoughThreshold','impactHardThreshold',),
-}
+    return game_sound_folder
 
 class CaseInsensitiveKey(str):
     def __hash__(self): return hash(self.lower())
@@ -189,15 +193,18 @@ class CaseInsensitiveDict(dict):
     def __getitem__(self, key): return super().__getitem__(CaseInsensitiveKey(key))
 
 def ImportSurfaceProperties(asset_path: Path):
-    "scripts/surfaceproperties*.txt -> surfaces/*/name.surface"
+    "scripts/surfaceproperties*.txt -> (n)[surfaces/*/name.surface]"
     
-    surface_folder = sh.EXPORT_CONTENT / "surfaces" / asset_path.stem.removeprefix('surfaceproperties').lstrip("_")
+    surface_folder = sh.EXPORT_CONTENT / surfaces / asset_path.stem.removeprefix('surfaceproperties').lstrip("_")
     surface_folder.MakeDir()
 
-    kv = KV.CollectionFromFile(asset_path)
+    surface_collection = KV.CollectionFromFile(asset_path)
 
-    for surface, properties in {**kv}.items():
+    for surface, properties in {**surface_collection}.items():
         surface_file = surface_folder / f'{surface}.surface'
+        if not OVERWRITE_ASSETS and surface_file.exists():
+            sh.status(f"Skipping {surface_file.local} [already-exist]")
+            continue
         surface_data = CaseInsensitiveDict({
             CaseInsensitiveKey("Friction"): 0.5,
             CaseInsensitiveKey("Elasticity"): 0.5,
@@ -239,10 +246,3 @@ def ImportSurfaceProperties(asset_path: Path):
 if __name__ == '__main__':
     sh.parse_argv()
     main()  
-
-def ImportUpdateResourceRefs(asset_path: Path):
-    ...
-    # this func is for other generic scripts to update their resource refs
-    # eg. search for each value and see if its a ref and replace each
-    # after that just integ
-def ImportUpdateResourceRefs_ProcessKVEscapeSeqs():...
