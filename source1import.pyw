@@ -1,6 +1,6 @@
 from pathlib import Path
 from threading import Thread
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, ttk
 from tkinter import *
 import sys
 import json
@@ -43,8 +43,9 @@ class SampleApp(Tk):
         self.vars = (self.in_path, self.out_path, self.filter, self.Overwrite, self.Textures,
             self.Materials, self.Models, self.Models_move,self.Particles,self.Scenes,self.Scripts,self.Sessions,
         )
+        self.settings_file = Path.home() / "AppData/Roaming/source1import/settings.json"
+        self.settings_file.parent.MakeDir()
 
-        self.widgets: dict[int, Widget] = {}
         self.iconbitmap(Path(__file__).parent / 'utils/shared/icon.ico')
         self.minsize(480, 330)
         self.title(self.APP_TITLE)
@@ -56,6 +57,7 @@ class SampleApp(Tk):
         self.io_grid.grid_columnconfigure(0, weight=0, pad=2, minsize=12, uniform= True)
         self.io_grid.grid_rowconfigure(0, weight=0, pad=1, minsize=15, uniform= True)
 
+        self.widgets: dict[int, Widget] = {}
         # Import game label, entry and picker
         self.widgets[3] = Entry(self, textvariable=self.in_path,relief=GROOVE, width=48, state=DISABLED, disabledbackground=bg2, disabledforeground="white")
         self.widgets[5] = Button(text=" ... ", command=lambda: self.pick_in_path())
@@ -82,37 +84,68 @@ class SampleApp(Tk):
         self.sett_grid.grid_columnconfigure(0, weight=0, pad=2, minsize=12)
         self.sett_grid.grid_rowconfigure(0, weight=0, pad=1, minsize=15)
 
-        self.widgets[12] = Button(text="  Tick all  ", command=self.checkbutton_toggle_all, bd = 2)
+        style = ttk.Style()
+        style.theme_create( "yummy", parent="alt", settings={
+                "TNotebook": {"configure": {"tabmargins": [2, 5, 2, 0], "background": bg1} },
+                "TNotebook.Tab": {
+                    "configure": {"padding": [5, 1], "foreground": fg1, "background": bg1 },
+                    "map":  {"foreground": [("selected", "white"), ("disabled", bg2)],
+                            #"background": [("selected", bg2)],
+                            "expand": [("selected", [1, 1, 1, 0])] }}})
+        style.theme_use("yummy")
+        # Settings tabs
+        self.tab_notebook = ttk.Notebook(self, padding=6)
+        self.tab_notebook.pack(expand=1, fill="both")
+        self.tabs: dict[str, Frame] = {}
+        self.tabs["textures"] = Frame(self.tab_notebook)
+        self.widgets[13] = Checkbutton(self, text="Decompile Textures", variable=self.Textures, bd = 0,selectcolor=bg1)
+        self.widgets[13].grid(row = 1, in_=self.tabs["textures"], sticky="w")
+
+
+        self.widgets[12] = Button(text="  Import All  ", command=self.checkbutton_toggle_all, bd = 2)
         self.widgets[12].grid(pady= 5, row = 0, column = 0,in_=self.sett_grid, sticky="n")
-        self.widgets[1] = Checkbutton(self, text="Force Overwrite", variable=self.Overwrite,selectcolor=bg1, bd = 0)#.grid(row=1, sticky=W)
-        self.widgets[1].grid(pady= 5, row = 0, column = 1, columnspan = 2, in_=self.sett_grid, sticky="n")#.grid(row=0, sticky=W)
+        #self.widgets[1] = Checkbutton(self, text="Force Overwrite", variable=self.Overwrite,selectcolor=bg1, bd = 0)#.grid(row=1, sticky=W)
+        #self.widgets[1].grid(pady= 5, row = 0, column = 1, columnspan = 2, in_=self.sett_grid, sticky="n")#.grid(row=0, sticky=W)
 
 
-        self.widgets[13] = Checkbutton(self, text="Import Textures", variable=self.Textures, bd = 0,selectcolor=bg1)
-        self.widgets[13].grid(row = 1, in_=self.sett_grid, sticky="w")
-
+        self.tabs["materials"] = Frame(self.tab_notebook)
         self.widgets[9] = Checkbutton(self, text="Import Materials", variable=self.Materials, bd = 0,selectcolor=bg1)
-        self.widgets[9].grid(row = 2, in_=self.sett_grid, sticky="w")
+        self.widgets[9].grid(row = 2, in_=self.tabs["materials"], sticky="w")
 
+        self.tabs["models"] = Frame(self.tab_notebook)
         self.widgets[10] = Checkbutton(self, text="Import Models", variable=self.Models, command=self.checkbutton_tree_update,bd = 0,selectcolor=bg1)
-        self.widgets[10].grid(row = 3, in_=self.sett_grid, sticky="w")
+        self.widgets[10].grid(row = 3, in_=self.tabs["models"], sticky="w")
         self.widgets[11] = Checkbutton(self, text="Move .mdls", variable=self.Models_move, command=self.checkbutton_tree_update,bd = 0, state=DISABLED,selectcolor=bg1)
-        self.widgets[11].grid(row = 3, column = 1, in_=self.sett_grid, sticky="w", padx=20)
+        self.widgets[11].grid(row = 3, column = 1, in_=self.tabs["models"], sticky="w", padx=20)
 
+        self.tabs["particles"] = Frame(self.tab_notebook)
         self.widgets[14] = Checkbutton(self, text="Import Particles", variable=self.Particles, command=self.checkbutton_tree_update,bd = 0,selectcolor=bg1)
-        self.widgets[14].grid(row = 4, in_=self.sett_grid, sticky="w")
+        self.widgets[14].grid(row = 4, in_=self.tabs["particles"], sticky="w")
 
+        self.tabs["sessions"] = Frame(self.tab_notebook)
         self.widgets[15] = Checkbutton(self, text="Import Filmmaker Sessions", variable=self.Sessions, command=self.checkbutton_tree_update,bd = 0,selectcolor=bg1)
-        self.widgets[15].grid(row = 5, in_=self.sett_grid, sticky="w")
+        self.widgets[15].grid(row = 5, in_=self.tabs["sessions"], sticky="w")
 
+        self.tabs["scenes"] = Frame(self.tab_notebook)
         self.widgets[16] = Checkbutton(self, text="Import Scenes", variable=self.Scenes, command=self.checkbutton_tree_update,bd = 0,selectcolor=bg1)
-        self.widgets[16].grid(row = 6, in_=self.sett_grid, sticky="w")
+        self.widgets[16].grid(row = 6, in_=self.tabs["scenes"], sticky="w")
 
+        self.tabs["scripts"] = Frame(self.tab_notebook)
         self.widgets[17] = Checkbutton(self, text="Import Scripts", variable=self.Scripts, command=self.checkbutton_tree_update,bd = 0,selectcolor=bg1)
-        self.widgets[17].grid(row = 7, in_=self.sett_grid, sticky="w")
+        self.widgets[17].grid(row = 7, in_=self.tabs["scripts"], sticky="w")
 
         self.widgets[19]=Text(self, wrap=NONE, bd=1, relief=SUNKEN, height=7) #, textvariable=self.status
         self.widgets[19].see(END)
+
+        for tab in self.tabs:
+            self.tabs[tab].configure(bg=bg1, highlightbackground=bg1, highlightcolor = bg1, padx=6, pady=6)
+            self.tab_notebook.add(self.tabs[tab], text=tab.capitalize(), state="disabled" if tab == "particles" else "normal")
+
+        for tab in self.tab_notebook.tabs():
+            #tab = self.tab_notebook.tab(tab)
+            self.tab_notebook.tab(tab)
+            print(tab);continue
+
         self.Console = Console(self.widgets[19])
 
         # replace sys.stdout with our object
@@ -304,7 +337,6 @@ class SampleApp(Tk):
     def checkbutton_toggle_all(self):
         # .toggle, select, deselect
         self.allChecked = not self.allChecked
-        self.widgets[12].configure(text= "Untick all" if self.allChecked else " Tick all  ")
         self.Textures.set(self.allChecked)
         self.Materials.set(self.allChecked)
         self.Models.set(self.allChecked)
@@ -316,6 +348,7 @@ class SampleApp(Tk):
         self.checkbutton_tree_update()
 
     def checkbutton_tree_update(self):
+        self.widgets[12].configure(text= " Import None" if self.allChecked else "  Import All  ")
         models = self.Models.get()
         self.widgets[11].configure(state=NORMAL if models else DISABLED)
         if models: pass
@@ -328,9 +361,9 @@ class SampleApp(Tk):
             self.gobutton.configure(state=NORMAL, text='Go')
         
     def read_config(self):
-        #print(Path(__file__).parent)
+        #print(Path(__file__).parent)qwe
         try:
-            with open("source1import.json", 'r') as fp:
+            with open(self.settings_file, 'r') as fp:
                 try: data = json.load(fp)
                 except json.decoder.JSONDecodeError:
                     data = {}
@@ -353,7 +386,7 @@ class SampleApp(Tk):
         for var in self.vars:
             self.cfg[var._name] = var.get()
         self.cfg['app_geometry'] = self.geometry()
-        with open("source1import.json", 'w') as fp:
+        with open(self.settings_file, 'w') as fp:
             json.dump(self.cfg, fp, sort_keys=True, indent=4)
 
 class Console(): # create file like object
