@@ -50,7 +50,7 @@ class SampleApp(Tk):
         self.minsize(480, 330)
         self.title(self.APP_TITLE)
         #self.maxsize(370, 350)
-        self.configure(bg=bg1)
+        self.configure(background=bg1)
 
         self.io_grid = Frame(self, width=310, height=100, bg=bg1)
         self.io_grid.pack(fill="both", expand=False, padx=6, pady=5 )#side="left", fill="both", )
@@ -76,7 +76,8 @@ class SampleApp(Tk):
         Label(self, text="Filter :", bg=bg1, fg = fg1).grid(in_=self.io_grid,row=3,column=0,sticky="w")
         self.widgets[2] = Entry(self, textvariable=self.filter, fg="white", bg=bg2, width=40, relief=GROOVE)
         self.widgets[2].grid(row=3, column= 1, columnspan=2, in_=self.io_grid,sticky="we", pady=5, padx=3, ipady=2)
-        Button(text=" X ", command=lambda: self.filter.set(''),fg=fg1,bg=bg1,relief=GROOVE).grid(row=3, column = 3, in_=self.io_grid)
+        Button(text=" X ", command=lambda: self.filter.set(''),fg=fg1,bg=bg1,highlightcolor = bg1,relief=GROOVE).grid(row=3, column = 3, in_=self.io_grid)
+
 
         # Settings grid
         self.sett_grid = Frame(self, width=310, height=100, bg=bg1)
@@ -84,33 +85,40 @@ class SampleApp(Tk):
         self.sett_grid.grid_columnconfigure(0, weight=0, pad=2, minsize=12)
         self.sett_grid.grid_rowconfigure(0, weight=0, pad=1, minsize=15)
 
+
+        self.widgets[12] = Button(text="  Import All  ", command=self.checkbutton_toggle_all, bd = 2)
+        self.widgets[12].grid(pady= 5, row = 0, column = 0, columnspan=2, in_=self.sett_grid, sticky="n")
+        #self.widgets[1] = Checkbutton(self, text="Force Overwrite", variable=self.Overwrite,selectcolor=bg1, bd = 0)#.grid(row=1, sticky=W)
+        #self.widgets[1].grid(pady= 5, row = 0, column = 1, columnspan = 2, in_=self.sett_grid, sticky="n")#.grid(row=0, sticky=W)
+
+
         style = ttk.Style()
         style.theme_create( "yummy", parent="alt", settings={
-                "TNotebook": {"configure": {"tabmargins": [2, 5, 2, 0], "background": bg1} },
+                "TNotebook": {"configure": {"tabmargins": [2, 5, 2, 0], "background": bg1,"tabposition": "wn"} },
                 "TNotebook.Tab": {
-                    "configure": {"padding": [5, 1], "foreground": fg1, "background": bg1 },
+                    "configure": {"padding": [10, 0], "foreground": fg1, "background": bg1 },
                     "map":  {"foreground": [("selected", "white"), ("disabled", bg2)],
                             #"background": [("selected", bg2)],
-                            "expand": [("selected", [1, 1, 1, 0])] }}})
+                             }}})
         style.theme_use("yummy")
         # Settings tabs
+        Checkbutton(self, text="", variable=self.Textures, bd = 0,selectcolor=bg1).grid(in_=self.sett_grid, column=0, row=1, sticky=W)
+        Checkbutton(self, text="", variable=self.Materials, bd = 0,selectcolor=bg1).grid(in_=self.sett_grid, column=0, row=2, sticky=W)
+        Checkbutton(self, text="", variable=self.Models, bd = 0,selectcolor=bg1).grid(in_=self.sett_grid, column=0, row=3, sticky=W)
+        Checkbutton(self, text="", variable=self.Particles, bd = 0,selectcolor=bg1).grid(in_=self.sett_grid, column=0, row=4, sticky=W)
+        Checkbutton(self, text="", variable=self.Textures, bd = 0,selectcolor=bg1).grid(in_=self.sett_grid, column=0, row=5, sticky=W)
         self.tab_notebook = ttk.Notebook(self, padding=6)
-        self.tab_notebook.pack(expand=1, fill="both")
+        self.tab_notebook.grid(in_=self.sett_grid, column=1, row=1, rowspan=7)#.pack(expand=1, fill="both")
         self.tabs: dict[str, Frame] = {}
         self.tabs["textures"] = Frame(self.tab_notebook)
         self.widgets[13] = Checkbutton(self, text="Decompile Textures", variable=self.Textures, bd = 0,selectcolor=bg1)
         self.widgets[13].grid(row = 1, in_=self.tabs["textures"], sticky="w")
 
-
-        self.widgets[12] = Button(text="  Import All  ", command=self.checkbutton_toggle_all, bd = 2)
-        self.widgets[12].grid(pady= 5, row = 0, column = 0,in_=self.sett_grid, sticky="n")
-        #self.widgets[1] = Checkbutton(self, text="Force Overwrite", variable=self.Overwrite,selectcolor=bg1, bd = 0)#.grid(row=1, sticky=W)
-        #self.widgets[1].grid(pady= 5, row = 0, column = 1, columnspan = 2, in_=self.sett_grid, sticky="n")#.grid(row=0, sticky=W)
-
-
         self.tabs["materials"] = Frame(self.tab_notebook)
         self.widgets[9] = Checkbutton(self, text="Import Materials", variable=self.Materials, bd = 0,selectcolor=bg1)
         self.widgets[9].grid(row = 2, in_=self.tabs["materials"], sticky="w")
+        Label(self, text="Import vmt materials to vmat").grid(row = 1, in_=self.tabs["materials"], sticky="w")
+        
 
         self.tabs["models"] = Frame(self.tab_notebook)
         self.widgets[10] = Checkbutton(self, text="Import Models", variable=self.Models, command=self.checkbutton_tree_update,bd = 0,selectcolor=bg1)
@@ -139,12 +147,7 @@ class SampleApp(Tk):
 
         for tab in self.tabs:
             self.tabs[tab].configure(bg=bg1, highlightbackground=bg1, highlightcolor = bg1, padx=6, pady=6)
-            self.tab_notebook.add(self.tabs[tab], text=tab.capitalize(), state="disabled" if tab == "particles" else "normal")
-
-        for tab in self.tab_notebook.tabs():
-            #tab = self.tab_notebook.tab(tab)
-            self.tab_notebook.tab(tab)
-            print(tab);continue
+            self.tab_notebook.add(self.tabs[tab], text=tab.capitalize(), state="normal" if tab == "particles" else "normal")
 
         self.Console = Console(self.widgets[19])
 
