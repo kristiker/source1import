@@ -94,53 +94,51 @@ class SampleApp(Tk):
 
         style = ttk.Style()
         style.theme_create( "yummy", parent="alt", settings={
-                "TNotebook": {"configure": {"tabmargins": [2, 5, 2, 0], "background": bg1,"tabposition": "wn"} },
+                "TNotebook": {"configure": {"tabmargins": [2, 5, 2, 0], "background": bg1,"tabposition": "wn", "padding":[5,0]} },
                 "TNotebook.Tab": {
-                    "configure": {"padding": [10, 0], "foreground": fg1, "background": bg1 },
+                    "configure": {"padding": [5, 2], "foreground": fg1, "background": bg1 },
                     "map":  {"foreground": [("selected", "white"), ("disabled", bg2)],
                             #"background": [("selected", bg2)],
                              }}})
         style.theme_use("yummy")
         # Settings tabs
-        Checkbutton(self, text="", variable=self.Textures, bd = 0,selectcolor=bg1).grid(in_=self.sett_grid, column=0, row=1, sticky=W)
-        Checkbutton(self, text="", variable=self.Materials, bd = 0,selectcolor=bg1).grid(in_=self.sett_grid, column=0, row=2, sticky=W)
-        Checkbutton(self, text="", variable=self.Models, bd = 0,selectcolor=bg1).grid(in_=self.sett_grid, column=0, row=3, sticky=W)
-        Checkbutton(self, text="", variable=self.Particles, bd = 0,selectcolor=bg1).grid(in_=self.sett_grid, column=0, row=4, sticky=W)
-        Checkbutton(self, text="", variable=self.Textures, bd = 0,selectcolor=bg1).grid(in_=self.sett_grid, column=0, row=5, sticky=W)
-        self.tab_notebook = ttk.Notebook(self, padding=6)
+        self.tab_notebook = ttk.Notebook(self, padding=0, height=15)
         self.tab_notebook.grid(in_=self.sett_grid, column=1, row=1, rowspan=7)#.pack(expand=1, fill="both")
         self.tabs: dict[str, Frame] = {}
         self.tabs["textures"] = Frame(self.tab_notebook)
-        self.widgets[13] = Checkbutton(self, text="Decompile Textures", variable=self.Textures, bd = 0,selectcolor=bg1)
-        self.widgets[13].grid(row = 1, in_=self.tabs["textures"], sticky="w")
+        self.widgets[13] = Checkbutton(self, variable=self.Textures, bd = 0,selectcolor=bg1)
+        self.widgets[13].grid(row = 1, in_=self.sett_grid, sticky=W)
+        self.widgets[30] = Label(self, text="Decompile Textures to sources vtf->tga")
+        self.widgets[30].grid(in_=self.tabs["textures"])
 
         self.tabs["materials"] = Frame(self.tab_notebook)
-        self.widgets[9] = Checkbutton(self, text="Import Materials", variable=self.Materials, bd = 0,selectcolor=bg1)
-        self.widgets[9].grid(row = 2, in_=self.tabs["materials"], sticky="w")
-        Label(self, text="Import vmt materials to vmat").grid(row = 1, in_=self.tabs["materials"], sticky="w")
+        self.widgets[9] = Checkbutton(self, text="", variable=self.Materials, bd = 0,selectcolor=bg1)
+        self.widgets[9].grid(row = 2, in_=self.sett_grid, sticky=W)
+        self.widgets[31] = Label(self, text="Import materials vmt->vmat")
+        self.widgets[31].grid(in_=self.tabs["materials"])
         
 
         self.tabs["models"] = Frame(self.tab_notebook)
-        self.widgets[10] = Checkbutton(self, text="Import Models", variable=self.Models, command=self.checkbutton_tree_update,bd = 0,selectcolor=bg1)
-        self.widgets[10].grid(row = 3, in_=self.tabs["models"], sticky="w")
+        self.widgets[10] = Checkbutton(self, variable=self.Models, command=self.checkbutton_tree_update,bd = 0,selectcolor=bg1)
+        self.widgets[10].grid(row = 3, in_=self.sett_grid, sticky=W)
         self.widgets[11] = Checkbutton(self, text="Move .mdls", variable=self.Models_move, command=self.checkbutton_tree_update,bd = 0, state=DISABLED,selectcolor=bg1)
         self.widgets[11].grid(row = 3, column = 1, in_=self.tabs["models"], sticky="w", padx=20)
 
         self.tabs["particles"] = Frame(self.tab_notebook)
-        self.widgets[14] = Checkbutton(self, text="Import Particles", variable=self.Particles, command=self.checkbutton_tree_update,bd = 0,selectcolor=bg1)
-        self.widgets[14].grid(row = 4, in_=self.tabs["particles"], sticky="w")
+        self.widgets[14] = Checkbutton(self, variable=self.Particles, command=self.checkbutton_tree_update,bd = 0,selectcolor=bg1)
+        self.widgets[14].grid(row = 4, in_=self.sett_grid, sticky=W)
 
         self.tabs["sessions"] = Frame(self.tab_notebook)
-        self.widgets[15] = Checkbutton(self, text="Import Filmmaker Sessions", variable=self.Sessions, command=self.checkbutton_tree_update,bd = 0,selectcolor=bg1)
-        self.widgets[15].grid(row = 5, in_=self.tabs["sessions"], sticky="w")
+        self.widgets[15] = Checkbutton(self, variable=self.Sessions, command=self.checkbutton_tree_update,bd = 0,selectcolor=bg1)
+        self.widgets[15].grid(row = 5, in_=self.sett_grid, sticky=W)
 
         self.tabs["scenes"] = Frame(self.tab_notebook)
-        self.widgets[16] = Checkbutton(self, text="Import Scenes", variable=self.Scenes, command=self.checkbutton_tree_update,bd = 0,selectcolor=bg1)
-        self.widgets[16].grid(row = 6, in_=self.tabs["scenes"], sticky="w")
+        self.widgets[16] = Checkbutton(self, variable=self.Scenes, command=self.checkbutton_tree_update,bd = 0,selectcolor=bg1)
+        self.widgets[16].grid(row = 6, in_=self.sett_grid, sticky=W)
 
         self.tabs["scripts"] = Frame(self.tab_notebook)
-        self.widgets[17] = Checkbutton(self, text="Import Scripts", variable=self.Scripts, command=self.checkbutton_tree_update,bd = 0,selectcolor=bg1)
-        self.widgets[17].grid(row = 7, in_=self.tabs["scripts"], sticky="w")
+        self.widgets[17] = Checkbutton(self, variable=self.Scripts, command=self.checkbutton_tree_update,bd = 0,selectcolor=bg1)
+        self.widgets[17].grid(row = 7, in_=self.sett_grid, sticky=W)
 
         self.widgets[19]=Text(self, wrap=NONE, bd=1, relief=SUNKEN, height=7) #, textvariable=self.status
         self.widgets[19].see(END)
@@ -155,6 +153,9 @@ class SampleApp(Tk):
         sys.stdout = self.Console
         #font=('arial',16,'normal')
         for widget in self.widgets:
+            if widget in range(30, 40):
+                self.widgets[widget].configure(bg=bg1, fg =fg1, font='Helvetica 10')
+                continue
             if widget != 2:
                 self.widgets[widget].configure(bg=bg1, fg =fg1, highlightbackground=bg1, highlightcolor = bg1, relief=GROOVE, font='Helvetica 10 bold' if widget in (5,7) else 'Helvetica 10')
 
