@@ -1,3 +1,4 @@
+import functools
 from pathlib import Path
 from threading import Thread
 from tkinter import filedialog, messagebox, ttk
@@ -23,7 +24,7 @@ class SampleApp(Tk):
 
         self.is_running = False
         self.isSingle = IntVar()
-        self.allChecked = False
+        self.allChecked = IntVar()
 
         self.in_path = StringVar(name="IMPORT_GAME")
         self.out_path = StringVar(name="EXPORT_GAME")
@@ -87,30 +88,29 @@ class SampleApp(Tk):
         self.sett_grid.grid_rowconfigure(0, weight=0, pad=1, minsize=15)
 
 
-        self.widgets[40] = Button(text="  Import All  ", command=self.checkbutton_toggle_all, bd = 2)
-        self.widgets[40].grid(pady= 5, row = 0, column = 0, columnspan=2, in_=self.sett_grid, sticky="n")
+        self.widgets[40] = Checkbutton(text="Import All", variable=self.allChecked, command=self.checkbutton_toggle_all, bd = 2)
+        self.widgets[40].grid(pady= 5, row = 0, column = 0, columnspan=2, in_=self.sett_grid, sticky="w")
         #self.widgets[1] = Checkbutton(self, text="Force Overwrite", variable=self.Overwrite,selectcolor=bg1, bd = 0)#.grid(row=1, sticky=W)
         #self.widgets[1].grid(pady= 5, row = 0, column = 1, columnspan = 2, in_=self.sett_grid, sticky="n")#.grid(row=0, sticky=W)
 
 
         style = ttk.Style()
-        style.theme_create( "yummy", parent="alt", settings={
+        style.theme_create( "yummy", parent="default", settings={
                 "TNotebook": {"configure": {"tabmargins": [2, 5, 2, 0], "background": bg1,"tabposition": "wn", "padding":[5,0]} },
                 "TNotebook.Tab": {
-                    "configure": {"padding": [5, 2], "foreground": fg1, "background": bg1 },
+                    "configure": {"padding": [5, 2, 15, 2], "foreground": fg1, "background": bg1, "bordercolor": bg2 },
                     "map":  {"foreground": [("selected", "white"), ("disabled", bg2)],
                             #"background": [("selected", bg2)],
                              }}})
         style.theme_use("yummy")
         # Settings tabs
         self.tab_notebook = ttk.Notebook(self, padding=0)
-        self.tab_notebook.grid(in_=self.sett_grid, column=1, row=1, rowspan=8)#.pack(expand=1, fill="both")
         self.tabs: dict[str, Frame] = {}
 
         def add_tab(name: str, enable: IntVar, description: str):
             count = len(self.tabs)
             self.tabs[name] = Frame(self.tab_notebook)
-            self.widgets[10+count] = Checkbutton(self, variable=enable, bd = 0,selectcolor=bg1)
+            self.widgets[10+count] = Checkbutton(self, variable=enable, command=functools.partial(self.checkbutton_tab_update, name), bd = 0,selectcolor=bg1)
             self.widgets[10+count].grid(row = count+1, in_=self.sett_grid, sticky=W)
             self.widgets[30+count] = Label(self, text=description, wraplength=300, justify=LEFT, anchor=W)
             self.widgets[30+count].grid(in_=self.tabs[name])
@@ -124,12 +124,14 @@ class SampleApp(Tk):
         add_tab("scenes", self.Scenes, "Generate vcdlist from vcds")
         add_tab("scripts", self.Scripts, "Import various script files")
 
+        self.tab_notebook.grid(in_=self.sett_grid, column=1, row=1, rowspan=len(self.tabs))#.pack(expand=1, fill="both")
+
         self.widgets[19]=Text(self, wrap=NONE, bd=1, relief=SUNKEN, height=7) #, textvariable=self.status
         self.widgets[19].see(END)
 
         for tab in self.tabs:
-            self.tabs[tab].configure(bg=bg1, highlightbackground=bg1, highlightcolor = bg1, padx=6, pady=6)
-            self.tab_notebook.add(self.tabs[tab], text=tab.capitalize(), state="normal" if tab == "particles" else "normal")
+            self.tabs[tab].configure(bg=bg1, highlightbackground=bg1, highlightcolor = bg1, padx=6, pady=6, relief=GROOVE)
+            self.tab_notebook.add(self.tabs[tab], text=tab.capitalize())
 
         self.Console = Console(self.widgets[19])
 
@@ -226,7 +228,7 @@ class SampleApp(Tk):
     def launch_importer_thread(self):
         if self.is_running:
             return
-        thread = Thread(target=self.go)
+        thread = Thread(target=self.go, daemon=True)
         thread.start()
         self.is_running: bool = property(fget=lambda:thread.is_alive())
         self.gobutton_update()
@@ -309,12 +311,16 @@ class SampleApp(Tk):
             except Exception as e:
                 print(e, "\nSomething went wrong while importing scripts!\n\t", e)
             print('=========================================================')
-
+        class CustomException(Exception):...
         if self.Sessions.get():
             from utils import elements_import
             elements_import.sh = sh
             elements_import.SHOULD_OVERWRITE = self.Overwrite.get()
             try:elements_import.main()
+            except SystemExit:
+                ...
+            except CustomException as e:
+                print(e)
             except Exception as e:
                 print(e, "\nSomething went wrong while importing sessions!\n\t", e)
             print('=========================================================')
@@ -324,23 +330,45 @@ class SampleApp(Tk):
 
     def checkbutton_toggle_all(self):
         # .toggle, select, deselect
-        self.allChecked = not self.allChecked
-        self.Textures.set(self.allChecked)
-        self.Materials.set(self.allChecked)
-        self.Models.set(self.allChecked)
-        self.Particles.set(self.allChecked)
-        self.Scenes.set(self.allChecked)
-        self.Scripts.set(self.allChecked)
-        self.Sessions.set(self.allChecked)
+        self.allChecked.set(0 if not self.allChecked.get() else 1)
+        for tab in self.tabs:
+            getattr(self, tab.capitalize()).set(self.allChecked.get())
 
-        self.checkbutton_tree_update()
+        self.checkbutton_tab_update()
 
-    def checkbutton_tree_update(self):
-        self.widgets[40].configure(text= " Import None" if self.allChecked else "  Import All  ")
-        models = self.Models.get()
-        #self.widgets[11].configure(state=NORMAL if models else DISABLED)
-        if models: pass
-        else: pass
+    def verify_all_toggled(self):
+        """Auto toggle Import All based on status of other checkboxes"""
+        for tab in self.tabs:
+            tabChecked: bool = getattr(self, tab.capitalize()).get()
+            if self.allChecked.get(): # Import All is toggled on!
+                if not tabChecked: # but this tab is not
+                    self.allChecked.set(0) # so deselect Import All
+                    break
+            else: # Import All is toggled off
+                if not tabChecked: # and I found a tab that is not toggled
+                    return # it can't be toggled on, so don't bother checking the rest
+        else:
+            self.allChecked.set(1) # all tabs are toggled on, so select Import All
+
+    def focus_tab(self, tabName: str):
+        for tab in self.tab_notebook.tabs():
+            if tabName == self.tab_notebook.tab(tab, option="text").lower():
+                self.tab_notebook.select(tab)
+                break
+
+    def checkbutton_tab_update(self, specificTab: str = None):
+        """Sets tab enable status and selects when one is toggled specifically"""
+        self.verify_all_toggled()
+        for tab in self.tab_notebook.tabs():
+            capitalizedTabName = self.tab_notebook.tab(tab, option="text")
+            if specificTab is not None and specificTab != capitalizedTabName.lower():
+                continue
+            if not getattr(self, capitalizedTabName).get():
+                self.tab_notebook.tab(tab, state=DISABLED)
+            else:
+                self.tab_notebook.tab(tab, state=NORMAL)
+                #if specificTab is not None:
+                #    self.tab_notebook.select(tab)
 
     def gobutton_update(self):
         if self.is_running:
@@ -368,7 +396,7 @@ class SampleApp(Tk):
             self.in_path.set('')
             self.out_path.set('')
             self.write_config()
-        self.checkbutton_tree_update()
+        self.checkbutton_tab_update()
 
     def write_config(self):
         for var in self.vars:
