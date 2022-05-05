@@ -36,6 +36,7 @@ class SampleApp(Tk):
         self.Models = IntVar(name='models')
         self.Models_move = IntVar(value=True, name='models_move')
         self.Particles = IntVar(name='particles')
+        self.Maps = IntVar(name='maps')
         self.Scenes = IntVar(name='scenes')
         self.Scripts = IntVar(name='scripts')
         self.Sessions = IntVar(name='sessions')
@@ -86,8 +87,8 @@ class SampleApp(Tk):
         self.sett_grid.grid_rowconfigure(0, weight=0, pad=1, minsize=15)
 
 
-        self.widgets[12] = Button(text="  Import All  ", command=self.checkbutton_toggle_all, bd = 2)
-        self.widgets[12].grid(pady= 5, row = 0, column = 0, columnspan=2, in_=self.sett_grid, sticky="n")
+        self.widgets[40] = Button(text="  Import All  ", command=self.checkbutton_toggle_all, bd = 2)
+        self.widgets[40].grid(pady= 5, row = 0, column = 0, columnspan=2, in_=self.sett_grid, sticky="n")
         #self.widgets[1] = Checkbutton(self, text="Force Overwrite", variable=self.Overwrite,selectcolor=bg1, bd = 0)#.grid(row=1, sticky=W)
         #self.widgets[1].grid(pady= 5, row = 0, column = 1, columnspan = 2, in_=self.sett_grid, sticky="n")#.grid(row=0, sticky=W)
 
@@ -102,43 +103,26 @@ class SampleApp(Tk):
                              }}})
         style.theme_use("yummy")
         # Settings tabs
-        self.tab_notebook = ttk.Notebook(self, padding=0, height=15)
-        self.tab_notebook.grid(in_=self.sett_grid, column=1, row=1, rowspan=7)#.pack(expand=1, fill="both")
+        self.tab_notebook = ttk.Notebook(self, padding=0)
+        self.tab_notebook.grid(in_=self.sett_grid, column=1, row=1, rowspan=8)#.pack(expand=1, fill="both")
         self.tabs: dict[str, Frame] = {}
-        self.tabs["textures"] = Frame(self.tab_notebook)
-        self.widgets[13] = Checkbutton(self, variable=self.Textures, bd = 0,selectcolor=bg1)
-        self.widgets[13].grid(row = 1, in_=self.sett_grid, sticky=W)
-        self.widgets[30] = Label(self, text="Decompile Textures to sources vtf->tga")
-        self.widgets[30].grid(in_=self.tabs["textures"])
 
-        self.tabs["materials"] = Frame(self.tab_notebook)
-        self.widgets[9] = Checkbutton(self, text="", variable=self.Materials, bd = 0,selectcolor=bg1)
-        self.widgets[9].grid(row = 2, in_=self.sett_grid, sticky=W)
-        self.widgets[31] = Label(self, text="Import materials vmt->vmat")
-        self.widgets[31].grid(in_=self.tabs["materials"])
-        
+        def add_tab(name: str, enable: IntVar, description: str):
+            count = len(self.tabs)
+            self.tabs[name] = Frame(self.tab_notebook)
+            self.widgets[10+count] = Checkbutton(self, variable=enable, bd = 0,selectcolor=bg1)
+            self.widgets[10+count].grid(row = count+1, in_=self.sett_grid, sticky=W)
+            self.widgets[30+count] = Label(self, text=description, wraplength=300, justify=LEFT, anchor=W)
+            self.widgets[30+count].grid(in_=self.tabs[name])
 
-        self.tabs["models"] = Frame(self.tab_notebook)
-        self.widgets[10] = Checkbutton(self, variable=self.Models, command=self.checkbutton_tree_update,bd = 0,selectcolor=bg1)
-        self.widgets[10].grid(row = 3, in_=self.sett_grid, sticky=W)
-        self.widgets[11] = Checkbutton(self, text="Move .mdls", variable=self.Models_move, command=self.checkbutton_tree_update,bd = 0, state=DISABLED,selectcolor=bg1)
-        self.widgets[11].grid(row = 3, column = 1, in_=self.tabs["models"], sticky="w", padx=20)
-
-        self.tabs["particles"] = Frame(self.tab_notebook)
-        self.widgets[14] = Checkbutton(self, variable=self.Particles, command=self.checkbutton_tree_update,bd = 0,selectcolor=bg1)
-        self.widgets[14].grid(row = 4, in_=self.sett_grid, sticky=W)
-
-        self.tabs["sessions"] = Frame(self.tab_notebook)
-        self.widgets[15] = Checkbutton(self, variable=self.Sessions, command=self.checkbutton_tree_update,bd = 0,selectcolor=bg1)
-        self.widgets[15].grid(row = 5, in_=self.sett_grid, sticky=W)
-
-        self.tabs["scenes"] = Frame(self.tab_notebook)
-        self.widgets[16] = Checkbutton(self, variable=self.Scenes, command=self.checkbutton_tree_update,bd = 0,selectcolor=bg1)
-        self.widgets[16].grid(row = 6, in_=self.sett_grid, sticky=W)
-
-        self.tabs["scripts"] = Frame(self.tab_notebook)
-        self.widgets[17] = Checkbutton(self, variable=self.Scripts, command=self.checkbutton_tree_update,bd = 0,selectcolor=bg1)
-        self.widgets[17].grid(row = 7, in_=self.sett_grid, sticky=W)
+        add_tab("textures", self.Textures, "Decompile Textures to sources vtf->tga")
+        add_tab("materials", self.Materials, "Import materials vmt->vmat")
+        add_tab("models", self.Models, "Generate models mdl->vmdl")  
+        add_tab("particles", self.Particles, "Import particles pcf->vpcf")
+        add_tab("maps", self.Maps, "Import map files vmf->vmap (soon)")
+        add_tab("sessions", self.Sessions, "Import Source Filmmaker Sessions")
+        add_tab("scenes", self.Scenes, "Generate vcdlist from vcds")
+        add_tab("scripts", self.Scripts, "Import various script files")
 
         self.widgets[19]=Text(self, wrap=NONE, bd=1, relief=SUNKEN, height=7) #, textvariable=self.status
         self.widgets[19].see(END)
@@ -162,7 +146,7 @@ class SampleApp(Tk):
             if widget in (19, 999): # depth
                 self.widgets[widget].configure(bg=bg2)
 
-            if widget in (1,4,5,7,9,10,11,12,13,14,15,16,17): # buttons
+            if widget in (1,4,5,7,9,10,11,12,13,14,15,16,17,40): # buttons
                 self.widgets[widget].configure(activebackground = bg2, activeforeground = "white")
 
         self.go_and_status = Frame(self, bg=bg1)
@@ -352,9 +336,9 @@ class SampleApp(Tk):
         self.checkbutton_tree_update()
 
     def checkbutton_tree_update(self):
-        self.widgets[12].configure(text= " Import None" if self.allChecked else "  Import All  ")
+        self.widgets[40].configure(text= " Import None" if self.allChecked else "  Import All  ")
         models = self.Models.get()
-        self.widgets[11].configure(state=NORMAL if models else DISABLED)
+        #self.widgets[11].configure(state=NORMAL if models else DISABLED)
         if models: pass
         else: pass
 
