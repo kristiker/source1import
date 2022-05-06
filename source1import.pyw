@@ -24,7 +24,14 @@ class TabContext:
     enabled: IntVar
     further_options: dict
     module: str
-    def add_toggle(self, key, var: Variable, widget_partial: functools.partial[Widget]):
+
+    def add_toggle(self, toggle_name: str, description: str):
+        self.add_widget(toggle_name, IntVar(master=self.frame),
+            functools.partial(Checkbutton, self.frame, text=description, bd = 0, selectcolor=bg1, bg=bg1, fg=fg1)
+        )
+        return self
+
+    def add_widget(self, key, var: Variable, widget_partial: functools.partial[Widget]):
         self.further_options[key] = var
         widget_partial(variable=var).grid(
             sticky="w", padx=0,# pady=5,
@@ -152,28 +159,34 @@ class SampleApp(Tk):
             self.tabs[name] = TabContext(frame, enable, {}, module)
             return self.tabs[name]
 
-        add_tab("textures", self.Textures, "Decompile VTF to sources", "vtf_to_tga")
-
+        add_tab("textures", self.Textures, "Decompile VTF to sources", "vtf_to_tga"
+            ).add_toggle("OVERWRITE", "Overwrite Existing VTFs"
+        )
         add_tab("materials", self.Materials, "Import VMT materials", "materials_import"
-        ).add_toggle("OVERWRITE_VMAT", IntVar(), functools.partial(Checkbutton, self, text="Overwrite Existing VMATs", bd = 0, selectcolor=bg1, bg=bg1, fg=fg1)
-        ).add_toggle("OVERWRITE_SKYBOX_VMATS", IntVar(), functools.partial(Checkbutton, self, text="Overwrite Skybox VMATs", bd = 0, selectcolor=bg1, bg=bg1, fg=fg1)
-        ).add_toggle("OVERWRITE_SKYCUBES", IntVar(), functools.partial(Checkbutton, self, text="Overwrite Sky Images", bd = 0, selectcolor=bg1, bg=bg1, fg=fg1)
-        ).add_toggle("NORMALMAP_G_VTEX_INVERT", IntVar(), functools.partial(Checkbutton, self, text="Invert Normals Via Settings File", bd = 0, selectcolor=bg1, bg=bg1, fg=fg1)
-        ).add_toggle("SIMPLE_SHADER_WHERE_POSSIBLE", IntVar(), functools.partial(Checkbutton, self, text="Use Simple Shader where possible", bd = 0, selectcolor=bg1, bg=bg1, fg=fg1)
-        ).add_toggle("PRINT_LEGACY_IMPORT", IntVar(), functools.partial(Checkbutton, self, text="Print old material inside new", bd = 0, selectcolor=bg1, bg=bg1, fg=fg1)
+            ).add_toggle("OVERWRITE_VMAT", "Overwrite Existing VMATs"
+            ).add_toggle("OVERWRITE_SKYBOX_VMATS", "Overwrite Skybox VMATs"
+            ).add_toggle("OVERWRITE_SKYCUBES", "Overwrite Sky Images"
+            ).add_toggle("NORMALMAP_G_VTEX_INVERT", "Invert Normals Via Settings File"
+            ).add_toggle("SIMPLE_SHADER_WHERE_POSSIBLE", "Use Simple Shader where possible"
+            ).add_toggle("PRINT_LEGACY_IMPORT", "Print old material inside new"
         )
-
-        add_tab("models", self.Models, "Generate VMDL models", "models_import").add_toggle(
-            "MOVE_MODELS",
-            IntVar(),
-            functools.partial(Checkbutton, self, text="Move .mdls", bd = 0, selectcolor=bg1, bg=bg1, fg=fg1)
+        add_tab("models", self.Models, "Generate VMDL models", "models_import"
+            ).add_toggle("SHOULD_OVERWRITE", "Overwrite Existing VMDLs"
+            ).add_toggle("MOVE_MODELS", "Move .mdls"
         )
-        add_tab("particles", self.Particles, "Import particles", "particles_import")
-        add_tab("maps", self.Maps, "Import VMF entities (soon)")
-        add_tab("sessions", self.Sessions, "Convert Source Filmmaker Sessions", "sessions_import")
-        add_tab("scenes", self.Scenes, "Generate vcdlist from vcds", "scenes_import")
-        add_tab("scripts", self.Scripts, "Import various script files", "scripts_import")
-
+        add_tab("particles", self.Particles, "Import particles", "particles_import"
+            ).add_toggle("OVERWRITE_PARTICLES", "Overwrite Existing Particles"
+        )
+        #add_tab("maps", self.Maps, "Import VMF entities (soon)")
+        add_tab("sessions", self.Sessions, "Convert Source Filmmaker Sessions", "elements_import"
+            ).add_toggle("SHOULD_OVERWRITE", "Overwrite Existing Sessions"
+        )
+        add_tab("scripts", self.Scripts, "Import various script files", "scripts_import"
+            ).add_toggle("OVERWRITE_SCRIPTS", "Overwrite Existing Scripts"
+        )
+        add_tab("scenes", self.Scenes, "Generate vcdlist from vcds", "scenes_import"
+            ).add_toggle("EVERYTHING_TO_ROOT", "Add everything to _root.vcdlist"
+        )
         self.tab_notebook.grid(in_=self.sett_grid, column=1, row=1, rowspan=len(self.tabs))#.pack(expand=1, fill="both")
 
         self.widgets[19]=Text(self, wrap=NONE, bd=1, relief=SUNKEN, height=7) #, textvariable=self.status
@@ -300,7 +313,7 @@ class SampleApp(Tk):
             messagebox.showinfo(title=self.APP_TITLE, message="No import function was selected")
             return stop()
         for tab in self.tabs.values():
-            if tab.enabled:
+            if tab.enabled.get():
                 tab.run()
         messagebox.showinfo(title=self.APP_TITLE, message="Looks like we are done!")
         return stop()
@@ -343,8 +356,8 @@ class SampleApp(Tk):
                 self.tab_notebook.tab(tab, state=DISABLED)
             else:
                 self.tab_notebook.tab(tab, state=NORMAL)
-                #if specificTab is not None:
-                #    self.tab_notebook.select(tab)
+                if specificTab is not None:
+                    self.tab_notebook.select(tab)
 
     def gobutton_update(self):
         if self.is_running:
