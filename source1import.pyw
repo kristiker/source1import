@@ -25,10 +25,11 @@ class TabContext:
     further_options: dict
     module: str
 
-    def add_toggle(self, toggle_name: str, description: str):
-        self.add_widget(toggle_name, IntVar(master=self.frame),
-            functools.partial(Checkbutton, self.frame, text=description, bd = 0, selectcolor=bg1, bg=bg1, fg=fg1)
-        )
+    def add_toggles(self, *toggle_list: tuple[str, str]):
+        for toggle_name, description in toggle_list:
+            self.add_widget(toggle_name, IntVar(master=self.frame),
+                functools.partial(Checkbutton, self.frame, text=description, bd = 0, selectcolor=bg1, bg=bg1, fg=fg1)
+            )
         return self
 
     def add_widget(self, key, var: Variable, widget_partial: functools.partial[Widget]):
@@ -39,10 +40,13 @@ class TabContext:
         )
         return self
 
+    def load_module(self):
+        if self.module:
+            return __import__(f"utils.{self.module}", fromlist=[self.module])
+
     def run(self):
-        if not self.module:
+        if not (module:= self.load_module()):
             return
-        module = __import__(f"utils.{self.module}", fromlist=[self.module])
         module.sh = sh
         for option, var in self.further_options.items():
             setattr(module, option, var.get())
@@ -143,6 +147,7 @@ class SampleApp(Tk):
                     "configure": {"padding": [5, 2, 15, 2], "foreground": fg1, "background": bg1, "bordercolor": bg2 },
                     "map":  {"foreground": [("selected", "white"), ("disabled", bg2)],
                             #"background": [("selected", bg2)],
+                            "expand": [("selected", [1, 1, 1, 0])]
                              }}})
         style.theme_use("yummy")
         # Settings tabs
@@ -159,33 +164,33 @@ class SampleApp(Tk):
             self.tabs[name] = TabContext(frame, enable, {}, module)
             return self.tabs[name]
 
-        add_tab("textures", self.Textures, "Decompile VTF to sources", "vtf_to_tga"
-            ).add_toggle("OVERWRITE", "Overwrite Existing VTFs"
+        add_tab("textures", self.Textures, "Decompile VTF to sources", "vtf_to_tga").add_toggles(
+            ("OVERWRITE", "Overwrite Existing VTFs"),
         )
-        add_tab("materials", self.Materials, "Import VMT materials", "materials_import"
-            ).add_toggle("OVERWRITE_VMAT", "Overwrite Existing VMATs"
-            ).add_toggle("OVERWRITE_SKYBOX_VMATS", "Overwrite Skybox VMATs"
-            ).add_toggle("OVERWRITE_SKYCUBES", "Overwrite Sky Images"
-            ).add_toggle("NORMALMAP_G_VTEX_INVERT", "Invert Normals Via Settings File"
-            ).add_toggle("SIMPLE_SHADER_WHERE_POSSIBLE", "Use Simple Shader where possible"
-            ).add_toggle("PRINT_LEGACY_IMPORT", "Print old material inside new"
+        add_tab("materials", self.Materials, "Import VMT materials", "materials_import").add_toggles(
+            ("OVERWRITE_VMAT", "Overwrite Existing VMATs"),
+            ("OVERWRITE_SKYBOX_VMATS", "Overwrite Skybox VMATs"),
+            ("OVERWRITE_SKYCUBES", "Overwrite Sky Images"),
+            ("NORMALMAP_G_VTEX_INVERT", "Invert Normals Via Settings File"),
+            ("SIMPLE_SHADER_WHERE_POSSIBLE", "Use Simple Shader where possible"),
+            ("PRINT_LEGACY_IMPORT", "Print old material inside new"),
         )
-        add_tab("models", self.Models, "Generate VMDL models", "models_import"
-            ).add_toggle("SHOULD_OVERWRITE", "Overwrite Existing VMDLs"
-            ).add_toggle("MOVE_MODELS", "Move .mdls"
+        add_tab("models", self.Models, "Generate VMDL models", "models_import").add_toggles(
+            ("SHOULD_OVERWRITE", "Overwrite Existing VMDLs"),
+            ("MOVE_MODELS", "Move .mdls"),
         )
-        add_tab("particles", self.Particles, "Import particles", "particles_import"
-            ).add_toggle("OVERWRITE_PARTICLES", "Overwrite Existing Particles"
+        add_tab("particles", self.Particles, "Import particles", "particles_import").add_toggles(
+            ("OVERWRITE_PARTICLES", "Overwrite Existing Particles"),
         )
         #add_tab("maps", self.Maps, "Import VMF entities (soon)")
-        add_tab("sessions", self.Sessions, "Convert Source Filmmaker Sessions", "elements_import"
-            ).add_toggle("SHOULD_OVERWRITE", "Overwrite Existing Sessions"
+        add_tab("sessions", self.Sessions, "Convert Source Filmmaker Sessions", "elements_import").add_toggles(
+            ("SHOULD_OVERWRITE", "Overwrite Existing Sessions"),
         )
-        add_tab("scripts", self.Scripts, "Import various script files", "scripts_import"
-            ).add_toggle("OVERWRITE_SCRIPTS", "Overwrite Existing Scripts"
+        add_tab("scripts", self.Scripts, "Import various script files", "scripts_import").add_toggles(
+            ("OVERWRITE_SCRIPTS", "Overwrite Existing Scripts"),
         )
-        add_tab("scenes", self.Scenes, "Generate vcdlist from vcds", "scenes_import"
-            ).add_toggle("EVERYTHING_TO_ROOT", "Add everything to _root.vcdlist"
+        add_tab("scenes", self.Scenes, "Generate vcdlist from vcds", "scenes_import").add_toggles(
+            ("EVERYTHING_TO_ROOT", "Add everything to _root.vcdlist"),
         )
         self.tab_notebook.grid(in_=self.sett_grid, column=1, row=1, rowspan=len(self.tabs))#.pack(expand=1, fill="both")
 
@@ -233,6 +238,7 @@ class SampleApp(Tk):
         self.cfg = {'app_geometry':"480x500"}
         self.geometry("480x500")
         self.read_config()
+        Thread(target=self.read_default_module_options).start()
 
 
     def update_paths(self):
@@ -364,7 +370,13 @@ class SampleApp(Tk):
             self.gobutton.configure(state=DISABLED, text='Running')
         else:
             self.gobutton.configure(state=NORMAL, text='Go')
-        
+    
+    def read_default_module_options(self):
+        for tab in self.tabs.values():
+            module = tab.load_module()
+            for option_variable_name, gui_var in tab.further_options.items():
+                gui_var.set(getattr(module, option_variable_name, True))
+
     def read_config(self):
         #print(Path(__file__).parent)qwe
         try:
