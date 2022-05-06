@@ -15,6 +15,9 @@ bg1 = "#363636"
 bg2 = "#262627"
 fg1 = "#b6b6b7"
 
+
+class ScriptError(Exception):...
+
 @dataclass
 class TabContext:
     frame: Frame
@@ -28,6 +31,24 @@ class TabContext:
             in_=self.frame
         )
         return self
+
+    def run(self):
+        if not self.module:
+            return
+        module = __import__(f"utils.{self.module}", fromlist=[self.module])
+        module.sh = sh
+        for option, var in self.further_options.items():
+            setattr(module, option, var.get())
+        try:
+            module.main()
+        except SystemExit:
+            raise
+        except ScriptError as e:  # Known error
+            print(e)
+        except Exception as e:  # Unknown error
+            print(e, f"\nSomething went wrong in {self.module}!\n\t", e)
+        print('=========================================================')
+
 class SampleApp(Tk):
     def __init__(self, *args, **kwargs):
         Tk.__init__(self, *args, **kwargs)
@@ -254,9 +275,17 @@ class SampleApp(Tk):
             self.out_path.set(Path(path).as_posix())
             self.update_paths()
 
+    def get_filter(self):
+        if len(self.filter.get()):
+            filter = self.filter.get()
+            if "*" not in filter:
+                filter = "*" + filter  + "*"
+            return filter
+
     def launch_importer_thread(self):
         if self.is_running:
             return
+        sh.filter_ = self.get_filter()
         thread = Thread(target=self.go, daemon=True)
         thread.start()
         self.is_running: bool = property(fget=lambda:thread.is_alive())
@@ -270,90 +299,9 @@ class SampleApp(Tk):
         if not any(method.get() for method in (self.Textures,self.Materials,self.Models,self.Particles,self.Scenes,self.Scripts,self.Sessions)):
             messagebox.showinfo(title=self.APP_TITLE, message="No import function was selected")
             return stop()
-        
-        if len(self.filter.get()):
-            sh.filter_ = self.filter.get()
-            if "*" not in sh.filter_:
-                sh.filter_ = "*" + sh.filter_  + "*"
-        else:
-            sh.filter_ = None
-
-        if self.Textures.get():
-            from utils import vtf_to_tga
-            vtf_to_tga.sh = sh
-            vtf_to_tga.OVERWRITE = self.Overwrite.get()
-            try: vtf_to_tga.main()
-            except Exception as e:
-                print(e, "\nSomething went wrong while decompiling textures!")
-            print('=========================================================')
-
-        if self.Materials.get():
-            try:
-                from utils import materials_import
-            except ModuleNotFoundError as e:
-                print(e.msg, "(forgot to pip install -r requirements.txt)")
-                return stop()
-            materials_import.sh = sh
-            materials_import.OVERWRITE_VMAT = self.Overwrite.get()
-            materials_import.OVERWRITE_SKYBOX_VMATS = self.Overwrite.get()
-            materials_import.OVERWRITE_SKYCUBES = self.Overwrite.get()
-            try: materials_import.main()
-            except Exception as e:
-                print(e, "\nSomething went wrong while importing materials!")
-            print('=========================================================')
-
-        if self.Models.get():
-            from utils import models_import
-            models_import.sh = sh
-            models_import.SHOULD_OVERWRITE = self.Overwrite.get()
-            try: models_import.main()
-            except Exception as e:
-                print(e, "\nSomething went wrong while importing models!")
-            print('=========================================================')
-        
-        if self.Particles.get():
-            try:
-                from utils import particles_import
-            except ModuleNotFoundError as e:
-                print(e.msg, "(forgot to pip install -r requirements.txt)")
-                return stop()
-            particles_import.sh = sh
-            particles_import.OVERWRITE_PARTICLES = self.Overwrite.get()
-            try: particles_import.main()
-            except Exception as e:
-                print(e, "\nSomething went wrong while importing particles!")
-            print('=========================================================')
-        
-        if self.Scenes.get():
-            from utils import scenes_import
-            scenes_import.sh = sh
-            try: scenes_import.main()
-            except Exception as e:
-                print(e, "\nSomething went wrong while importing scenes!")
-            print('=========================================================')
-
-        if self.Scripts.get():
-            from utils import scripts_import
-            scripts_import.sh = sh
-            scripts_import.OVERWRITE_SCRIPTS = self.Overwrite.get()
-            try:scripts_import.main()
-            except Exception as e:
-                print(e, "\nSomething went wrong while importing scripts!\n\t", e)
-            print('=========================================================')
-        class CustomException(Exception):...
-        if self.Sessions.get():
-            from utils import elements_import
-            elements_import.sh = sh
-            elements_import.SHOULD_OVERWRITE = self.Overwrite.get()
-            try:elements_import.main()
-            except SystemExit:
-                ...
-            except CustomException as e:
-                print(e)
-            except Exception as e:
-                print(e, "\nSomething went wrong while importing sessions!\n\t", e)
-            print('=========================================================')
-
+        for tab in self.tabs.values():
+            if tab.enabled:
+                tab.run()
         messagebox.showinfo(title=self.APP_TITLE, message="Looks like we are done!")
         return stop()
 
