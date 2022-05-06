@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import functools
 from pathlib import Path
 from threading import Thread
@@ -14,6 +15,11 @@ bg1 = "#363636"
 bg2 = "#262627"
 fg1 = "#b6b6b7"
 
+@dataclass
+class TabContext:
+    frame: Frame
+    enabled: IntVar
+    further_options: dict
 class SampleApp(Tk):
     def __init__(self, *args, **kwargs):
         Tk.__init__(self, *args, **kwargs)
@@ -105,22 +111,27 @@ class SampleApp(Tk):
         style.theme_use("yummy")
         # Settings tabs
         self.tab_notebook = ttk.Notebook(self, padding=0)
-        self.tabs: dict[str, Frame] = {}
+        self.tabs: dict[str, TabContext] = {}
 
-        def add_tab(name: str, enable: IntVar, description: str):
+        def add_tab(name: str, enable: IntVar, description: str) -> Frame:
             count = len(self.tabs)
-            self.tabs[name] = Frame(self.tab_notebook)
+            frame = Frame(self.tab_notebook)
             self.widgets[10+count] = Checkbutton(self, variable=enable, command=functools.partial(self.checkbutton_tab_update, name), bd = 0,selectcolor=bg1)
             self.widgets[10+count].grid(row = count+1, in_=self.sett_grid, sticky=W)
             self.widgets[30+count] = Label(self, text=description, wraplength=300, justify=LEFT, anchor=W)
-            self.widgets[30+count].grid(in_=self.tabs[name])
-
-        add_tab("textures", self.Textures, "Decompile Textures to sources vtf->tga")
-        add_tab("materials", self.Materials, "Import materials vmt->vmat")
-        add_tab("models", self.Models, "Generate models mdl->vmdl")  
-        add_tab("particles", self.Particles, "Import particles pcf->vpcf")
-        add_tab("maps", self.Maps, "Import map files vmf->vmap (soon)")
-        add_tab("sessions", self.Sessions, "Import Source Filmmaker Sessions")
+            self.widgets[30+count].grid(in_=frame)
+            self.tabs[name] = TabContext(frame, enable, {})
+            return frame
+        add_tab("textures", self.Textures, "Decompile VTF to sources")
+        add_tab("materials", self.Materials, "Import VMT materials")
+        
+        Checkbutton(self, text="Move .mdls", variable=self.Models_move, bd = 0, selectcolor=bg1, bg=bg1, fg=fg1).grid(
+            sticky="w", padx=0, pady=5,
+            in_=add_tab("models", self.Models, "Generate VMDL models")
+        )
+        add_tab("particles", self.Particles, "Import particles")
+        add_tab("maps", self.Maps, "Import VMF entities (soon)")
+        add_tab("sessions", self.Sessions, "Convert Source Filmmaker Sessions")
         add_tab("scenes", self.Scenes, "Generate vcdlist from vcds")
         add_tab("scripts", self.Scripts, "Import various script files")
 
@@ -130,8 +141,8 @@ class SampleApp(Tk):
         self.widgets[19].see(END)
 
         for tab in self.tabs:
-            self.tabs[tab].configure(bg=bg1, highlightbackground=bg1, highlightcolor = bg1, padx=6, pady=6, relief=GROOVE)
-            self.tab_notebook.add(self.tabs[tab], text=tab.capitalize())
+            self.tabs[tab].frame.configure(bg=bg1, highlightbackground=bg1, highlightcolor = bg1, padx=6, pady=6, relief=GROOVE)
+            self.tab_notebook.add(self.tabs[tab].frame, text=tab.capitalize())
 
         self.Console = Console(self.widgets[19])
 
@@ -331,21 +342,20 @@ class SampleApp(Tk):
     def checkbutton_toggle_all(self):
         # .toggle, select, deselect
         self.allChecked.set(0 if not self.allChecked.get() else 1)
-        for tab in self.tabs:
-            getattr(self, tab.capitalize()).set(self.allChecked.get())
+        for tab in self.tabs.values():
+            tab.enabled.set(self.allChecked.get())
 
         self.checkbutton_tab_update()
 
     def verify_all_toggled(self):
         """Auto toggle Import All based on status of other checkboxes"""
-        for tab in self.tabs:
-            tabChecked: bool = getattr(self, tab.capitalize()).get()
+        for tab in self.tabs.values():
             if self.allChecked.get(): # Import All is toggled on!
-                if not tabChecked: # but this tab is not
+                if not tab.enabled.get(): # but this tab is not
                     self.allChecked.set(0) # so deselect Import All
                     break
             else: # Import All is toggled off
-                if not tabChecked: # and I found a tab that is not toggled
+                if not tab.enabled.get(): # and I found a tab that is not toggled
                     return # it can't be toggled on, so don't bother checking the rest
         else:
             self.allChecked.set(1) # all tabs are toggled on, so select Import All
