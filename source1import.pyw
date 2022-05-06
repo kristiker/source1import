@@ -20,6 +20,14 @@ class TabContext:
     frame: Frame
     enabled: IntVar
     further_options: dict
+    module: str
+    def add_toggle(self, key, var: Variable, widget_partial: functools.partial[Widget]):
+        self.further_options[key] = var
+        widget_partial(variable=var).grid(
+            sticky="w", padx=0,# pady=5,
+            in_=self.frame
+        )
+        return self
 class SampleApp(Tk):
     def __init__(self, *args, **kwargs):
         Tk.__init__(self, *args, **kwargs)
@@ -113,27 +121,37 @@ class SampleApp(Tk):
         self.tab_notebook = ttk.Notebook(self, padding=0)
         self.tabs: dict[str, TabContext] = {}
 
-        def add_tab(name: str, enable: IntVar, description: str) -> Frame:
+        def add_tab(name: str, enable: IntVar, description: str, module: str = "") -> TabContext:
             count = len(self.tabs)
             frame = Frame(self.tab_notebook)
             self.widgets[10+count] = Checkbutton(self, variable=enable, command=functools.partial(self.checkbutton_tab_update, name), bd = 0,selectcolor=bg1)
             self.widgets[10+count].grid(row = count+1, in_=self.sett_grid, sticky=W)
             self.widgets[30+count] = Label(self, text=description, wraplength=300, justify=LEFT, anchor=W)
             self.widgets[30+count].grid(in_=frame)
-            self.tabs[name] = TabContext(frame, enable, {})
-            return frame
-        add_tab("textures", self.Textures, "Decompile VTF to sources")
-        add_tab("materials", self.Materials, "Import VMT materials")
-        
-        Checkbutton(self, text="Move .mdls", variable=self.Models_move, bd = 0, selectcolor=bg1, bg=bg1, fg=fg1).grid(
-            sticky="w", padx=0, pady=5,
-            in_=add_tab("models", self.Models, "Generate VMDL models")
+            self.tabs[name] = TabContext(frame, enable, {}, module)
+            return self.tabs[name]
+
+        add_tab("textures", self.Textures, "Decompile VTF to sources", "vtf_to_tga")
+
+        add_tab("materials", self.Materials, "Import VMT materials", "materials_import"
+        ).add_toggle("OVERWRITE_VMAT", IntVar(), functools.partial(Checkbutton, self, text="Overwrite Existing VMATs", bd = 0, selectcolor=bg1, bg=bg1, fg=fg1)
+        ).add_toggle("OVERWRITE_SKYBOX_VMATS", IntVar(), functools.partial(Checkbutton, self, text="Overwrite Skybox VMATs", bd = 0, selectcolor=bg1, bg=bg1, fg=fg1)
+        ).add_toggle("OVERWRITE_SKYCUBES", IntVar(), functools.partial(Checkbutton, self, text="Overwrite Sky Images", bd = 0, selectcolor=bg1, bg=bg1, fg=fg1)
+        ).add_toggle("NORMALMAP_G_VTEX_INVERT", IntVar(), functools.partial(Checkbutton, self, text="Invert Normals Via Settings File", bd = 0, selectcolor=bg1, bg=bg1, fg=fg1)
+        ).add_toggle("SIMPLE_SHADER_WHERE_POSSIBLE", IntVar(), functools.partial(Checkbutton, self, text="Use Simple Shader where possible", bd = 0, selectcolor=bg1, bg=bg1, fg=fg1)
+        ).add_toggle("PRINT_LEGACY_IMPORT", IntVar(), functools.partial(Checkbutton, self, text="Print old material inside new", bd = 0, selectcolor=bg1, bg=bg1, fg=fg1)
         )
-        add_tab("particles", self.Particles, "Import particles")
+
+        add_tab("models", self.Models, "Generate VMDL models", "models_import").add_toggle(
+            "MOVE_MODELS",
+            IntVar(),
+            functools.partial(Checkbutton, self, text="Move .mdls", bd = 0, selectcolor=bg1, bg=bg1, fg=fg1)
+        )
+        add_tab("particles", self.Particles, "Import particles", "particles_import")
         add_tab("maps", self.Maps, "Import VMF entities (soon)")
-        add_tab("sessions", self.Sessions, "Convert Source Filmmaker Sessions")
-        add_tab("scenes", self.Scenes, "Generate vcdlist from vcds")
-        add_tab("scripts", self.Scripts, "Import various script files")
+        add_tab("sessions", self.Sessions, "Convert Source Filmmaker Sessions", "sessions_import")
+        add_tab("scenes", self.Scenes, "Generate vcdlist from vcds", "scenes_import")
+        add_tab("scripts", self.Scripts, "Import various script files", "scripts_import")
 
         self.tab_notebook.grid(in_=self.sett_grid, column=1, row=1, rowspan=len(self.tabs))#.pack(expand=1, fill="both")
 
