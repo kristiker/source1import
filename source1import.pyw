@@ -11,6 +11,7 @@ sys.path.insert(0, sys.path[0] + '\\utils')
 
 import utils.shared.base_utils2 as sh
 
+bghighlight = "#414141"
 bg1 = "#363636"
 bg2 = "#262627"
 fg1 = "#b6b6b7"
@@ -28,7 +29,7 @@ class TabContext:
     def add_toggles(self, *toggle_list: tuple[str, str]):
         for toggle_name, description in toggle_list:
             self.add_widget(toggle_name, IntVar(master=self.frame),
-                functools.partial(Checkbutton, self.frame, text=description, bd = 0, selectcolor=bg1, bg=bg1, fg=fg1)
+                functools.partial(Checkbutton, self.frame, text=description,bd=0,selectcolor=bg1,bg=bg1,fg=fg1,activeforeground=fg1,activebackground=bg2)
             )
         return self
 
@@ -76,7 +77,7 @@ class SampleApp(Tk):
         self.out_path = StringVar(name="EXPORT_GAME")
         self.filter = StringVar(name="filter")
 
-        self.Overwrite = IntVar(name='overwrite_all')
+        #self.Overwrite = IntVar(name='overwrite_all')
 
         self.Textures = IntVar(name='textures')
         self.Materials = IntVar(name='materials')
@@ -88,14 +89,14 @@ class SampleApp(Tk):
         self.Scripts = IntVar(name='scripts')
         self.Sessions = IntVar(name='sessions')
 
-        self.vars = (self.in_path, self.out_path, self.filter, self.Overwrite, self.Textures,
+        self.vars = (self.in_path, self.out_path, self.filter, self.Textures,
             self.Materials, self.Models, self.Models_move,self.Particles,self.Scenes,self.Scripts,self.Sessions,
         )
         self.settings_file = Path.home() / "AppData/Roaming/source1import/settings.json"
         self.settings_file.parent.MakeDir()
 
         self.iconbitmap(Path(__file__).parent / 'utils/shared/icon.ico')
-        self.minsize(480, 330)
+        self.minsize(480, 410)
         self.title(self.APP_TITLE)
         #self.maxsize(370, 350)
         self.configure(background=bg1)
@@ -108,58 +109,58 @@ class SampleApp(Tk):
         self.widgets: dict[int, Widget] = {}
         # Import game label, entry and picker
         self.widgets[3] = Entry(self, textvariable=self.in_path,relief=GROOVE, width=48, state=DISABLED, disabledbackground=bg2, disabledforeground="white")
-        self.widgets[5] = Button(text=" ... ", command=lambda: self.pick_in_path())
+        self.widgets[5] = Button(text="…", command=lambda: self.pick_in_path(),width=3)
         Label(self, text="Import Game :", fg = fg1, bg=bg1).grid(in_=self.io_grid,row=1,column=0,sticky="w")
-        self.widgets[3].grid(row=1, column = 1, columnspan=2, in_=self.io_grid,sticky="we", pady=5, padx=3, ipady=2)
-        self.widgets[5].grid(row=1, column = 3, in_=self.io_grid)
+        self.widgets[3].grid(row=1, column = 1, columnspan=2, in_=self.io_grid,sticky="we", pady=5, padx=5, ipady=3)
+        self.widgets[5].grid(row=1, column = 3, in_=self.io_grid, ipady=0)
 
         # Export game label, entry and picker
         Label(self, text="Export Game :", bg=bg1, fg = fg1).grid(in_=self.io_grid,row=2,column=0,sticky="w")
         self.widgets[8] = Entry(self, textvariable=self.out_path, width=40, relief=GROOVE, state=DISABLED, disabledbackground=bg2, disabledforeground="white")
-        self.widgets[8].grid(row=2, column= 1, columnspan=2, in_=self.io_grid,sticky="we", pady=5, padx=3, ipady=2)
-        self.widgets[7] = Button(text=" ... ", command=lambda: self.pick_out_path(),relief=GROOVE,state=DISABLED)
+        self.widgets[8].grid(row=2, column= 1, columnspan=2, in_=self.io_grid,sticky="we", pady=5, padx=5, ipady=3)
+        self.widgets[7] = Button(text="…", command=lambda: self.pick_out_path(),relief=GROOVE,state=DISABLED,width=3)
         self.widgets[7].grid(row=2, column = 3, in_=self.io_grid)#.grid(row=2, column = 3, columnspan=2, rowspan = 1,in_=self.io_grid, sticky="wens")
 
         # Filter
         Label(self, text="Filter :", bg=bg1, fg = fg1).grid(in_=self.io_grid,row=3,column=0,sticky="w")
         self.widgets[2] = Entry(self, textvariable=self.filter, fg="white", bg=bg2, width=40, relief=GROOVE)
-        self.widgets[2].grid(row=3, column= 1, columnspan=2, in_=self.io_grid,sticky="we", pady=5, padx=3, ipady=2)
-        Button(text=" X ", command=lambda: self.filter.set(''),fg=fg1,bg=bg1,highlightcolor = bg1,relief=GROOVE).grid(row=3, column = 3, in_=self.io_grid)
-
+        self.widgets[2].grid(row=3, column= 1, columnspan=2, in_=self.io_grid,sticky="we", pady=5, padx=5, ipady=4)
+        self.widgets[1] = Button(text="❌", command=lambda: self.filter.set(''),font=15,fg=fg1,bg=bg1,highlightcolor=bg1,relief=GROOVE,width=3)
+        self.widgets[1].grid(row=3, column = 3, in_=self.io_grid)
 
         # Settings grid
         self.sett_grid = Frame(self, width=310, height=100, bg=bg1)
-        self.sett_grid.pack(fill="both", expand=False, padx=20, pady=1)#side="left", fill="both", expand=True)
-        self.sett_grid.grid_columnconfigure(0, weight=0, pad=2, minsize=12)
+        self.sett_grid.pack(fill="both", expand=False, padx=15, pady=1)#side="left", fill="both", expand=True)
+        self.sett_grid.grid_columnconfigure(0, weight=0, pad=0)
         self.sett_grid.grid_rowconfigure(0, weight=0, pad=1, minsize=15)
 
-
-        self.widgets[40] = Checkbutton(text="Import All", variable=self.allChecked, command=self.checkbutton_toggle_all, bd = 2)
-        self.widgets[40].grid(pady= 5, row = 0, column = 0, columnspan=2, in_=self.sett_grid, sticky="w")
+        self.widgets[99] = Checkbutton(text="   Import All  ", variable=self.allChecked, command=self.checkbutton_toggle_all, width=11,selectcolor=bg1,)
+        self.widgets[99].grid(pady= 5, row = 0, column = 0, columnspan=2, in_=self.sett_grid, sticky="w")
         #self.widgets[1] = Checkbutton(self, text="Force Overwrite", variable=self.Overwrite,selectcolor=bg1, bd = 0)#.grid(row=1, sticky=W)
         #self.widgets[1].grid(pady= 5, row = 0, column = 1, columnspan = 2, in_=self.sett_grid, sticky="n")#.grid(row=0, sticky=W)
 
-
         style = ttk.Style()
-        style.theme_create( "yummy", parent="default", settings={
-                "TNotebook": {"configure": {"tabmargins": [2, 5, 2, 0], "background": bg1,"tabposition": "wn", "padding":[5,0]} },
-                "TNotebook.Tab": {
-                    "configure": {"padding": [5, 2, 15, 2], "foreground": fg1, "background": bg1, "bordercolor": bg2 },
-                    "map":  {"foreground": [("selected", "white"), ("disabled", bg2)],
-                            #"background": [("selected", bg2)],
-                            "expand": [("selected", [1, 1, 1, 0])]
-                             }}})
+        style.theme_create( "yummy", parent="alt", settings={
+        "TNotebook": {
+            "configure": {"tabmargins": [2, 5, 2, 0], "background": bg1,"tabposition": "wn", "padding":[5,0],"borderwidth":0,},
+        },
+        "TNotebook.Tab": {
+            "configure": {"padding": [5, 4, 5, 2], "foreground": fg1, "background": bg1, "bordercolor": bg2, "width": 9, "focuscolor": bghighlight, "borderwidth": 0, "font": ("Arial", 10, "bold")},
+            "map":  {"foreground": [("selected", "white"), ("disabled", bg2)],
+                    "background": [("selected", bghighlight)],
+                    "expand": [("selected", [2, 1, 1, 0])]
+        }}})
         style.theme_use("yummy")
         # Settings tabs
-        self.tab_notebook = ttk.Notebook(self, padding=0)
+        self.tab_notebook = ttk.Notebook(self, padding=0, width=341)
         self.tabs: dict[str, TabContext] = {}
 
         def add_tab(name: str, enable: IntVar, description: str, module: str = "") -> TabContext:
             count = len(self.tabs)
-            frame = Frame(self.tab_notebook)
-            self.widgets[10+count] = Checkbutton(self, variable=enable, command=functools.partial(self.checkbutton_tab_update, name), bd = 0,selectcolor=bg1)
+            frame = LabelFrame(self.tab_notebook, relief=GROOVE, bg=bg1, labelanchor="nw", text="")
+            self.widgets[10+count] = Checkbutton(self, padx=0, pady=2, width=2, variable=enable, command=functools.partial(self.checkbutton_tab_update, name), bd=0,selectcolor=bg1)
             self.widgets[10+count].grid(row = count+1, in_=self.sett_grid, sticky=W)
-            self.widgets[30+count] = Label(self, text=description, wraplength=300, justify=LEFT, anchor=W)
+            self.widgets[30+count] = Label(self, text="• "+description, justify=LEFT)
             self.widgets[30+count].grid(in_=frame)
             self.tabs[name] = TabContext(frame, enable, {}, module)
             return self.tabs[name]
@@ -171,8 +172,8 @@ class SampleApp(Tk):
             ("OVERWRITE_VMAT", "Overwrite Existing VMATs"),
             ("OVERWRITE_SKYBOX_VMATS", "Overwrite Skybox VMATs"),
             ("OVERWRITE_SKYCUBES", "Overwrite Sky Images"),
-            ("NORMALMAP_G_VTEX_INVERT", "Invert Normals Via Settings File"),
-            ("SIMPLE_SHADER_WHERE_POSSIBLE", "Use Simple Shader where possible"),
+            ("NORMALMAP_G_VTEX_INVERT", "Invert Normal Via Settings File"),
+            ("SIMPLE_SHADER_WHERE_POSSIBLE", "Use Simple Shader if possible"),
             ("PRINT_LEGACY_IMPORT", "Print old material inside new"),
         )
         add_tab("models", self.Models, "Generate VMDL models", "models_import").add_toggles(
@@ -183,7 +184,7 @@ class SampleApp(Tk):
             ("OVERWRITE_PARTICLES", "Overwrite Existing Particles"),
         )
         #add_tab("maps", self.Maps, "Import VMF entities (soon)")
-        add_tab("sessions", self.Sessions, "Convert Source Filmmaker Sessions", "elements_import").add_toggles(
+        add_tab("sessions", self.Sessions, "Import Source Filmmaker Sessions", "elements_import").add_toggles(
             ("SHOULD_OVERWRITE", "Overwrite Existing Sessions"),
         )
         add_tab("scripts", self.Scripts, "Import various script files", "scripts_import").add_toggles(
@@ -200,24 +201,22 @@ class SampleApp(Tk):
         for tab in self.tabs:
             self.tabs[tab].frame.configure(bg=bg1, highlightbackground=bg1, highlightcolor = bg1, padx=6, pady=6, relief=GROOVE)
             self.tab_notebook.add(self.tabs[tab].frame, text=tab.capitalize())
-
+        self.checkbutton_tab_update()
         self.Console = Console(self.widgets[19])
 
         # replace sys.stdout with our object
         sys.stdout = self.Console
         #font=('arial',16,'normal')
         for widget in self.widgets:
-            if widget in range(30, 40):
-                self.widgets[widget].configure(bg=bg1, fg =fg1, font='Helvetica 10')
+            if widget in range(30, 50): # Module title
+                self.widgets[widget].configure(bg=bg1, fg ="white", font='Helvetica 11')
                 continue
-            if widget != 2:
+            if widget !=2: # Filter box is self configured
                 self.widgets[widget].configure(bg=bg1, fg =fg1, highlightbackground=bg1, highlightcolor = bg1, relief=GROOVE, font='Helvetica 10 bold' if widget in (5,7) else 'Helvetica 10')
-
-            if widget in (19, 999): # depth
-                self.widgets[widget].configure(bg=bg2)
-
-            if widget in (1,4,5,7,9,10,11,12,13,14,15,16,17,40): # buttons
-                self.widgets[widget].configure(activebackground = bg2, activeforeground = "white")
+                if widget == 19: # Console has darker bg
+                    self.widgets[widget].configure(bg=bg2)
+            if widget in (1,4,5,7,9,10,11,12,13,14,15,16,17,99): # buttons
+                self.widgets[widget].configure(bg=bg1,fg=fg1,activeforeground=fg1,activebackground=bg2)
 
         self.go_and_status = Frame(self, bg=bg1)
         self.go_and_status.pack(ipadx = 6, ipady = 1.1, padx = 6, pady = 6, side=BOTTOM, fill=BOTH)#side="left", fill="both", expand=True)
@@ -362,7 +361,7 @@ class SampleApp(Tk):
                 self.tab_notebook.tab(tab, state=DISABLED)
             else:
                 self.tab_notebook.tab(tab, state=NORMAL)
-                if specificTab is not None:
+                if specificTab is not None or not self.tab_notebook.select():
                     self.tab_notebook.select(tab)
 
     def gobutton_update(self):
