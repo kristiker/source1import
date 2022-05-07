@@ -387,16 +387,19 @@ class SampleApp(Tk):
         except (PermissionError, FileNotFoundError):
             pass
         self.geometry(self.cfg['app_geometry'])
-        for var in self.vars:
-            var.set(self.cfg.setdefault(var._name, var.get()))
-        try:
-            self.update_paths()
-        except Exception:
-            print("Wrong paths were configured.")
-            self.in_path.set('')
-            self.out_path.set('')
-            self.write_config()
-        self.checkbutton_tab_update()
+        
+        def _async():
+            for var in self.vars:
+                var.set(self.cfg.setdefault(var._name, var.get()))
+            try:
+                self.update_paths()
+            except Exception:
+                print("Wrong paths were configured.")
+                self.in_path.set('')
+                self.out_path.set('')
+                self.write_config()
+            self.checkbutton_tab_update()
+        Thread(target=_async, daemon=True).start()
 
     def write_config(self):
         for var in self.vars:
