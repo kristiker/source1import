@@ -51,19 +51,17 @@ from enum import Enum, unique, auto
 class eEngineUtils(Enum):
     def _generate_next_value_(name: str, *_) -> str:
         return name+".exe"
-    @property
     def full_path(self) -> Path:
         return BIN / "win64" / self.value
-    @property
     def avaliable(self):
         return self.full_path.is_file()
     
     def __call__(self, args: list[str] = []) -> Optional[subprocess.CompletedProcess]:
-        if self.avaliable:
+        if self.avaliable():
             #os.system(f'"{self.full_path}" {" ".join(args)}')
             return subprocess.run(
                 args,
-                executable=self.full_path,
+                executable=self.full_path(),
                 #shell=True,
                 stdout=subprocess.PIPE,
                 creationflags= subprocess.CREATE_NO_WINDOW | subprocess.DETACHED_PROCESS,
@@ -344,7 +342,7 @@ def collect(root, inExt, outExt, existing:bool = False, outNameRule = None, sear
                     skip_reason = 'blacklist'
 
             if skip_reason:
-                status(f"- skipping [{skip_reason}]: {filePath2.local.as_posix()}")
+                skip(skip_reason, filePath2)
                 continue #del files_with_ext[files_with_ext.index(filePath)]
             yield filePath
 
@@ -362,6 +360,8 @@ def source2namefixup(path: Path):
 #def overwrite_allowed(path, bAllowed=import_context['overwrite']):
 #    return path.exists() and bAllowed
 
+def skip(skip_reason: str, path: Path):
+    status(f"- skipping [{skip_reason}]: {path.local.as_posix()}")
 
 def write(content: str, path: Path):
     with open(path, 'w') as fp:

@@ -15,9 +15,9 @@ GENERIC_SHADER = False
 COMPLEX_SH = not GENERIC_SHADER
 
 # Set this to True if you wish to overwrite your old vmat files.
-OVERWRITE_VMAT = True
-OVERWRITE_SKYBOX_VMATS = True
-OVERWRITE_SKYCUBES = True
+OVERWRITE_VMAT = False
+OVERWRITE_SKYBOX_VMATS = False
+OVERWRITE_SKYCUBES = False
 
 # True to let vtex handle the inverting of the normalmap.
 NORMALMAP_G_VTEX_INVERT = True
@@ -1091,6 +1091,8 @@ def collectSkybox(name:str, face: str, vmt: VMT):
 
     if (texture:= hdr_tex or hdr_compressed_tex or ldr_tex) is not None:
         face_collect_path = sh.output(legacy_skyfaces/name).with_suffix(".json")
+        if face_collect_path.is_file() and not OVERWRITE_SKYBOX_VMATS:
+            return sh.skip('already-collected', face_collect_path)
         Collect = sh.GetJson(face_collect_path, bCreate = True)
 
         # First vmt to have $hdr decides hdr-ness
@@ -1175,14 +1177,11 @@ def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False):
         validMaterial = True
 
     if vmt.shader == 'patch':
-
         if includePath := vmt.KeyValues["include"]:
             if includePath == r'materials\models\weapons\customization\paints\master.vmt':
                 return
-
             patchKeyValues = vmt.KeyValues.copy()
             vmt.KeyValues.clear()
-
             print("+ Retrieving material properties from include:", includePath, end=' ... ')
             try:
                 vmt.shader, vmt.KeyValues = getKeyValues(sh.src(includePath), ignoreList) # TODO: kv1read

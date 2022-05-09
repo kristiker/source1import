@@ -16,7 +16,6 @@ bg1 = "#363636"
 bg2 = "#262627"
 fg1 = "#b6b6b7"
 
-
 class ScriptError(Exception):...
 
 @dataclass
@@ -166,7 +165,7 @@ class SampleApp(Tk):
             return self.tabs[name]
 
         add_tab("textures", self.Textures, "Decompile VTF to sources", "vtf_to_tga").add_toggles(
-            ("OVERWRITE", "Overwrite Existing VTFs"),
+            ("OVERWRITE", "Overwrite Existing TGAs"),
         )
         add_tab("materials", self.Materials, "Import VMT materials", "materials_import").add_toggles(
             ("OVERWRITE_VMAT", "Overwrite Existing VMATs"),
