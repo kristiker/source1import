@@ -47,6 +47,8 @@ class TabContext:
     def run(self):
         if not (module:= self.load_module()):
             return
+        # FIXME HACK: some scripts are leaving this on nondefault EXPORT_GAME when they're done.
+        sh.import_context['dest'] = sh.EXPORT_CONTENT
         module.sh = sh
         for option, var in self.further_options.items():
             setattr(module, option, var.get())
