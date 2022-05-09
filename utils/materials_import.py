@@ -141,7 +141,7 @@ shaderDict = {
     "sky":                  "sky",
     "unlitgeneric":         "vr_complex",
     "vertexlitgeneric":     "vr_complex",
-    "decalmodulate":        "vr_projected_decals",  # https://developer.valvesoftware.com/wiki/Decals#DecalModulate
+    "decalmodulate":        "vr_static_overlay",  # https://developer.valvesoftware.com/wiki/Decals#DecalModulate
     "lightmappedgeneric":   "vr_complex",
     "lightmappedreflective":"vr_complex",
     "character":            "vr_complex",  # https://developer.valvesoftware.com/wiki/Character_(shader)
@@ -190,7 +190,7 @@ def chooseShader():
 
     if vmt.KeyValues['$beachfoam']: return "csgo_beachfoam"
 
-    if vmt.KeyValues['$decal'] == 1: d["vr_projected_decals"] += 10
+    if vmt.KeyValues['$decal'] == 1: d["vr_static_overlay"] += 2
 
     if vmt.shader == "worldvertextransition":
         if vmt.KeyValues['$basetexture2']: d["vr_simple_2way_blend"] += 10
@@ -1047,7 +1047,7 @@ def convertSpecials():
 
     # fix mod2x logic for "vr_projected_decals"
     if vmt.shader == 'decalmodulate':
-        vmat.KeyValues['F_BLEND_MODE'] = 1  # 2 for vr_static_overlay
+        vmat.KeyValues['F_BLEND_MODE'] = 1 if (vmat.shader == "vr_projected_decals") else 2
 
     # fix lit logic for "vr_projected_decals"
     if vmt.shader in ('lightmappedgeneric', 'vertexlitgeneric'):
@@ -1232,9 +1232,9 @@ def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False):
 
     print("+ Saved", vmat.path if sh.DEBUG else vmat.path.local)
 
-    if vmat.shader == "vr_projected_decals":
-        _ImportVMTtoExtraVMAT(vmt_path, shader="vr_static_overlay",
-            path=(vmat.path.parent / (vmat.path.stem + '-static' + vmat.path.suffix)))
+    #if vmat.shader == "vr_projected_decals":
+    #    _ImportVMTtoExtraVMAT(vmt_path, shader="vr_static_overlay",
+    #        path=(vmat.path.parent / (vmat.path.stem + '-static' + vmat.path.suffix)))
 
     return vmat.path
 
