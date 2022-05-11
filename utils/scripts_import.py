@@ -4,11 +4,12 @@
 # "wave" ambient\dust2\wind_sand_01.wav" -> "wave" "sounds\ambient\dust2\wind_sand_01.vsnd" 
 #
 
-from shared import base_utils2 as sh
+import shared.base_utils2 as sh
 from pathlib import Path
 from shared.keyvalues1 import KV, VDFDict
+import itertools
 
-OVERWRITE_SCRIPTS = True
+OVERWRITE_SCRIPTS = False
 
 HLVR_ADDON_WRITE = False
 """
@@ -25,29 +26,28 @@ SURFACEPROPERTIES_MANIFEST = scripts / "surfaceproperties_manifest.txt"
 SOUND_OPERATORS_FILE = scripts / "sound_operator_stacks.txt" # TODO.....
 
 def main():
-
     sh.import_context['dest'] = sh.EXPORT_GAME
+    print("Importing Scripts!")
 
-    # soundscapes vsc...
-    for soundscapes_vsc in sh.collect("scripts", ".vsc", ".txt", OVERWRITE_SCRIPTS, match="soundscapes_*.vsc"):
-        ImportSoundscape(soundscapes_vsc)
-
-    # soundscapes txt... (also manifest)
-    for soundscapes_txt in sh.collect("scripts", ".txt", ".txt", OVERWRITE_SCRIPTS, match="soundscapes_*.txt"):
-        if soundscapes_txt.name == SOUNDSCAPES_MANIFEST.name:
-            ImportSoundscapeManifest(soundscapes_txt)
+    # soundscapes vsc, txt, and manifest...
+    for soundscapes in itertools.chain(
+        sh.collect("scripts", ".vsc", ".txt", OVERWRITE_SCRIPTS, match="soundscapes_*.vsc"),
+        sh.collect("scripts", ".txt", ".txt", OVERWRITE_SCRIPTS, match="soundscapes_*.txt")
+    ):
+        if soundscapes.name == SOUNDSCAPES_MANIFEST.name:
+            ImportSoundscapeManifest(soundscapes)
             continue
-        ImportSoundscape(soundscapes_txt)
+        ImportSoundscape(soundscapes)
 
     # game sounds...
     sh.import_context['dest'] = sh.EXPORT_CONTENT
 
     # 'scripts' 'soundevents' hybrid base_utils2 FIXME
-    for file in (sh._src()/'scripts').glob('**/game_sounds*.txt'):
+    for file in (sh.src(scripts)).glob('**/game_sounds*.txt'):
         if file.name != 'game_sounds_manifest.txt':
             ImportGameSound(file)
 
-    if (boss:=sh._src()/'scripts'/'level_sounds_general.txt').is_file():
+    if (boss:=sh.src(scripts)/'level_sounds_general.txt').is_file():
         ImportGameSound(boss)
 
     if HLVR_ADDON_WRITE:
@@ -64,6 +64,7 @@ def main():
         )
     manifest_handle.after_all_converted()
 
+    print("Looks like we are done!")
 
 def fix_wave_resource(old_value):
     soundchars = '*?!#><^@~+)(}$' + '`' # public\soundchars.h
@@ -71,10 +72,8 @@ def fix_wave_resource(old_value):
 
     return f"sounds/{Path(old_value).with_suffix('.vsnd').as_posix()}"
 
-@sh.s1import('.txt')
-def ImportSoundscape(file: Path, newsc_path: Path):
+def ImportSoundscape(file: Path):
     soundscapes = KV.CollectionFromFile(file)
-
     fixups = {'wave': fix_wave_resource}
 
     def recursively_fixup(kv: VDFDict):
@@ -87,21 +86,24 @@ def ImportSoundscape(file: Path, newsc_path: Path):
     recursively_fixup(soundscapes)
     
     new_soundscapes = ''
-
     for key, value in soundscapes.items():
         if isinstance(value, VDFDict):
             new_soundscapes += f"{key}{value.ToStr()}"
         else:
             new_soundscapes += f'{key}\t"{value}"\n'
 
+    newsc_path = sh.output(file, '.txt')
+    newsc_path.parent.MakeDir()
     sh.write(new_soundscapes, newsc_path)
     print("+ Saved", newsc_path.local)
     return newsc_path
     #soundscapes_manifest.add("file", f'scripts/{newsc_path.name}')
 
-@sh.s1import()
-def ImportSoundscapeManifest(asset_path: Path, out_manifest: Path):
+def ImportSoundscapeManifest(asset_path: Path):
     "Integ, but with '.vsc' fixup for csgo"
+    
+    out_manifest = sh.output(asset_path)
+    out_manifest.parent.MakeDir()
 
     with open(asset_path) as old, open(out_manifest, 'w') as out:
         contents = old.read().replace('.vsc', '.txt').replace('soundscaples_manifest', 'soundscapes_manifest')
@@ -110,7 +112,7 @@ def ImportSoundscapeManifest(asset_path: Path, out_manifest: Path):
             ls[1] = '\n\t"file"\t"scripts/test123.txt"' + ls[1]
             contents = '{'.join(ls)
         out.write(contents)
-    
+
     print("+ Saved manifest file", out_manifest.local)
     return out_manifest
 
@@ -196,7 +198,7 @@ def _handle_range(k, v):
     try:
         mm = tuple(v.split(',', 1))
         min, max = float(mm[0]), float(mm[1])
-    except: return
+    except Exception: return
     else:
         rv = {}
         out_v = min+max / 2
@@ -299,34 +301,13 @@ def ImportGameSound(asset_path: Path):
                             if v.startswith('SNDLVL_'):
                                 try:
                                     out_v = int(v[7:-2])
-                                except:
+                                except Exception:
                                     print(v[7:])
                             else: print(v)
             elif k == 'delay_msec': out_k, out_v = 'delay', v/1000
             elif k == 'ignore_occlusion': out_k, out_v = 'occlusion_scale', (1 if not v else 0)#'sa_enable_occlusion'
             elif k == 'operator_stacks':  # this only exists in globul offensif
                 ...
-                continue
-                #print("~~~~~ stack")
-                op_stacks[v.ToStr()] = op_stacks.get(v.ToStr(), 0) + 1
-
-                if mx:=v.get('update_stack', {}).get('mixer', {}).get('mixgroup'):
-                    out_kv['mixgroup'] = mx
-                #for opk, opv in v.items():
-                #    #input(f"{opk} {opv.ToStr()}")
-                #    if opk == 'update_stack':
-                #        for up_k, up_v in opv.items():
-                #            ...
-                            #if isinstance(up_v, dict):
-                            #    if mx:=up_v.get('mixgroup'):
-                            #        out_kv['mixgroup'] = mx
-                # update stack
-                    # volume_falloff
-                    # {
-                    #         input_max       "800"
-                    #         input_curve_amount      "0.9"
-                    # }
-                    # volume_fallof_max/min in out_kv
                 continue
             elif k in ('soundentry_version', 'alert', 'hrtf_follow','gamedata',): # skiplist
                 continue
@@ -361,7 +342,8 @@ def ImportSurfaceProperties(asset_path: Path):
     "scripts/surfaceproperties*.txt -> surfaceproperties/surfaceproperties*.vsurf"
     vsurf_file: Path = sh.EXPORT_CONTENT / "surfaceproperties" / asset_path.local.relative_to(scripts).with_suffix('.vsurf')
     vsurf_file.parent.MakeDir()
-
+    if vsurf_file.is_file() and not OVERWRITE_SCRIPTS:
+        return sh.skip('already-exist', vsurf_file)
     
     kv = KV.CollectionFromFile(asset_path)
     vsurf = dict(SurfacePropertiesList = [])
@@ -409,7 +391,8 @@ class VsurfManifestHandler:
         self.manifest_files.extend(KV.FromFile(manifest_file).get_all_for('file'))
 
     def retrieve_surfaces(self, rv: tuple[Path, list]):
-        self.all_surfaces.__setitem__(*rv)
+        if rv is not None:
+            self.all_surfaces.__setitem__(*rv)
 
     def after_all_converted(self):
         # Only include surfaces from files that are on manifest.
@@ -425,7 +408,7 @@ class VsurfManifestHandler:
                     break
                 # ignore if this surface is already defined
                 if not any(
-                    surfaceproperty2['surfacePropertyName'] == surfaceproperty['surfacePropertyName']
+                    surfaceproperty2['surfacePropertyName'].lower() == surfaceproperty['surfacePropertyName'].lower()
                         for surfaceproperty2 in vsurf['SurfacePropertiesList']):
                     vsurf['SurfacePropertiesList'].append(surfaceproperty)
 
@@ -434,19 +417,11 @@ class VsurfManifestHandler:
 
 
 if __name__ == '__main__':
+    sh.parse_argv()
     main()  
-
-    raise SystemExit(0)
-    for k, v in collected.items():
-        print(k, v[1])
-    for opstack, count in op_stacks.items():
-        print()
-        print(count)
-        print(opstack)
 
 def ImportUpdateResourceRefs(asset_path: Path):
     ...
-    # we ported .wavs to vsnds,
     # this func is for other generic scripts to update their resource refs
     # eg. search for each value and see if its a ref and replace each
     # after that just integ

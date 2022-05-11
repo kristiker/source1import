@@ -67,7 +67,7 @@ def _validate_array_list(iterable,array_type):
 def _quote(str):
 	return "\"{}\"".format(str)
 	
-def get_bool(file):
+def get_bool(file)-> bool:
 	return file.read(1) != b'\x00'
 def get_byte(file):
 	return int(unpack("B",file.read(1))[0])
@@ -154,11 +154,12 @@ class _StrArray(_Array):
 	type = str
 
 class _Vector(list):
+	type = None
 	type_str = ""
 	def __init__(self,l):
 		if len(l) != len(self.type_str):
 			raise TypeError("Expected {} values".format(len(self.type_str)))
-		l = _validate_array_list(l,float)
+		l = _validate_array_list(l,float if self.type is None else self.type)
 		super().__init__(l)
 		
 	def __repr__(self):
@@ -370,7 +371,7 @@ class Element(collections.OrderedDict):
 				else:
 					return "{}\"{}\" \"{}\" \"{}\"\n".format(_kv2_indent,name,dm_type,value)
 			else:
-				return "{}\"{}\" {}\n".format(_kv2_indent,name,dm_type)
+				return "{}\"{}\" \"{}\" \"\"\n".format(_kv2_indent,name,dm_type)
 		
 		out += _make_attr_str("id", "elementid", self.id)
 		out += _make_attr_str("name", "string", self.name)
@@ -593,14 +594,14 @@ class DataModel:
 		if len(self.elements) == 1: self.root = elem
 		return elem
 		
-	def find_elements(self,name=None,id=None,elemtype=None) -> Optional[Iterable[Element]]:
+	def find_elements(self,name=None,id=None,elemtype=None) -> Iterable[Element]:
 		out = []
 		if isinstance(id, str): id = uuid.UUID(id)
 		for elem in self.elements:
 			if elem.id == id: return [elem]
 			if elem.name == name: out.append(elem)
 			if elem.type == elemtype: out.append(elem)
-		if len(out): return out
+		return out
 		
 	def _write(self,value, elem = None, suppress_dict = None):
 		t = type(value)
@@ -1008,11 +1009,11 @@ def load(path = None, in_file = None, element_path = None):
 			def read_element(elem, use_string_dict = True):
 				#print(elem.name,"@",in_file.tell())
 				num_attributes = get_int(in_file)
-				for i in range(num_attributes):
-					start = in_file.tell()
+				for _ in range(num_attributes):
 					name = dm._string_dict.read_string(in_file) if use_string_dict else get_str(in_file)
+					#print("\t",name,"@",in_file.tell(), end=' ')
 					attr_type = _get_dmx_id_type(encoding,encoding_ver,get_byte(in_file))
-					#print("\t",name,"@",start,attr_type)
+					#print(attr_type)
 					if attr_type in _dmxtypes:
 						elem[name] = get_value(attr_type)
 					elif attr_type in _dmxtypes_array:

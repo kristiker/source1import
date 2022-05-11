@@ -1,4 +1,4 @@
-import sys, os, re
+import os, re
 import subprocess
 import threading, multiprocessing
 import shutil
@@ -8,9 +8,6 @@ import shared.base_utils2 as sh
 # https://developer.valvesoftware.com/wiki/VTF2TGA
 # Runs vtf2tga.exe on every vtf file
 # Same thing as `VTFCmd.exe -folder "<dir>\materials\*.vtf" -recurse`
-
-
-sh.importing = Path("materials")
 
 OVERWRITE = False
 IGNORE_WORLD_CUBEMAPS = True
@@ -66,23 +63,6 @@ PATHS_VTF2TGA = [
 ]
 tags = []
 
-for i, path in enumerate(PATHS_VTF2TGA):
-    path = Path(path)
-    if not path.is_absolute():
-        path = currentDir / path
-
-    if path.is_file():
-        print("+ Using:", path)
-        PATHS_VTF2TGA [i] = path
-        tags.append( [ part for part in path.parts[::-1] if part not in ("vtf2tga.exe", "bin") ] [0])
-    else:
-        print("~ Invalid vtf2tga path:", path)
-        PATHS_VTF2TGA [i] = None
-
-if not any(PATHS_VTF2TGA):
-    print(f"Cannot continue without a valid vtf2tga.exe. Please open {currentDir.name} and verify your paths.")
-    quit(-1)
-
 erroredFileList = []
 totalFiles = 0
 MAX_THREADS = min(multiprocessing.cpu_count() + 2, 10)
@@ -96,7 +76,7 @@ def ImportVTFtoTGA(vtfFile, force_2nd = False):
         tag = tags[index]
 
         command = [vtf2tga_exe, "-i", vtfFile] #, "-o", fs.Output(vtfFile.parent)
-        result = subprocess.run(command, stdout=subprocess.PIPE) #
+        result = subprocess.run(command, stdout=subprocess.PIPE, creationflags= subprocess.CREATE_NO_WINDOW | subprocess.DETACHED_PROCESS) #
         #print (result.stdout.decode("utf-8"))
 
         # if we are forcing on index 1, continue (don't break) even if index 0 got bCreated
@@ -197,7 +177,26 @@ def txt_import(txtFile):
 
  
 def main():
-    THREADS = []
+    print("Decompiling Textures!")
+    for i, path in enumerate(PATHS_VTF2TGA):
+        if path is None:
+            continue
+        path = Path(path)
+        if not path.is_absolute():
+            path = currentDir / path
+        if path.is_file():
+            print("+ Using:", path)
+            PATHS_VTF2TGA [i] = path
+            # Tag this vtf2tga version with a short name
+            tags.append( [ part for part in path.parts[::-1] if part not in ("vtf2tga.exe", "bin") ] [0])
+        else:
+            print("~ Invalid vtf2tga path:", path)
+            PATHS_VTF2TGA [i] = None
+    if not any(PATHS_VTF2TGA):
+        print(f"Cannot continue without a valid vtf2tga.exe. Please open {currentDir.name} and verify your paths.")
+        quit(-1)
+    THREADS: list[threading.Thread] = []
+    sh.importing = Path("materials")
     vtfFileList = sh.collect(sh.importing, IN_EXT, OUT_EXT_LIST, existing = OVERWRITE, outNameRule = OutputList)
     txtFileList = sh.collect(sh.importing, VTEX_PARAMS_EXT, VTEX_PARAMS_EXT, existing = True)
 
@@ -249,4 +248,5 @@ def main():
     print("\n+ Looks like we are done.")
 
 if __name__ == "__main__":
+    sh.parse_argv()
     main()

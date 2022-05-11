@@ -18,6 +18,12 @@ ResourceManifest_t
     ]
 }'''
 
+def main():
+    print("Importing Scenes!")
+    for vcd in sh.collect('scenes', IN_EXT, '', existing=True):
+        ImportVCD(vcd)
+    print("Looks like we are done!")
+
 def _ensure_scenes_vrman():
     scenes_vrman = sh._dest() / 'scenes/scenes.vrman'
     if not scenes_vrman.is_file():
@@ -27,13 +33,14 @@ def _ensure_scenes_vrman():
 
 vcdlist_entries_cache = {}
 
-@sh.s1import()
-def ImportVCD(vcd_in: Path, vcd_out: Path, to='_root.vcdlist'):
+def ImportVCD(vcd_in: Path, to='_root.vcdlist'):
     
     _ensure_scenes_vrman()
     
     vcdlist = sh._dest() / 'scenes' / to
     vcdlist.parent.mkdir(exist_ok=True, parents=True)
+    vcd_out = sh.output(vcd_in)
+    vcd_out.parent.MakeDir()
 
     if not vcd_out.is_file():
         copyfile(vcd_in, vcd_out)
@@ -63,7 +70,5 @@ def ImportVCD(vcd_in: Path, vcd_out: Path, to='_root.vcdlist'):
 # test_magnificient.vcdlist   scenes/test/magnificient/test.vcd, scenes/test/magnificient/b.vcd
 
 if __name__ == '__main__':
-    for vcd in sh.collect('scenes', IN_EXT, '', existing=True):
-        ImportVCD(vcd)
-
-    print("Looks like we are done!")
+    sh.parse_argv()
+    main()

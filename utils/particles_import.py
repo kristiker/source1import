@@ -16,6 +16,7 @@ OVERWRITE_VSNAPS = False
 BEHAVIOR_VERSION = 8
 
 def main():
+    print("Importing Particles!")
     for pcf_path in (sh.IMPORT_GAME/particles).glob('**/*.pcf'):
         ImportPCFtoVPCF(pcf_path, OVERWRITE_PARTICLES)
 
@@ -1810,7 +1811,7 @@ def guess_key_name(key, value):
         guess += kw.capitalize()
     return guess, value
 
-def guess_class_name(cls, _type):
+def guess_class_name(cls: str, _type):
     #cls = cls.replace('#', '').replace("'", '')
     key_words = cls.replace('_', ' ').split(' ')
     preffix = "OP"
@@ -1921,7 +1922,7 @@ def pcfkv_convert(key, value):
 
         # convert the array
         for opitem in value:
-            functionName = opitem.get('functionName', opitem.name)
+            functionName: str = opitem.get('functionName', opitem.name)
             className = None
             sub_translation = vpcf_translation[1]
             if key != 'children':
@@ -2044,10 +2045,11 @@ def un(val, t):
 
 from shutil import copyfile
 
-@sh.s1import('.vsnap')
-def ImportParticleSnapshotFile(psf_path: Path, vsnap_path: Path) -> Path:
+def ImportParticleSnapshotFile(psf_path: Path) -> Path:
     # in VRperf (yes) its dmx text
     # either way open and save as text dmx with ext .vsnap on content
+    vsnap_path = sh.output(psf_path, '.vsnap')
+    vsnap_path.parent.MakeDir()
     return copyfile(psf_path, vsnap_path)
 
 class VPCF(dict):
@@ -2081,6 +2083,7 @@ def ImportPSD(ParticleSystemDefinition: dmx.Element, out_root: Path, bOverwrite 
     imports.append(vpcf.path.local.as_posix())
 
     if not bOverwrite and vpcf.path.exists():
+        sh.skip('already-exist', vpcf.path)
         return vpcf.path
     
     process_material(ParticleSystemDefinition.get('material'))
@@ -2135,6 +2138,7 @@ def ImportPCFtoVPCF(pcf_path: Path, bOverwrite=True):
     return rv
 
 if __name__ == '__main__':
+    sh.parse_argv()
     main()
     generics = list()
     dd = {}

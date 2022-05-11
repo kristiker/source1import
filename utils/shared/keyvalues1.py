@@ -237,7 +237,7 @@ class VDFDict(dict):
 def _NoneOnException(func):
     def wrapper(*args, **kwargs):
         try: func(*args)
-        except: return
+        except Exception: return
     return wrapper
 
 class KV(VDFDict):
