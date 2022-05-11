@@ -10,12 +10,9 @@ from shared.material_proxies import ProxiesToDynamicParams
 import numpy as np
 from shared import PFM
 
-
 # generic, blend instead of vr_complex, vr_simple_2wayblend etc...
 GENERIC_SHADER = False
 COMPLEX_SH = not GENERIC_SHADER
-
-steamvr = False
 
 # Set this to True if you wish to overwrite your old vmat files.
 OVERWRITE_VMAT = False
@@ -139,23 +136,25 @@ class VMAT(ValveMaterial):
         self._kv['shader'] = n
 
 # keep everything lowercase !!!
+main_ubershader = "vr_standard" if sh.destmod == sh.eS2Game.steamvr else "vr_complex"
+main_blendable = "vr_simple_2way_blend" if sh.destmod == sh.eS2Game.hlvr else main_ubershader
 shaderDict = {
     "black":                "black",
     "sky":                  "sky",
-    "unlitgeneric":         "vr_complex",
-    "vertexlitgeneric":     "vr_complex",
+    "unlitgeneric":         main_ubershader,
+    "vertexlitgeneric":     main_ubershader,
     "decalmodulate":        "vr_static_overlay",  # https://developer.valvesoftware.com/wiki/Decals#DecalModulate
-    "lightmappedgeneric":   "vr_complex",
-    "lightmappedreflective":"vr_complex",
-    "character":            "vr_complex",  # https://developer.valvesoftware.com/wiki/Character_(shader)
-    "customcharacter":      "vr_complex",
-    "teeth":                "vr_complex",
+    "lightmappedgeneric":   main_ubershader,
+    "lightmappedreflective":main_ubershader,
+    "character":            main_ubershader,  # https://developer.valvesoftware.com/wiki/Character_(shader)
+    "customcharacter":      main_ubershader,
+    "teeth":                main_ubershader,
     "water":                "simple_water",
     #"refract":              "refract",
-    "worldvertextransition":"vr_standard",
-    "lightmapped_4wayblend":"vr_standard",
-    "lightmappedtwotexture":"vr_standard",  # 2 multiblend $texture2 nocull scrolling, model, additive.
-    "unlittwotexture":      "vr_standard",  # 2 multiblend $texture2 nocull scrolling, model, additive.
+    "worldvertextransition":main_blendable,
+    "lightmapped_4wayblend":main_blendable,
+    "lightmappedtwotexture":main_ubershader,  # 2 multiblend $texture2 nocull scrolling, model, additive.
+    "unlittwotexture":      main_ubershader,  # 2 multiblend $texture2 nocull scrolling, model, additive.
     "cable":                "cables",
     "splinerope":           "cables",
     "shatteredglass":       "vr_glass",
@@ -164,7 +163,7 @@ shaderDict = {
     #"spritecard":           "spritecard",  these are just vtexes with params defined in vpcf renderer - skip
     #"subrect":              "spritecard",  # should we just cut? $Pos "256 0" $Size "256 256" $decalscale 0.25 decals\blood1_subrect.vmt
     #"weapondecal": weapon sticker
-    "patch":                "vr_standard", # fallback if include doesn't have one
+    "patch":                main_ubershader, # fallback if include doesn't have one
     #grass
     #customweapon
     #decalbasetimeslightmapalphablendselfillum
@@ -181,7 +180,7 @@ shaderDict = {
 }
 
 def chooseShader():
-    d = {x:0 if x =="vr_complex" and not steamvr else "vr_standard":0 for x in list(shaderDict.values())}
+    d = {x:0 for x in list(shaderDict.values())}
 
     if vmt.shader not in shaderDict:
         if sh.DEBUG:
@@ -189,7 +188,7 @@ def chooseShader():
         return "vr_black_unlit"
 
 
-    if GENERIC_SHADER and not steamvr:   d["generic"] += 1
+    if GENERIC_SHADER and sh.destmod != sh.eS2Game.steamvr:   d["generic"] += 1
     else:               d[shaderDict[vmt.shader]] += 1
 
     if vmt.KeyValues['$beachfoam']: return "csgo_beachfoam"
@@ -197,15 +196,13 @@ def chooseShader():
     if vmt.KeyValues['$decal'] == 1: d["vr_static_overlay"] += 2
 
     if vmt.shader == "worldvertextransition":
-        if vmt.KeyValues['$basetexture2']: d["vr_standard"] += 10
+        if vmt.KeyValues['$basetexture2']: d[main_blendable] += 10
 
     elif vmt.shader == "lightmappedgeneric":
-        if vmt.KeyValues['$newlayerblending'] == 1: d["vr_standard"] += 10
-        #if vmt.KeyValues['$decal'] == 1: sh["vr_projected_decals"] += 10
+        if vmt.KeyValues['$newlayerblending'] == 1: d[main_blendable] += 10
 
-    elif vmt.shader == "":
-        pass
-    # TODO: vr_standard -> vr simple if no selfillum tintmask detailtexture specular
+    #if vmt.KeyValues['$decal'] == 1: sh["vr_projected_decals"] += 10
+
     return max(d, key = d.get)
 
 ignoreList = [ "dx9", "dx8", "dx7", "dx6", "proxies"]
@@ -281,7 +278,8 @@ def createMask(image_path, copySub = '_mask', channel = 'A', invert = False, que
 
     colors = imgChannel.getcolors()
     if len(colors) == 1:  # mask with single color
-        if copySub == "_gloss" and colors[0][1] == 255:  # fix some very dumb .convert('RGBA') with 255 255 255 alpha
+        if (copySub == ("_gloss" if sh.destmod == sh.eS2Game.steamvr else "_rough")
+        and colors[0][1] == (255 if sh.destmod == sh.eS2Game.steamvr else 0)):  # fix some very dumb .convert('RGBA') with 255 255 255 alpha
             return default(copySub)  # TODO: should this apply to other types of masks as well?
         return fixVector(f"{{{colors[0][1]} {colors[0][1]} {colors[0][1]}}}", True)
 
@@ -623,7 +621,8 @@ vmt_to_vmat = {
 
     '$selfillummask':   ('TextureSelfIllumMask','_selfillummask', [formatNewTexturePath]),
     '$tintmasktexture': ('TextureTintMask',     '_mask',   [createMask, 'G', False],   ('F_TINT_MASK',  1)), #('TextureTintTexture',)
-    '$_vmat_metalmask': ('TextureReflectance',    '_refl',  [formatNewTexturePath]),
+    '$_vmat_metalmask': ('TextureMetalness',    '_metal',  [formatNewTexturePath],     ('F_METALNESS_TEXTURE',  1)) if sh.destmod != sh.eS2Game.steamvr else \
+                        ('TextureReflectance',    '_refl',  [formatNewTexturePath]),   # F_SPECULAR too?
     '$_vmat_transmask': ('TextureTranslucency', '_trans',  [formatNewTexturePath]),
     '$_vmat_rimmask':   ('TextureRimMask',      '_rimmask',[formatNewTexturePath]),
 
@@ -636,12 +635,10 @@ vmt_to_vmat = {
     '$lightwarptexture': ('TextureDiffuseWarp', '_diffusewarp', [formatNewTexturePath], ('F_DIFFUSE_WARP', 1)),
     '$phongwarptexture': ('TextureSpecularWarp', '_specwarp', [formatNewTexturePath],   ('F_SPECULAR_WARP', 1)),
 
-    # Next script should take care of these, unless BASIC_PBR
-    '$envmapmask':  ('$envmapmask',         '_env_mask',   [formatNewTexturePath]) if not BASIC_PBR else \
+    '$envmapmask':  ('TextureCubeMapSeparateMask', '_mask', ('F_MASK_CUBE_MAP_BY_SEPARATE_MASK', 1)) if sh.destmod == sh.eS2Game.dota2 else \
+                    ('$envmapmask',         '_env_mask',   [formatNewTexturePath]) if not BASIC_PBR else \
                     ('TextureRoughness',    '_rough',      [createMask, 'L', True]) if not GENERIC_SHADER else \
                     ('TextureGlossiness',   '_gloss',      [formatNewTexturePath]),
-
-                    #if out dota2 ('TextureCubeMapSeparateMask', '_mask', ('F_MASK_CUBE_MAP_BY_SEPARATE_MASK' 1))
 
     ('$phong', 1): {
         '$phongmask':   ('$phongmask',          '_phong_mask', [formatNewTexturePath]) if not BASIC_PBR else \
@@ -749,13 +746,13 @@ vmt_to_vmat = {
 
 'channeled_masks': {  # 1-X will extract and invert channel X // M_1-X to only invert on models
    #'$vmtKey':                      (extract_from,       extract_as,       channel to extract)
-    '$normalmapalphaenvmapmask':    ('$normalmap',    '$envmapmask',      '1-A' if not steamvr else 'A'),
-    '$basealphaenvmapmask':         ('$basetexture',    '$envmapmask',      '1-A'),
-    '$envmapmaskintintmasktexture': ('$tintmasktexture','$envmapmask',      '1-R'),
-    '$basemapalphaphongmask':       ('$basetexture',    '$phongmask',       '1-A'),
-    '$basealphaphongmask':          ('$basetexture',    '$phongmask',       '1-A'),
-    '$normalmapalphaphongmask':     ('$normalmap',    '$phongmask',       'A'),
-    '$bumpmapalphaphongmask':       ('$normalmap',    '$phongmask',       'A'),
+    '$normalmapalphaenvmapmask':    ('$normalmap',    '$envmapmask',        'A' if sh.destmod == sh.eS2Game.steamvr else   '1-A'),
+    '$basealphaenvmapmask':         ('$basetexture',    '$envmapmask',      '1-A'), # dont these also flip with steamvr?
+    '$envmapmaskintintmasktexture': ('$tintmasktexture','$envmapmask',      '1-R'), # ?
+    '$basemapalphaphongmask':       ('$basetexture',    '$phongmask',       '1-A'), # ?
+    '$basealphaphongmask':          ('$basetexture',    '$phongmask',       '1-A'), # ?
+    '$normalmapalphaphongmask':     ('$normalmap',    '$phongmask',         '1-A' if sh.destmod == sh.eS2Game.steamvr else 'A'),
+    '$bumpmapalphaphongmask':       ('$normalmap',    '$phongmask',         '1-A' if sh.destmod == sh.eS2Game.steamvr else 'A'),
     '$basemapluminancephongmask':   ('$basetexture',    '$phongmask',       'L'),
 
     '$blendtintbybasealpha':        ('$basetexture',    '$tintmasktexture', 'A'),
@@ -1046,16 +1043,16 @@ def convertSpecials():
         vmt.KeyValues['$translucent'] = 1
 
     # fix unlit shader ## what about generic?
-    if (vmt.shader == 'unlitgeneric') and (vmat.shader == "vr_standard"):
+    if (vmt.shader == 'unlitgeneric') and (vmat.shader == main_ubershader):
         vmat.KeyValues["F_UNLIT"] = 1
 
-    # two layer material
-    if vmt.shader == 'worldvertextransition':
-        vmat.KeyValues['F_BLEND'] = 1
-
-    # three layer material
-    if vmt.shader == 'lightmapped_4wayblend':
-        vmat.KeyValues['F_BLEND'] = 2 # 3 layers max in steamvr, not 4
+    if sh.destmod == sh.eS2Game.steamvr:
+        # 2 in 2 out
+        if vmt.shader == 'worldvertextransition':
+            vmat.KeyValues['F_BLEND'] = 1
+        # 4 in 3 out, one is rip
+        if vmt.shader == 'lightmapped_4wayblend':
+            vmat.KeyValues['F_BLEND'] = 2 # 3 layers max in steamvr, not 4
 
     # fix mod2x logic for "vr_projected_decals"
     if vmt.shader == 'decalmodulate':

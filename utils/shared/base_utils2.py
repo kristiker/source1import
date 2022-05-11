@@ -47,6 +47,13 @@ class KVUtilFile(KV):
 
 from enum import Enum, unique, auto
 
+class eS2Game(Enum):
+    "known moddable source2 games"
+    dota2 = "dota2"
+    steamvr = "steamvr"
+    hlvr = "hlvr"
+    sbox = "sbox"
+
 @unique
 class eEngineUtils(Enum):
     def _generate_next_value_(name: str, *_) -> str:
@@ -99,6 +106,7 @@ gameinfo: KV = None
 gameinfo2: KV = None
 
 import_context: dict = None
+destmod: eS2Game = None
 RemapTable: KVUtilFile = None
 
 _mod: Callable = None
@@ -160,7 +168,7 @@ def parse_in_path():
 def parse_out_path(source2_mod: Path):
     "Must call after parse_in_path"
     global IMPORT_CONTENT, IMPORT_GAME, EXPORT_CONTENT, EXPORT_GAME
-    global search_scope, gameinfo, gameinfo2
+    global destmod, search_scope, gameinfo, gameinfo2
 
     if source2_mod.is_absolute():
         if source2_mod.is_file():
@@ -185,6 +193,8 @@ def parse_out_path(source2_mod: Path):
     if not source2_mod.is_absolute() and len(source2_mod.parts) <=3:
         EXPORT_GAME = GAMEROOT / source2_mod
         EXPORT_CONTENT = CONTENTROOT / source2_mod
+        
+        destmod = eS2Game("hlvr")
 
     elif EXPORT_GAME is EXPORT_CONTENT is None:
         argv_error(f"Invalid export game \"{source2_mod}\"")
@@ -255,6 +265,7 @@ elif __name__ == '__main__':
     parse_argv()
     print(f"{ROOT=}\n{IMPORT_CONTENT=}\n{IMPORT_GAME=}\n{EXPORT_CONTENT=}\n{EXPORT_GAME=}")
     print(gameinfo['game'])
+    print(destmod)
 
     import unittest
     class Test_ParsedPaths(unittest.TestCase):
