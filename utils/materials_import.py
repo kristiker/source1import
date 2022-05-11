@@ -187,7 +187,6 @@ def chooseShader():
             failureList.add(f"{vmt.shader} unsupported shader", vmt.path)
         return "vr_black_unlit"
 
-
     if GENERIC_SHADER and sh.destmod != sh.eS2Game.steamvr:   d["generic"] += 1
     else:               d[shaderDict[vmt.shader]] += 1
 
@@ -207,8 +206,8 @@ def chooseShader():
 
 ignoreList = [ "dx9", "dx8", "dx7", "dx6", "proxies"]
 
-def default(texture_type) -> str:
-    return VMAT_DEFAULT_PATH.as_posix() + "/default" + texture_type + ".tga"
+def default(texture_type:str, extension:str = ".tga") -> str:
+    return VMAT_DEFAULT_PATH.as_posix() + "/default" + texture_type + extension
 
 def OutName(path: Path) -> Path:
     #if path.local.is_relative_to(materials/skybox/) and path.stem[-2:] in sky.skyboxFaces:
@@ -479,7 +478,7 @@ def fix_envmap(vmtVal):
         vmat.KeyValues['F_SPECULAR_CUBE_MAP'] = 1
     else:
         vmat.KeyValues['F_SPECULAR_CUBE_MAP'] = 2
-        vmat.KeyValues['TextureCubeMap'] = "materials\default\default_cube.pfm"#TODO
+        vmat.KeyValues['TextureCubeMap'] = default('_cube', '.pfm')#TODO
     return 1  # presence()
 
 
@@ -912,7 +911,7 @@ def convertVmtToVmat():
                 if vmtKey in ('$normalmap', '$bumpmap2', '$normalmap2'):
                     if vmtVal == 'dev/flat_normal': outVal = default(vmatDefaultVal)
 
-                    if not outVal == "materials/default/default_normal.tga":
+                    if not outVal == default("_normal"):
                         flipNormalMap(Path(outVal))
 
             elif(keyType == 'transform'):  # here one key can add multiple keys
@@ -995,9 +994,9 @@ def convertVmtToVmat():
         ## if f_specular use this else use "[1.000000 1.000000 1.000000 0.000000]"
         # 2way blend has specular force enabled so maxing the rough should minimize specularity TODO
         if not vmat.shader == "vr_simple_2way_blend":
-            vmat.KeyValues.setdefault("TextureRoughness", "materials/default/default_rough_s1import.tga")
+            vmat.KeyValues.setdefault("TextureRoughness", default("_rough_s1import"))
         else:
-            default_rough = "materials/default/default_rough_s1import.tga"
+            default_rough = default("_rough_s1import")
             if vmat.KeyValues['F_SPECULAR'] == 1: # TODO: phong2 envmap2 and those sorts of stuff
                 default_rough = "[1.000000 1.000000 1.000000 0.000000]"
 

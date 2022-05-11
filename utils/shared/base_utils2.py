@@ -105,8 +105,8 @@ search_scope: Path = None
 gameinfo: KV = None
 gameinfo2: KV = None
 
+destmod: eS2Game = eS2Game("hlvr")
 import_context: dict = None
-destmod: eS2Game = None
 RemapTable: KVUtilFile = None
 
 _mod: Callable = None
@@ -193,14 +193,21 @@ def parse_out_path(source2_mod: Path):
     if not source2_mod.is_absolute() and len(source2_mod.parts) <=3:
         EXPORT_GAME = GAMEROOT / source2_mod
         EXPORT_CONTENT = CONTENTROOT / source2_mod
-        
-        destmod = eS2Game("hlvr")
 
     elif EXPORT_GAME is EXPORT_CONTENT is None:
         argv_error(f"Invalid export game \"{source2_mod}\"")
 
     #print("Paths sucessfuly parsed......")
-
+    pp = {"sbox":eS2Game.sbox, "steamtours": eS2Game.steamvr, "dota": eS2Game.dota2}
+    for p in EXPORT_GAME.parts:
+        if "hlvr" in p:
+            break
+        for k, v in pp.items():
+            if k in p:
+                destmod = v
+                break
+        if destmod is not eS2Game.hlvr:
+            break
     # Optionals
 
     # Unknowns

@@ -77,13 +77,13 @@ class SampleApp(Tk):
         self.in_path = StringVar(name="IMPORT_GAME")
         self.out_path = StringVar(name="EXPORT_GAME")
         self.filter = StringVar(name="filter")
+        self.destmod = StringVar(name="destmod", value=sh.destmod.value)
 
         #self.Overwrite = IntVar(name='overwrite_all')
 
         self.Textures = IntVar(name='textures')
         self.Materials = IntVar(name='materials')
         self.Models = IntVar(name='models')
-        self.Models_move = IntVar(value=True, name='models_move')
         self.Particles = IntVar(name='particles')
         self.Maps = IntVar(name='maps')
         self.Scenes = IntVar(name='scenes')
@@ -91,7 +91,7 @@ class SampleApp(Tk):
         self.Sessions = IntVar(name='sessions')
 
         self.vars = (self.in_path, self.out_path, self.filter, self.Textures,
-            self.Materials, self.Models, self.Models_move,self.Particles,self.Scenes,self.Scripts,self.Sessions,
+            self.Materials, self.Models,self.Particles,self.Scenes,self.Scripts,self.Sessions,
         )
         self.settings_file = Path.home() / "AppData/Roaming/source1import/settings.json"
         self.settings_file.parent.MakeDir()
@@ -137,6 +137,8 @@ class SampleApp(Tk):
 
         self.widgets[99] = Checkbutton(text="   Import All  ", variable=self.allChecked, command=self.checkbutton_toggle_all, width=11,selectcolor=bg1,)
         self.widgets[99].grid(pady= 5, row = 0, column = 0, columnspan=2, in_=self.sett_grid, sticky="w")
+        self.widgets[50] = OptionMenu(self, self.destmod, *(name.value for name in sh.eS2Game), command=lambda v: setattr(sh, 'destmod', sh.eS2Game(v)))
+        self.widgets[50].grid(pady= 5, row = 0, column = 2, in_=self.sett_grid, sticky="e")
         #self.widgets[1] = Checkbutton(self, text="Force Overwrite", variable=self.Overwrite,selectcolor=bg1, bd = 0)#.grid(row=1, sticky=W)
         #self.widgets[1].grid(pady= 5, row = 0, column = 1, columnspan = 2, in_=self.sett_grid, sticky="n")#.grid(row=0, sticky=W)
 
@@ -194,7 +196,7 @@ class SampleApp(Tk):
         add_tab("scenes", self.Scenes, "Generate vcdlist from vcds", "scenes_import").add_toggles(
             ("EVERYTHING_TO_ROOT", "Add everything to _root.vcdlist"),
         )
-        self.tab_notebook.grid(in_=self.sett_grid, column=1, row=1, rowspan=len(self.tabs))#.pack(expand=1, fill="both")
+        self.tab_notebook.grid(in_=self.sett_grid, column=1, row=1, rowspan=len(self.tabs), columnspan=2)#.pack(expand=1, fill="both")
 
         self.widgets[19]=Text(self, wrap=NONE, bd=1, relief=SUNKEN, height=7) #, textvariable=self.status
         self.widgets[19].see(END)
@@ -216,7 +218,7 @@ class SampleApp(Tk):
                 self.widgets[widget].configure(bg=bg1, fg =fg1, highlightbackground=bg1, highlightcolor = bg1, relief=GROOVE, font='Helvetica 10 bold' if widget in (5,7) else 'Helvetica 10')
                 if widget == 19: # Console has darker bg
                     self.widgets[widget].configure(bg=bg2)
-            if widget in (1,4,5,7,9,10,11,12,13,14,15,16,17,99): # buttons
+            if widget in (1,4,5,7,9,10,11,12,13,14,15,16,17,50,99): # buttons
                 self.widgets[widget].configure(bg=bg1,fg=fg1,activeforeground=fg1,activebackground=bg2)
 
         self.go_and_status = Frame(self, bg=bg1)
@@ -269,6 +271,7 @@ class SampleApp(Tk):
                 return
             else:
                 self.gobutton.configure(state=NORMAL)
+                self.destmod.set(sh.destmod.value)
             try:
                 print("Exporting to:\n"
                 f" ROOT :  \"{sh.ROOT.as_posix()}\"\n"
