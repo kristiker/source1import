@@ -136,8 +136,8 @@ class VMAT(ValveMaterial):
         self._kv['shader'] = n
 
 # keep everything lowercase !!!
-main_ubershader = "vr_standard" if sh.destmod == sh.eS2Game.steamvr else "vr_complex"
-main_blendable = "vr_simple_2way_blend" if sh.destmod == sh.eS2Game.hlvr else main_ubershader
+main_ubershader = lambda: "vr_standard" if sh.destmod == sh.eS2Game.steamvr else "vr_complex"
+main_blendable = lambda: "vr_simple_2way_blend" if sh.destmod == sh.eS2Game.hlvr else main_ubershader
 shaderDict = {
     "black":                "black",
     "sky":                  "sky",
@@ -180,7 +180,8 @@ shaderDict = {
 }
 
 def chooseShader():
-    d = {x:0 for x in list(shaderDict.values())}
+    get_shader = lambda v: v() if callable(v) else v
+    d = {get_shader(x):0 for x in list(shaderDict.values())}
 
     if vmt.shader not in shaderDict:
         if sh.DEBUG:
@@ -188,17 +189,17 @@ def chooseShader():
         return "vr_black_unlit"
 
     if GENERIC_SHADER and sh.destmod != sh.eS2Game.steamvr:   d["generic"] += 1
-    else:               d[shaderDict[vmt.shader]] += 1
+    else:               d[get_shader(shaderDict[vmt.shader])] += 1
 
     if vmt.KeyValues['$beachfoam']: return "csgo_beachfoam"
 
     if vmt.KeyValues['$decal'] == 1: d["vr_static_overlay"] += 2
 
     if vmt.shader == "worldvertextransition":
-        if vmt.KeyValues['$basetexture2']: d[main_blendable] += 10
+        if vmt.KeyValues['$basetexture2']: d[main_blendable()] += 10
 
     elif vmt.shader == "lightmappedgeneric":
-        if vmt.KeyValues['$newlayerblending'] == 1: d[main_blendable] += 10
+        if vmt.KeyValues['$newlayerblending'] == 1: d[main_blendable()] += 10
 
     #if vmt.KeyValues['$decal'] == 1: sh["vr_projected_decals"] += 10
 
