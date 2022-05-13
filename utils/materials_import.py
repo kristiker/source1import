@@ -4,7 +4,7 @@ from typing import Callable, Optional
 from PIL import Image, ImageOps
 
 import shared.base_utils2 as sh
-from shared.base_utils2 import DOTA2, STEAMVR, HLVR
+from shared.base_utils2 import IMPORT_MOD, DOTA2, STEAMVR, HLVR
 from shared.keyvalue_simple import getKV_tailored as getKeyValues
 from shared.keyvalues1 import KV
 from shared.material_proxies import ProxiesToDynamicParams
@@ -550,7 +550,6 @@ VMAT_DEFAULTVAL = 1
 VMAT_TRANSLFUNC = 2
 VMAT_EXTRALINES = 3
 
-IMPORT_MOD = "csgo"
 
 vmt_to_vmat_pre: Callable[[], dict[str, dict[str, Optional[tuple]]]] = lambda: {
 
@@ -746,13 +745,13 @@ vmt_to_vmat_pre: Callable[[], dict[str, dict[str, Optional[tuple]]]] = lambda: {
 
 'channeled_masks': {  # 1-X will extract and invert channel X // M_1-X to only invert on models
    #'$vmtKey':                      (extract_from,       extract_as,       channel to extract)
-    '$normalmapalphaenvmapmask':    ('$normalmap',    '$envmapmask',        'A' if STEAMVR else   '1-A'),
-    '$basealphaenvmapmask':         ('$basetexture',    '$envmapmask',      '1-A'), # dont these also flip with steamvr?
-    '$envmapmaskintintmasktexture': ('$tintmasktexture','$envmapmask',      '1-R'), # ?
-    '$basemapalphaphongmask':       ('$basetexture',    '$phongmask',       '1-A'), # ?
-    '$basealphaphongmask':          ('$basetexture',    '$phongmask',       '1-A'), # ?
-    '$normalmapalphaphongmask':     ('$normalmap',    '$phongmask',         '1-A' if STEAMVR else 'A'),
-    '$bumpmapalphaphongmask':       ('$normalmap',    '$phongmask',         '1-A' if STEAMVR else 'A'),
+    '$normalmapalphaenvmapmask':    ('$normalmap',    '$envmapmask',        'A' if STEAMVR else '1-A'),
+    '$basealphaenvmapmask':         ('$basetexture',    '$envmapmask',      'A' if STEAMVR else '1-A'),
+    '$envmapmaskintintmasktexture': ('$tintmasktexture','$envmapmask',      'R' if STEAMVR else '1-R'),
+    '$basemapalphaphongmask':       ('$basetexture',    '$phongmask',       'A' if STEAMVR else '1-A'),
+    '$basealphaphongmask':          ('$basetexture',    '$phongmask',       'A' if STEAMVR else '1-A'),
+    '$normalmapalphaphongmask':     ('$normalmap',    '$phongmask',         'A' if STEAMVR else '1-A'),
+    '$bumpmapalphaphongmask':       ('$normalmap',    '$phongmask',         'A' if STEAMVR else '1-A'),
     '$basemapluminancephongmask':   ('$basetexture',    '$phongmask',       'L'),
 
     '$blendtintbybasealpha':        ('$basetexture',    '$tintmasktexture', 'A'),
@@ -1266,7 +1265,7 @@ def main():
     print('\nSource 2 Material Converter!')
 
     # update branch condition
-    globals().update((k,v) for (k, v) in sh.__dict__.items() if k in ("DOTA2", "STEAMVR", "HLVR"))
+    globals().update((k,v) for (k, v) in sh.__dict__.items() if k in ("IMPORT_MOD", "DOTA2", "STEAMVR", "HLVR"))
 
     # update translation table based on branch conditions
     global vmt_to_vmat

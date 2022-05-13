@@ -105,6 +105,7 @@ search_scope: Path = None
 gameinfo: KV = None
 gameinfo2: KV = None
 
+IMPORT_MOD = ""
 DOTA2: bool = False
 STEAMVR: bool = False
 HLVR: bool = False
@@ -158,7 +159,7 @@ def argv_error(*args, **kwargs):
 
 def parse_in_path():
     global IMPORT_CONTENT, IMPORT_GAME, EXPORT_CONTENT, EXPORT_GAME
-    global search_scope, gameinfo, gameinfo2            
+    global search_scope, gameinfo, gameinfo2, IMPORT_MOD    
 
     in_path = Path(_args_known.src1gameinfodir)
     if not in_path.exists():
@@ -173,6 +174,7 @@ def parse_in_path():
     except Exception:
         print("Warning: Error reading gameinfo.txt")
     IMPORT_GAME = in_path
+    IMPORT_MOD = in_path.name
     if IMPORT_GAME.parent.name == 'game':  # Source 2 dir
         eEngineFolder.update_root(IMPORT_GAME.parents[1])
         IMPORT_CONTENT = CONTENTROOT / IMPORT_GAME.name
