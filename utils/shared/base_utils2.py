@@ -105,6 +105,18 @@ search_scope: Path = None
 gameinfo: KV = None
 gameinfo2: KV = None
 
+DOTA2: bool = False
+STEAMVR: bool = False
+HLVR: bool = False
+SBOX: bool = False
+
+def update_destmod(new_dest: eS2Game):
+    global destmod
+    destmod = new_dest
+    for game in eS2Game.__members__.keys():
+        globals()[game.upper()] = False
+    globals()[new_dest.value.upper()] = True
+
 destmod: eS2Game = eS2Game("hlvr")
 import_context: dict = None
 RemapTable: KVUtilFile = None
