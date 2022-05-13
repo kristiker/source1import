@@ -53,6 +53,85 @@ HDRCOMPRESS_FIX_MUL = 4  # 1 to 16
 # Higher values increase vibrance and contrast
 HDRCOMPRESS_FIX_EXP = 1.6  # 1 to 2.2
 
+vmt, vmat = None, None
+
+class Failures(dict):
+    def add(self, err, file):
+        self.setdefault(err, list())
+        self[err].append(file)
+    def __len__(self):
+        return sum(len(filelist) for filelist in self.values())
+    
+    #def __bool__(self):
+    #    return len(self.data) > 0
+
+failureList = Failures()
+total=import_total=import_invalid=import_extra = 0
+
+def main():
+    print('\nSource 2 Material Converter!')
+
+    # update branch condition
+    globals().update((k,v) for (k, v) in sh.__dict__.items() if k in ("IMPORT_MOD", "DOTA2", "STEAMVR", "HLVR"))
+
+    # update translation table based on branch conditions
+    global vmt_to_vmat
+    vmt_to_vmat = vmt_to_vmat_pre()
+
+    for d in vmt_to_vmat.values():
+        for k, v in d.items():
+            if isinstance(v, tuple): v = v[0]
+            KNOWN[k] = v
+
+    global total, import_total, import_invalid
+    sh.importing = materials
+    for vmt_path in sh.collect(
+            materials,
+            IN_EXT, OUT_EXT,
+            existing=OVERWRITE_VMAT,
+            outNameRule=OutName,
+            # proxies vec3 special materials/lights/camera.vmt
+            # "models/player/**/*.vmt"
+            # "de_nuke/nukwater_movingplane.vmt"
+            # "models/weapons/v_models/rif_ak47/ak47.vmt"
+            # "test/test.vmt"
+            match=None):
+
+        total += 1
+        if ImportVMTtoVMAT(vmt_path):
+            import_total += 1
+        else:
+            sh.skip("invalid", vmt_path)
+            import_invalid += 1
+
+    print("\nSkybox materials...")
+
+    # Skip importing skies if searching a different folder
+    if sh.search_scope is None or legacy_skyfaces.is_relative_to(sh.search_scope):
+        for skyfaces_json in sh.collect(
+                None, '.json', OUT_EXT, OVERWRITE_SKYBOX_VMATS,
+                outNameRule=OutName_Sky, searchPath=sh.EXPORT_CONTENT/legacy_skyfaces):
+            ImportSkyJSONtoVMAT(skyfaces_json)
+
+    if failureList:
+        print("\n\t<<<< THESE MATERIALS HAVE ERRORS >>>>")
+        for failure, files in failureList.items():
+            print(failure)
+            for file in files:
+                print('\t' + str(file))
+        print("\t^^^^ THESE MATERIALS HAVE ERRORS ^^^^")
+
+    try:
+        print(f"\nTotal imports:\t{import_total} / {total}\t| " + "{:.2f}".format((import_total/total) * 100) + f" % Imported")
+        print(f"Total skipped:\t{import_invalid} / {total}\t| " + "{:.2f}".format((import_invalid/total) * 100) + f" % Skipped")
+        print(f"Total errors :\t{len(failureList)} / {total}\t| " + "{:.2f}".format((len(failureList)/total) * 100) + f" % Had Errors")
+        print(f"Total extra :\t{import_extra}")
+
+    except Exception: pass
+    # csgo -> 183 / 15308 | 1.20 % Error rate -- 4842 / 15308 | 31.63 % Skip rate
+    # l4d2 -> 504 / 3675 | 13.71 % Error rate -- 374 / 3675 | 10.18 % Skip rate
+    print("\nFinished! Your materials are now ready.")
+
 class ValveMaterial:
     def __init__(self, shader, kv):
         self._shader = shader
@@ -205,7 +284,7 @@ def chooseShader():
 
     #if vmt.KeyValues['$decal'] == 1: sh["vr_projected_decals"] += 10
 
-    return max(d, key = d.get)
+    return get_shader(max(d, key = d.get))
 
 ignoreList = [ "dx9", "dx8", "dx7", "dx6", "proxies"]
 
@@ -1244,86 +1323,6 @@ def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False):
     #        path=(vmat.path.parent / (vmat.path.stem + '-static' + vmat.path.suffix)))
 
     return vmat.path
-
-vmt, vmat = None, None
-
-class Failures(dict):
-    def add(self, err, file):
-        self.setdefault(err, list())
-        self[err].append(file)
-    def __len__(self):
-        return sum(len(filelist) for filelist in self.values())
-    
-    #def __bool__(self):
-    #    return len(self.data) > 0
-
-failureList = Failures()
-
-total=import_total=import_invalid=import_extra = 0
-
-def main():
-    print('\nSource 2 Material Converter!')
-
-    # update branch condition
-    globals().update((k,v) for (k, v) in sh.__dict__.items() if k in ("IMPORT_MOD", "DOTA2", "STEAMVR", "HLVR"))
-
-    # update translation table based on branch conditions
-    global vmt_to_vmat
-    vmt_to_vmat = vmt_to_vmat_pre()
-
-    for d in vmt_to_vmat.values():
-        for k, v in d.items():
-            if isinstance(v, tuple): v = v[0]
-            KNOWN[k] = v
-
-    global total, import_total, import_invalid
-    sh.importing = materials
-    for vmt_path in sh.collect(
-            materials,
-            IN_EXT, OUT_EXT,
-            existing=OVERWRITE_VMAT,
-            outNameRule=OutName,
-            # proxies vec3 special materials/lights/camera.vmt
-            # "models/player/**/*.vmt"
-            # "de_nuke/nukwater_movingplane.vmt"
-            # "models/weapons/v_models/rif_ak47/ak47.vmt"
-            # "test/test.vmt"
-            match=None):
-
-        total += 1
-        if ImportVMTtoVMAT(vmt_path):
-            import_total += 1
-        else:
-            #sh.status(f"- skipping [invalid]: {vmt_path.local}")
-            import_invalid += 1
-
-    print("\nSkybox materials...")
-
-    # Skip importing skies if searching a different folder
-    if sh.search_scope is None or legacy_skyfaces.is_relative_to(sh.search_scope):
-        for skyfaces_json in sh.collect(
-                None, '.json', OUT_EXT, OVERWRITE_SKYBOX_VMATS,
-                outNameRule=OutName_Sky, searchPath=sh.EXPORT_CONTENT/legacy_skyfaces):
-            ImportSkyJSONtoVMAT(skyfaces_json)
-
-    if failureList:
-        print("\n\t<<<< THESE MATERIALS HAVE ERRORS >>>>")
-        for failure, files in failureList.items():
-            print(failure)
-            for file in files:
-                print('\t' + str(file))
-        print("\t^^^^ THESE MATERIALS HAVE ERRORS ^^^^")
-
-    try:
-        print(f"\nTotal imports:\t{import_total} / {total}\t| " + "{:.2f}".format((import_total/total) * 100) + f" % Imported")
-        print(f"Total skipped:\t{import_invalid} / {total}\t| " + "{:.2f}".format((import_invalid/total) * 100) + f" % Skipped")
-        print(f"Total errors :\t{len(failureList)} / {total}\t| " + "{:.2f}".format((len(failureList)/total) * 100) + f" % Had Errors")
-        print(f"Total extra :\t{import_extra}")
-
-    except Exception: pass
-    # csgo -> 183 / 15308 | 1.20 % Error rate -- 4842 / 15308 | 31.63 % Skip rate
-    # l4d2 -> 504 / 3675 | 13.71 % Error rate -- 374 / 3675 | 10.18 % Skip rate
-    print("\nFinished! Your materials are now ready.")
 
 if __name__ == "__main__":
     sh.parse_argv()

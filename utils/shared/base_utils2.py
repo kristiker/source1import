@@ -285,8 +285,8 @@ if __name__ == 'shared.base_utils2':
 elif __name__ == '__main__':
     parse_argv()
     print(f"{ROOT=}\n{IMPORT_CONTENT=}\n{IMPORT_GAME=}\n{EXPORT_CONTENT=}\n{EXPORT_GAME=}")
-    print(gameinfo['game'])
-    print(destmod)
+    print(f"{gameinfo['game']=}, {destmod=}")
+    print(BIN, eEngineUtils.dmxconvert.value, eEngineUtils.dmxconvert.avaliable)
 
     import unittest
     class Test_ParsedPaths(unittest.TestCase):

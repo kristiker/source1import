@@ -6,6 +6,7 @@ from tkinter import filedialog, messagebox, ttk
 from tkinter import *
 import sys
 import json
+from traceback import format_tb
 
 sys.path.insert(0, sys.path[0] + '\\utils')
 
@@ -59,7 +60,10 @@ class TabContext:
         except ScriptError as e:  # Known error
             print(e)
         except Exception as e:  # Unknown error
-            print(e, f"\nSomething went wrong in {self.module}!\n\t", e)
+            traceback = format_tb(e.__traceback__, None)
+            for l in traceback:
+                print(l, end='')
+            print(f"Failed! Something went wrong with the {self.module} module!\n\t", e)
         print('=========================================================')
 
 class SampleApp(Tk):

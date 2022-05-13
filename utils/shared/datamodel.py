@@ -97,7 +97,7 @@ def get_str(file):
 def _get_kv2_repr(var):
 	t = type(var)
 	if t == float or t == int: # optimisation: very common, so first
-		return str(var)
+		return str(var) #f"{var:.9f}"
 	elif issubclass(t, (_Array,Matrix)):
 		return var.to_kv2()
 	elif t == Element:
@@ -123,7 +123,7 @@ class _Array(list):
 		
 	def to_kv2(self):
 		if len(self) == 0:
-			return "[ ]"
+			return f"\n{_kv2_indent}[\n{_kv2_indent}]"
 		if self.type == Element:
 
 			out = "\n{}[\n".format(_kv2_indent)
@@ -239,7 +239,7 @@ class Color(Vector4):
 	def tobytes(self):
 		out = bytes()
 		for i in self:
-			out += bytes(int(self[i]))
+			out += self.type(i).to_bytes(intsize, 'little')
 		return out
 class _ColorArray(_Vector4Array):
 	pass
