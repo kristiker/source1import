@@ -1811,7 +1811,7 @@ def guess_key_name(key, value):
         guess += kw.capitalize()
     return guess, value
 
-def guess_class_name(cls, _type):
+def guess_class_name(cls: str, _type):
     #cls = cls.replace('#', '').replace("'", '')
     key_words = cls.replace('_', ' ').split(' ')
     preffix = "OP"
@@ -1922,7 +1922,7 @@ def pcfkv_convert(key, value):
 
         # convert the array
         for opitem in value:
-            functionName = opitem.get('functionName', opitem.name)
+            functionName: str = opitem.get('functionName', opitem.name)
             className = None
             sub_translation = vpcf_translation[1]
             if key != 'children':
@@ -2083,6 +2083,7 @@ def ImportPSD(ParticleSystemDefinition: dmx.Element, out_root: Path, bOverwrite 
     imports.append(vpcf.path.local.as_posix())
 
     if not bOverwrite and vpcf.path.exists():
+        sh.skip('already-exist', vpcf.path)
         return vpcf.path
     
     process_material(ParticleSystemDefinition.get('material'))

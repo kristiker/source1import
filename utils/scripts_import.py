@@ -7,8 +7,9 @@
 import shared.base_utils2 as sh
 from pathlib import Path
 from shared.keyvalues1 import KV, VDFDict
+import itertools
 
-OVERWRITE_SCRIPTS = True
+OVERWRITE_SCRIPTS = False
 
 HLVR_ADDON_WRITE = False
 """
@@ -28,16 +29,15 @@ def main():
     sh.import_context['dest'] = sh.EXPORT_GAME
     print("Importing Scripts!")
 
-    # soundscapes vsc...
-    for soundscapes_vsc in sh.collect("scripts", ".vsc", ".txt", OVERWRITE_SCRIPTS, match="soundscapes_*.vsc"):
-        ImportSoundscape(soundscapes_vsc)
-
-    # soundscapes txt... (also manifest)
-    for soundscapes_txt in sh.collect("scripts", ".txt", ".txt", OVERWRITE_SCRIPTS, match="soundscapes_*.txt"):
-        if soundscapes_txt.name == SOUNDSCAPES_MANIFEST.name:
-            ImportSoundscapeManifest(soundscapes_txt)
+    # soundscapes vsc, txt, and manifest...
+    for soundscapes in itertools.chain(
+        sh.collect("scripts", ".vsc", ".txt", OVERWRITE_SCRIPTS, match="soundscapes_*.vsc"),
+        sh.collect("scripts", ".txt", ".txt", OVERWRITE_SCRIPTS, match="soundscapes_*.txt")
+    ):
+        if soundscapes.name == SOUNDSCAPES_MANIFEST.name:
+            ImportSoundscapeManifest(soundscapes)
             continue
-        ImportSoundscape(soundscapes_txt)
+        ImportSoundscape(soundscapes)
 
     # game sounds...
     sh.import_context['dest'] = sh.EXPORT_CONTENT
@@ -198,7 +198,7 @@ def _handle_range(k, v):
     try:
         mm = tuple(v.split(',', 1))
         min, max = float(mm[0]), float(mm[1])
-    except: return
+    except Exception: return
     else:
         rv = {}
         out_v = min+max / 2
@@ -301,34 +301,13 @@ def ImportGameSound(asset_path: Path):
                             if v.startswith('SNDLVL_'):
                                 try:
                                     out_v = int(v[7:-2])
-                                except:
+                                except Exception:
                                     print(v[7:])
                             else: print(v)
             elif k == 'delay_msec': out_k, out_v = 'delay', v/1000
             elif k == 'ignore_occlusion': out_k, out_v = 'occlusion_scale', (1 if not v else 0)#'sa_enable_occlusion'
             elif k == 'operator_stacks':  # this only exists in globul offensif
                 ...
-                continue
-                #print("~~~~~ stack")
-                op_stacks[v.ToStr()] = op_stacks.get(v.ToStr(), 0) + 1
-
-                if mx:=v.get('update_stack', {}).get('mixer', {}).get('mixgroup'):
-                    out_kv['mixgroup'] = mx
-                #for opk, opv in v.items():
-                #    #input(f"{opk} {opv.ToStr()}")
-                #    if opk == 'update_stack':
-                #        for up_k, up_v in opv.items():
-                #            ...
-                            #if isinstance(up_v, dict):
-                            #    if mx:=up_v.get('mixgroup'):
-                            #        out_kv['mixgroup'] = mx
-                # update stack
-                    # volume_falloff
-                    # {
-                    #         input_max       "800"
-                    #         input_curve_amount      "0.9"
-                    # }
-                    # volume_fallof_max/min in out_kv
                 continue
             elif k in ('soundentry_version', 'alert', 'hrtf_follow','gamedata',): # skiplist
                 continue
@@ -363,7 +342,8 @@ def ImportSurfaceProperties(asset_path: Path):
     "scripts/surfaceproperties*.txt -> surfaceproperties/surfaceproperties*.vsurf"
     vsurf_file: Path = sh.EXPORT_CONTENT / "surfaceproperties" / asset_path.local.relative_to(scripts).with_suffix('.vsurf')
     vsurf_file.parent.MakeDir()
-
+    if vsurf_file.is_file() and not OVERWRITE_SCRIPTS:
+        return sh.skip('already-exist', vsurf_file)
     
     kv = KV.CollectionFromFile(asset_path)
     vsurf = dict(SurfacePropertiesList = [])
@@ -411,7 +391,8 @@ class VsurfManifestHandler:
         self.manifest_files.extend(KV.FromFile(manifest_file).get_all_for('file'))
 
     def retrieve_surfaces(self, rv: tuple[Path, list]):
-        self.all_surfaces.__setitem__(*rv)
+        if rv is not None:
+            self.all_surfaces.__setitem__(*rv)
 
     def after_all_converted(self):
         # Only include surfaces from files that are on manifest.
@@ -439,17 +420,8 @@ if __name__ == '__main__':
     sh.parse_argv()
     main()  
 
-    raise SystemExit(0)
-    for k, v in collected.items():
-        print(k, v[1])
-    for opstack, count in op_stacks.items():
-        print()
-        print(count)
-        print(opstack)
-
 def ImportUpdateResourceRefs(asset_path: Path):
     ...
-    # we ported .wavs to vsnds,
     # this func is for other generic scripts to update their resource refs
     # eg. search for each value and see if its a ref and replace each
     # after that just integ

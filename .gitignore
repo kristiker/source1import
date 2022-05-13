@@ -1,5 +1,5 @@
 \.vscode/
-env/
+env*/
 *.pyc
 build/
 dist/*  
