@@ -640,6 +640,7 @@ vmt_to_vmat_pre: Callable[[], dict[str, dict[str, Optional[tuple]]]] = lambda: {
     '$phong':           ('F_SPECULAR',              '1'), # why did i do this
     '$envmap':          ('F_SPECULAR',              '1', [fix_envmap]),  # in "environment maps/metal" | "env_cubemap" F_SPECULAR_CUBE_MAP 1 // In-game Cube Map
     '$envmapanisotropy':('F_SPECULAR_CUBE_MAP_ANISOTROPIC_WARP', '1'), # requires F_ANISOTROPIC_GLOSS 1
+    '$ssbump':          ('F_ENABLE_NORMAL_SELF_SHADOW', '1'),
     '$selfillum':       ('F_SELF_ILLUM',            '1'),
     '$additive':        ('F_ADDITIVE_BLEND',        '1'),
     '$ignorez':         ('F_DISABLE_Z_BUFFERING',   '1'),
@@ -773,6 +774,7 @@ vmt_to_vmat_pre: Callable[[], dict[str, dict[str, Optional[tuple]]]] = lambda: {
     '$phongboost':          ('g_flPhongBoost',          '1.000',    [float_val]),  #
     '$metalness':           ('g_flMetalness',           '0.000',    [float_val]),
     '$_metalness2':         ('g_flMetalnessB',          '0.000',    [float_val]),
+    '$ssbump':   ('g_flLightRangeForSelfShadowNormals', '1.000',    [float_val]), # tiny hack
     '$reflectamount':       ('g_flReflectionAmount',    '',         [float_val]),
     '$refractamount':       ('g_flRefractionAmount',    '',         [float_val]),
     #'$refractamount':       ('g_flRefractScale',        '0.200',    [float_val]),
@@ -870,8 +872,6 @@ vmt_to_vmat_pre: Callable[[], dict[str, dict[str, Optional[tuple]]]] = lambda: {
 
 # no direct replacement, etc
 'others2': {
-    # ssbump dose not work?
-    #'$ssbump':               ('TextureBentNormal',    '_bentnormal.tga', 'F_ENABLE_NORMAL_SELF_SHADOW 1\n\tF_USE_BENT_NORMALS 1\n'),
 
     #'$iris': ('',    '',     ''),  # paste iris into basetexture
 
@@ -989,7 +989,10 @@ def convertVmtToVmat():
                 if vmtKey in ('$normalmap', '$bumpmap2', '$normalmap2'):
                     if vmtVal == 'dev/flat_normal': outVal = default(vmatDefaultVal)
 
+                    # don't flip default normal
                     if not outVal == default("_normal"):
+                        if SBOX and not vmt.KeyValues["$ssbump"]:
+                            continue
                         flipNormalMap(Path(outVal))
 
             elif(keyType == 'transform'):  # here one key can add multiple keys
@@ -1142,6 +1145,10 @@ def convertSpecials():
     
     if vmat.shader == "vr_projected_decals":
         vmat.KeyValues['F_CUTOFF_ANGLE'] = 1
+
+    elif vmat.shader == "vr_complex":
+        if vmt.KeyValues["$ssbump"]:
+            vmat.KeyValues['F_SPECULAR'] = 1 # self shadowing normals require specular to work
 
     # csgo viewmodels
     # if not mod == csgo: return
