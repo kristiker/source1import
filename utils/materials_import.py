@@ -4,7 +4,7 @@ from typing import Callable, Optional
 from PIL import Image, ImageOps
 
 import shared.base_utils2 as sh
-from shared.base_utils2 import IMPORT_MOD, DOTA2, STEAMVR, HLVR
+from shared.base_utils2 import IMPORT_MOD, DOTA2, STEAMVR, HLVR, SBOX
 from shared.keyvalue_simple import getKV_tailored as getKeyValues
 from shared.keyvalues1 import KV
 from shared.material_proxies import ProxiesToDynamicParams
@@ -72,7 +72,7 @@ def main():
     print('\nSource 2 Material Converter!')
 
     # update branch condition
-    globals().update((k,v) for (k, v) in sh.__dict__.items() if k in ("IMPORT_MOD", "DOTA2", "STEAMVR", "HLVR"))
+    globals().update((k,v) for (k, v) in sh.__dict__.items() if k in ("IMPORT_MOD", "DOTA2", "STEAMVR", "HLVR", "SBOX"))
 
     # update translation table based on branch conditions
     global vmt_to_vmat
@@ -640,7 +640,7 @@ vmt_to_vmat_pre: Callable[[], dict[str, dict[str, Optional[tuple]]]] = lambda: {
     '$phong':           ('F_SPECULAR',              '1'), # why did i do this
     '$envmap':          ('F_SPECULAR',              '1', [fix_envmap]),  # in "environment maps/metal" | "env_cubemap" F_SPECULAR_CUBE_MAP 1 // In-game Cube Map
     '$envmapanisotropy':('F_SPECULAR_CUBE_MAP_ANISOTROPIC_WARP', '1'), # requires F_ANISOTROPIC_GLOSS 1
-    '$ssbump':          ('F_ENABLE_NORMAL_SELF_SHADOW', '1'),
+    '$ssbump':          ('F_ENABLE_NORMAL_SELF_SHADOW', '1') if SBOX else None,
     '$selfillum':       ('F_SELF_ILLUM',            '1'),
     '$additive':        ('F_ADDITIVE_BLEND',        '1'),
     '$ignorez':         ('F_DISABLE_Z_BUFFERING',   '1'),
@@ -774,7 +774,7 @@ vmt_to_vmat_pre: Callable[[], dict[str, dict[str, Optional[tuple]]]] = lambda: {
     '$phongboost':          ('g_flPhongBoost',          '1.000',    [float_val]),  #
     '$metalness':           ('g_flMetalness',           '0.000',    [float_val]),
     '$_metalness2':         ('g_flMetalnessB',          '0.000',    [float_val]),
-    '$ssbump':   ('g_flLightRangeForSelfShadowNormals', '1.000',    [float_val]), # tiny hack
+    '$ssbump':   ('g_flLightRangeForSelfShadowNormals', '1.000',    [float_val]) if SBOX else None, # tiny hack
     '$reflectamount':       ('g_flReflectionAmount',    '',         [float_val]),
     '$refractamount':       ('g_flRefractionAmount',    '',         [float_val]),
     #'$refractamount':       ('g_flRefractScale',        '0.200',    [float_val]),
@@ -991,7 +991,7 @@ def convertVmtToVmat():
 
                     # don't flip default normal
                     if not outVal == default("_normal"):
-                        if SBOX and not vmt.KeyValues["$ssbump"]:
+                        if SBOX and vmt.KeyValues["$ssbump"]:
                             continue
                         flipNormalMap(Path(outVal))
 
@@ -1146,8 +1146,8 @@ def convertSpecials():
     if vmat.shader == "vr_projected_decals":
         vmat.KeyValues['F_CUTOFF_ANGLE'] = 1
 
-    elif vmat.shader == "vr_complex":
-        if vmt.KeyValues["$ssbump"]:
+    elif vmat.shader == main_ubershader():
+        if SBOX and vmt.KeyValues["$ssbump"]:
             vmat.KeyValues['F_SPECULAR'] = 1 # self shadowing normals require specular to work
 
     # csgo viewmodels
