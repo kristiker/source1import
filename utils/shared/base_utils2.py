@@ -45,10 +45,49 @@ class KVUtilFile(KV):
         return super().save(self.path, quoteKeys=True)
 
 
+
+#("a").AnythingNot(sh.eS2Game.steamvr).otherwise("B")
+
+class RuntimeBranchSwitching:
+    def __init__(self, evaluation: str, value: tuple) -> None:
+        self.evaluations = {}
+        if evaluation:
+            self.evaluations[evaluation] = value
+        if evaluation != "else":
+            self.evaluations["else"] = None
+    def otherwise(self, value):
+        self.evaluations["else"] = value
+        return self
+    def but(self, s2branch, value: tuple):
+        self.evaluations[f"destmod == {s2branch}"] = value
+        return self
+    def evaluate(self):
+        else_rv = None
+        for i, (evaluation, return_value) in enumerate(self.evaluations.items()):
+            if evaluation == "else":
+                else_rv = return_value
+            else:
+                if eval(evaluation):
+                    return return_value                
+        else:
+            return else_rv
+
+#a = RuntimeBranchSwitching("True == True", "A")
+#a.evaluate()
+def Anything(value: tuple):
+    return RuntimeBranchSwitching(f"else", value)
+
+#def OnlyWith(source2branch: sh.eS2Game, value: tuple):
+#    return RuntimeBranchSwitching(f"sh.destmod == sh.{source2branch}", value)
+
 from enum import Enum, unique, auto
 
 class eS2Game(Enum):
     "known moddable source2 games"
+
+    def __call__(self, value):
+        return RuntimeBranchSwitching(f"destmod == {self}", value)
+
     dota2 = "dota2"
     steamvr = "steamvr"
     hlvr = "hlvr"
