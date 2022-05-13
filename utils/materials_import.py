@@ -3,7 +3,6 @@ from shutil import copyfile
 from PIL import Image, ImageOps
 
 import shared.base_utils2 as sh
-eS2Game = sh.eS2Game
 from shared.keyvalue_simple import getKV_tailored as getKeyValues
 from shared.keyvalues1 import KV
 from shared.material_proxies import ProxiesToDynamicParams
@@ -29,7 +28,7 @@ USE_SUGESTED_DEFAULT_ROUGHNESS = True
 SIMPLE_SHADER_WHERE_POSSIBLE = True
 PRINT_LEGACY_IMPORT = False  # Print vmt inside vmat as reference. Increases file size.
 
-sh.DEBUG = True
+sh.DEBUG = False
 msg = sh.msg
 # File format of the textures. Needs to be lowercase
 # source 2 supports all kinds: tga jpeg png gif psd exr tiff pfm...
@@ -137,8 +136,8 @@ class VMAT(ValveMaterial):
         self._kv['shader'] = n
 
 # keep everything lowercase !!!
-main_ubershader = lambda: "vr_standard" if sh.destmod == sh.eS2Game.steamvr else "vr_complex"
-main_blendable = lambda: "vr_simple_2way_blend" if sh.destmod == sh.eS2Game.hlvr else main_ubershader
+main_ubershader = "vr_standard" if sh.destmod == sh.eS2Game.steamvr else "vr_complex"
+main_blendable = "vr_simple_2way_blend" if sh.destmod == sh.eS2Game.hlvr else main_ubershader
 shaderDict = {
     "black":                "black",
     "sky":                  "sky",
@@ -181,9 +180,7 @@ shaderDict = {
 }
 
 def chooseShader():
-    get_shader = lambda v: v() if callable(v) else v
-
-    d = {get_shader(x):0 for x in list(shaderDict.values())}
+    d = {x:0 for x in list(shaderDict.values())}
 
     if vmt.shader not in shaderDict:
         if sh.DEBUG:
@@ -191,17 +188,17 @@ def chooseShader():
         return "vr_black_unlit"
 
     if GENERIC_SHADER and sh.destmod != sh.eS2Game.steamvr:   d["generic"] += 1
-    else:               d[get_shader(shaderDict[vmt.shader])] += 1
+    else:               d[shaderDict[vmt.shader]] += 1
 
     if vmt.KeyValues['$beachfoam']: return "csgo_beachfoam"
 
     if vmt.KeyValues['$decal'] == 1: d["vr_static_overlay"] += 2
 
     if vmt.shader == "worldvertextransition":
-        if vmt.KeyValues['$basetexture2']: d[main_blendable()] += 10
+        if vmt.KeyValues['$basetexture2']: d[main_blendable] += 10
 
     elif vmt.shader == "lightmappedgeneric":
-        if vmt.KeyValues['$newlayerblending'] == 1: d[main_blendable()] += 10
+        if vmt.KeyValues['$newlayerblending'] == 1: d[main_blendable] += 10
 
     #if vmt.KeyValues['$decal'] == 1: sh["vr_projected_decals"] += 10
 
@@ -553,6 +550,7 @@ VMAT_EXTRALINES = 3
 IMPORT_MOD = "csgo"
 EXPORT_MOD = "hlvr"
 
+
 vmt_to_vmat = {
 
 # http://counter-strike.net/workshop/workshopmaps#hammer
@@ -576,8 +574,8 @@ vmt_to_vmat = {
     '$selfillum_envmapmask_alpha': ('F_SELF_ILLUM', '1'),
     '$forceenvmap':     ('F_REFLECTION_TYPE', 1),  # Water reflection type
     '$addbumpmaps':     ('F_ADDBUMPMAPS',     1),
-    "$masks1":    eS2Game.dota2(('F_MASKS_1',    '1')),  # https://developer.valvesoftware.com/wiki/$masks#Parameters_and_Effects
-    "$masks2":    eS2Game.dota2(('F_MASKS_2',    '1')),  # 
+    "$masks1": ('F_MASKS_1',    '1') if EXPORT_MOD == "dota" else None,  #
+    "$masks2": ('F_MASKS_2',    '1') if EXPORT_MOD == "dota" else None,  #
 
     #'$phong':           ('F_PHONG',                 '1'),
     #'$vertexcolor:      ('F_VERTEX_COLOR',          '1'),
@@ -589,8 +587,7 @@ vmt_to_vmat = {
     '$hdrbasetexture':      ('TextureColor',    '_color', [formatNewTexturePath]),  # nocompress
 
     ## Top / Main layer
-    '$basetexture':     sh.Anything(('TextureColor',        '_color',   [formatNewTexturePath])).but(eS2Game.steamvr,
-        ('TextureColor8888888',        '_color',   [formatNewTexturePath])),
+    '$basetexture':     ('TextureColor',        '_color',   [formatNewTexturePath]),
     '$painttexture':    ('TextureColor',        '_color',   [formatNewTexturePath]),
     '$material':        ('TextureColor',        '_color',   [formatNewTexturePath]),
     '$modelmaterial':   ('TextureColor',        '_color',   [formatNewTexturePath]),
@@ -623,8 +620,8 @@ vmt_to_vmat = {
 
     '$selfillummask':   ('TextureSelfIllumMask','_selfillummask', [formatNewTexturePath]),
     '$tintmasktexture': ('TextureTintMask',     '_mask',   [createMask, 'G', False],   ('F_TINT_MASK',  1)), #('TextureTintTexture',)
-    '$_vmat_metalmask': sh.Anything(('TextureMetalness',    '_metal',  [formatNewTexturePath],     ('F_METALNESS_TEXTURE',  1)))
-        .but(sh.eS2Game.steamvr,    ('TextureReflectance',  '_refl',   [formatNewTexturePath])),   # F_SPECULAR too?
+    '$_vmat_metalmask': ('TextureMetalness',    '_metal',  [formatNewTexturePath],     ('F_METALNESS_TEXTURE',  1)) if sh.destmod != sh.eS2Game.steamvr else \
+                        ('TextureReflectance',    '_refl',  [formatNewTexturePath]),   # F_SPECULAR too?
     '$_vmat_transmask': ('TextureTranslucency', '_trans',  [formatNewTexturePath]),
     '$_vmat_rimmask':   ('TextureRimMask',      '_rimmask',[formatNewTexturePath]),
 
@@ -748,13 +745,13 @@ vmt_to_vmat = {
 
 'channeled_masks': {  # 1-X will extract and invert channel X // M_1-X to only invert on models
    #'$vmtKey':                      (extract_from,       extract_as,       channel to extract)
-    '$normalmapalphaenvmapmask':    ('$normalmap',    '$envmapmask',        'A'),#eS2Game.steamvr('1-A').otherwise('A')),
+    '$normalmapalphaenvmapmask':    ('$normalmap',    '$envmapmask',        'A' if sh.destmod == sh.eS2Game.steamvr else   '1-A'),
     '$basealphaenvmapmask':         ('$basetexture',    '$envmapmask',      '1-A'), # dont these also flip with steamvr?
     '$envmapmaskintintmasktexture': ('$tintmasktexture','$envmapmask',      '1-R'), # ?
     '$basemapalphaphongmask':       ('$basetexture',    '$phongmask',       '1-A'), # ?
     '$basealphaphongmask':          ('$basetexture',    '$phongmask',       '1-A'), # ?
-    '$normalmapalphaphongmask':     ('$normalmap',    '$phongmask',         'A'),#eS2Game.steamvr('1-A').otherwise('A')),
-    '$bumpmapalphaphongmask':       ('$normalmap',    '$phongmask',         'A'),#eS2Game.steamvr('1-A').otherwise('A')),
+    '$normalmapalphaphongmask':     ('$normalmap',    '$phongmask',         '1-A' if sh.destmod == sh.eS2Game.steamvr else 'A'),
+    '$bumpmapalphaphongmask':       ('$normalmap',    '$phongmask',         '1-A' if sh.destmod == sh.eS2Game.steamvr else 'A'),
     '$basemapluminancephongmask':   ('$basetexture',    '$phongmask',       'L'),
 
     '$blendtintbybasealpha':        ('$basetexture',    '$tintmasktexture', 'A'),
@@ -841,8 +838,6 @@ def convertVmtToVmat():
 
             if not vmatTranslation:
                 continue
-            elif isinstance(vmatTranslation, sh.RuntimeBranchSwitching):
-                vmatTranslation = vmatTranslation.evaluate()
 
             vmatReplacement = None
             vmatDefaultVal = None
@@ -1047,7 +1042,7 @@ def convertSpecials():
         vmt.KeyValues['$translucent'] = 1
 
     # fix unlit shader ## what about generic?
-    if (vmt.shader == 'unlitgeneric') and (vmat.shader == main_ubershader()):
+    if (vmt.shader == 'unlitgeneric') and (vmat.shader == main_ubershader):
         vmat.KeyValues["F_UNLIT"] = 1
 
     if sh.destmod == sh.eS2Game.steamvr:
@@ -1268,7 +1263,7 @@ failureList = Failures()
 total=import_total=import_invalid=import_extra = 0
 
 def main():
-    print('\nSource 2 Material Converter!', sh.destmod)
+    print('\nSource 2 Material Converter!')
 
     global total, import_total, import_invalid
     sh.importing = materials
