@@ -47,6 +47,13 @@ class KVUtilFile(KV):
 
 from enum import Enum, unique, auto
 
+class eS2Game(Enum):
+    "known moddable source2 games"
+    dota2 = "dota2"
+    steamvr = "steamvr"
+    hlvr = "hlvr"
+    sbox = "sbox"
+
 @unique
 class eEngineUtils(Enum):
     def _generate_next_value_(name: str, *_) -> str:
@@ -98,6 +105,20 @@ search_scope: Path = None
 gameinfo: KV = None
 gameinfo2: KV = None
 
+IMPORT_MOD = ""
+DOTA2: bool = False
+STEAMVR: bool = False
+HLVR: bool = False
+SBOX: bool = False
+
+def update_destmod(new_dest: eS2Game):
+    global destmod
+    destmod = new_dest
+    for game in eS2Game.__members__.keys():
+        globals()[game.upper()] = False
+    globals()[new_dest.value.upper()] = True
+
+destmod: eS2Game = eS2Game("hlvr")
 import_context: dict = None
 RemapTable: KVUtilFile = None
 
@@ -138,7 +159,7 @@ def argv_error(*args, **kwargs):
 
 def parse_in_path():
     global IMPORT_CONTENT, IMPORT_GAME, EXPORT_CONTENT, EXPORT_GAME
-    global search_scope, gameinfo, gameinfo2            
+    global search_scope, gameinfo, gameinfo2, IMPORT_MOD    
 
     in_path = Path(_args_known.src1gameinfodir)
     if not in_path.exists():
@@ -153,6 +174,7 @@ def parse_in_path():
     except Exception:
         print("Warning: Error reading gameinfo.txt")
     IMPORT_GAME = in_path
+    IMPORT_MOD = in_path.name
     if IMPORT_GAME.parent.name == 'game':  # Source 2 dir
         eEngineFolder.update_root(IMPORT_GAME.parents[1])
         IMPORT_CONTENT = CONTENTROOT / IMPORT_GAME.name
@@ -160,7 +182,7 @@ def parse_in_path():
 def parse_out_path(source2_mod: Path):
     "Must call after parse_in_path"
     global IMPORT_CONTENT, IMPORT_GAME, EXPORT_CONTENT, EXPORT_GAME
-    global search_scope, gameinfo, gameinfo2
+    global destmod, search_scope, gameinfo, gameinfo2
 
     if source2_mod.is_absolute():
         if source2_mod.is_file():
@@ -190,7 +212,16 @@ def parse_out_path(source2_mod: Path):
         argv_error(f"Invalid export game \"{source2_mod}\"")
 
     #print("Paths sucessfuly parsed......")
-
+    pp = {"sbox":eS2Game.sbox, "steamtours": eS2Game.steamvr, "dota": eS2Game.dota2}
+    for p in EXPORT_GAME.parts:
+        if "hlvr" in p:
+            break
+        for k, v in pp.items():
+            if k in p:
+                destmod = v
+                break
+        if destmod is not eS2Game.hlvr:
+            break
     # Optionals
 
     # Unknowns
@@ -255,6 +286,7 @@ elif __name__ == '__main__':
     parse_argv()
     print(f"{ROOT=}\n{IMPORT_CONTENT=}\n{IMPORT_GAME=}\n{EXPORT_CONTENT=}\n{EXPORT_GAME=}")
     print(gameinfo['game'])
+    print(destmod)
 
     import unittest
     class Test_ParsedPaths(unittest.TestCase):
