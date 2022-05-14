@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import functools
 from pathlib import Path
 from threading import Thread
@@ -25,19 +25,25 @@ class TabContext:
     enabled: IntVar
     further_options: dict
     module: str
+    overwrite_ones: set = field(default_factory=set)
+
+    def add_overwrite_toggles(self, *toggle_list: tuple[str, str]):
+        self.overwrite_ones.update(option_name for option_name, _ in toggle_list)
+        return self.add_toggles(*toggle_list)
 
     def add_toggles(self, *toggle_list: tuple[str, str]):
         for toggle_name, description in toggle_list:
             self.add_widget(toggle_name, IntVar(master=self.frame),
-                functools.partial(Checkbutton, self.frame, text=description,bd=0,selectcolor=bg1,bg=bg1,fg=fg1,activeforeground=fg1,activebackground=bg2)
+                functools.partial(Checkbutton, self.frame, command = self.frame.master.master.verify_all_overwrite,
+                text=description,bd=0,selectcolor=bg1,bg=bg1,fg=fg1,activeforeground=fg1,activebackground=bg2)
             )
         return self
 
     def add_widget(self, key, var: Variable, widget_partial: functools.partial[Widget]):
         self.further_options[key] = var
-        widget_partial(variable=var).pack(
-            padx=0,# pady=5,
-            in_=self.frame.viewPort
+        widget_partial(variable=var).grid(
+            sticky="w", padx=0,# pady=5,
+            in_=self.frame
         )
         return self
 
@@ -66,7 +72,6 @@ class TabContext:
             print(f"Failed! Something went wrong with the {self.module} module!\n\t", e)
         print('=========================================================')
 
-from test import ScrollFrame
 class SampleApp(Tk):
     def __init__(self, *args, **kwargs):
         Tk.__init__(self, *args, **kwargs)
@@ -145,7 +150,7 @@ class SampleApp(Tk):
         
         self.widgets[99] = Checkbutton(text="   Import All  ", variable=self.allChecked, command=self.checkbutton_toggle_all, width=11,selectcolor=bg1,padx=0)
         self.widgets[99].grid(pady= 2, row = 0, column = 0, columnspan=2, in_=self.sett_grid, sticky="w")
-        self.widgets[53] = Checkbutton(self, text="Overwrite All", variable=self.allOverwrite, command=self.overwriteall_toggle, selectcolor=bg1, width=10, bd=0, padx=4)
+        self.widgets[53] = Checkbutton(self, text="Overwrite All", variable=self.allOverwrite, command=self.overwrite_toggle_all, selectcolor=bg1, width=10, bd=0, padx=4)
         self.widgets[53].grid(pady= 2, padx=4, row = 0, column = 2, in_=self.sett_grid, sticky="w")
         self.widgets[50] = OptionMenu(self, self.destmod, *(name.value for name in sh.eS2Game), command=lambda v: sh.update_destmod(sh.eS2Game(v)))
         self.widgets[50].grid(pady= 2, padx=0, row = 0, column = 4, in_=self.sett_grid, sticky="e")
@@ -171,41 +176,38 @@ class SampleApp(Tk):
 
         def add_tab(name: str, enable: IntVar, description: str, module: str = "") -> TabContext:
             count = len(self.tabs)
-            frame = ScrollFrame(self.tab_notebook, relief=GROOVE, bg=bg1, labelanchor="nw", text="", height=100)
+            frame = LabelFrame(self.tab_notebook, relief=GROOVE, bg=bg1, labelanchor="nw", text="", height=100)
             self.widgets[10+count] = Checkbutton(self, padx=0, pady=2, width=2, variable=enable, command=functools.partial(self.checkbutton_tab_update, name), bd=0,selectcolor=bg1)
             self.widgets[10+count].grid(row = count, in_=self.module_picking_grid, sticky=W)
             self.widgets[30+count] = Label(self, text="• "+description, justify=LEFT)
-            self.widgets[30+count].pack(in_=frame.viewPort)
+            self.widgets[30+count].grid(in_=frame)
             self.tabs[name] = TabContext(frame, enable, {}, module)
             return self.tabs[name]
 
-        add_tab("textures", self.Textures, "Decompile VTF to sources", "vtf_to_tga").add_toggles(
+        add_tab("textures", self.Textures, "Decompile VTF to sources", "vtf_to_tga").add_overwrite_toggles(
             ("OVERWRITE", "Overwrite Existing TGAs"),
         )
-        add_tab("materials", self.Materials, "Import VMT materials", "materials_import").add_toggles(
+        add_tab("materials", self.Materials, "Import VMT materials", "materials_import").add_overwrite_toggles(
             ("OVERWRITE_VMAT", "Overwrite Existing VMATs"),
             ("OVERWRITE_SKYBOX_VMATS", "Overwrite Skybox VMATs"),
             ("OVERWRITE_SKYCUBES", "Overwrite Sky Images"),
+        ).add_toggles(
             ("NORMALMAP_G_VTEX_INVERT", "Invert Normal Via Settings File"),
             ("SIMPLE_SHADER_WHERE_POSSIBLE", "Use Simple Shader if possible"),
             ("PRINT_LEGACY_IMPORT", "Print old material inside new"),
-            ("PRINT_LEGACY_IMPORT3", "Print old material inside new"),
-            ("PRINT_LEGACY_IMPORT4", "Print old material inside new"),
-            ("PRINT_LEGACY_IMPORT5", "Print old material inside new"),
-            ("PRINT_LEGACY_IMPORT6", "Print old material inside new"),
         )
-        add_tab("models", self.Models, "Generate VMDL models", "models_import").add_toggles(
+        add_tab("models", self.Models, "Generate VMDL models", "models_import").add_overwrite_toggles(
             ("SHOULD_OVERWRITE", "Overwrite Existing VMDLs"),
-            ("MOVE_MODELS", "Move .mdls"),
+            #("MOVE_MODELS", "Move .mdls"),
         )
-        add_tab("particles", self.Particles, "Import particles", "particles_import").add_toggles(
+        add_tab("particles", self.Particles, "Import particles", "particles_import").add_overwrite_toggles(
             ("OVERWRITE_PARTICLES", "Overwrite Existing Particles"),
         )
         #add_tab("maps", self.Maps, "Import VMF entities (soon)")
-        add_tab("sessions", self.Sessions, "Import Source Filmmaker Sessions", "elements_import").add_toggles(
+        add_tab("sessions", self.Sessions, "Import Source Filmmaker Sessions", "elements_import").add_overwrite_toggles(
             ("SHOULD_OVERWRITE", "Overwrite Existing Sessions"),
         )
-        add_tab("scripts", self.Scripts, "Import various script files", "scripts_import").add_toggles(
+        add_tab("scripts", self.Scripts, "Import various script files", "scripts_import").add_overwrite_toggles(
             ("OVERWRITE_SCRIPTS", "Overwrite Existing Scripts"),
         )
         add_tab("scenes", self.Scenes, "Generate vcdlist from vcds", "scenes_import").add_toggles(
@@ -341,8 +343,28 @@ class SampleApp(Tk):
         messagebox.showinfo(title=self.APP_TITLE, message="Looks like we are done!")
         return stop()
 
-    def overwriteall_toggle(self):
+    def overwrite_toggle_all(self):
         self.allOverwrite.set(0 if not self.allOverwrite.get() else 1)
+        for tab in self.tabs.values():
+            if not tab.enabled.get():
+                continue
+            for overwrite_opt in tab.overwrite_ones:
+                tab.further_options[overwrite_opt].set(self.allOverwrite.get())
+
+    def verify_all_overwrite(self):
+        """Auto toggle Overwrite All based on status of other checkboxes"""
+        for tab in self.tabs.values():
+            if not tab.enabled.get():
+                continue
+            if self.allOverwrite.get(): # Overwrite All is toggled on!
+                if not all(tab.further_options[overwrite_opt].get() for overwrite_opt in tab.overwrite_ones): # but this option is not
+                    self.allOverwrite.set(0) # so deselect Overwrite All
+                    break
+            else: # Overwrite All is toggled off
+                if not all(tab.further_options[overwrite_opt].get() for overwrite_opt in tab.overwrite_ones): # and I found an option that is not toggled
+                    return # it can't be toggled on, so don't bother checking the rest
+        else:
+            self.allOverwrite.set(1) # all tabs are toggled on, so select Overwrite All
 
     def checkbutton_toggle_all(self):
         # .toggle, select, deselect
@@ -374,6 +396,7 @@ class SampleApp(Tk):
     def checkbutton_tab_update(self, specificTab: str = None):
         """Sets tab enable status and selects when one is toggled specifically"""
         self.verify_all_toggled()
+        self.verify_all_overwrite()
         if any(tab.enabled.get() for tab in self.tabs.values()):
             self.gobutton.configure(state=NORMAL)
             self.widgets[53].configure(state=NORMAL)
