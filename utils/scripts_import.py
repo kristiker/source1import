@@ -7,8 +7,9 @@
 import shared.base_utils2 as sh
 from pathlib import Path
 from shared.keyvalues1 import KV, VDFDict
+import itertools
 
-OVERWRITE_SCRIPTS = True
+OVERWRITE_SCRIPTS = False
 
 HLVR_ADDON_WRITE = False
 """
@@ -28,16 +29,15 @@ def main():
     sh.import_context['dest'] = sh.EXPORT_GAME
     print("Importing Scripts!")
 
-    # soundscapes vsc...
-    for soundscapes_vsc in sh.collect("scripts", ".vsc", ".txt", OVERWRITE_SCRIPTS, match="soundscapes_*.vsc"):
-        ImportSoundscape(soundscapes_vsc)
-
-    # soundscapes txt... (also manifest)
-    for soundscapes_txt in sh.collect("scripts", ".txt", ".txt", OVERWRITE_SCRIPTS, match="soundscapes_*.txt"):
-        if soundscapes_txt.name == SOUNDSCAPES_MANIFEST.name:
-            ImportSoundscapeManifest(soundscapes_txt)
+    # soundscapes vsc, txt, and manifest...
+    for soundscapes in itertools.chain(
+        sh.collect("scripts", ".vsc", ".txt", OVERWRITE_SCRIPTS, match="soundscapes_*.vsc"),
+        sh.collect("scripts", ".txt", ".txt", OVERWRITE_SCRIPTS, match="soundscapes_*.txt")
+    ):
+        if soundscapes.name == SOUNDSCAPES_MANIFEST.name:
+            ImportSoundscapeManifest(soundscapes)
             continue
-        ImportSoundscape(soundscapes_txt)
+        ImportSoundscape(soundscapes)
 
     # game sounds...
     sh.import_context['dest'] = sh.EXPORT_CONTENT
@@ -342,7 +342,8 @@ def ImportSurfaceProperties(asset_path: Path):
     "scripts/surfaceproperties*.txt -> surfaceproperties/surfaceproperties*.vsurf"
     vsurf_file: Path = sh.EXPORT_CONTENT / "surfaceproperties" / asset_path.local.relative_to(scripts).with_suffix('.vsurf')
     vsurf_file.parent.MakeDir()
-
+    if vsurf_file.is_file() and not OVERWRITE_SCRIPTS:
+        return sh.skip('already-exist', vsurf_file)
     
     kv = KV.CollectionFromFile(asset_path)
     vsurf = dict(SurfacePropertiesList = [])
@@ -390,7 +391,8 @@ class VsurfManifestHandler:
         self.manifest_files.extend(KV.FromFile(manifest_file).get_all_for('file'))
 
     def retrieve_surfaces(self, rv: tuple[Path, list]):
-        self.all_surfaces.__setitem__(*rv)
+        if rv is not None:
+            self.all_surfaces.__setitem__(*rv)
 
     def after_all_converted(self):
         # Only include surfaces from files that are on manifest.

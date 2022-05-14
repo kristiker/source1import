@@ -5,17 +5,15 @@ Set of scripts for importing Source 1 assets such as materials, models, and part
 #### Note:
 * Make sure to extract s1 assets from VPK archives.
 * Make sure to convert textures before materials. 
-* Make sure to move the entire s1 `models` folder to `content/` **after the script is finished**.
+* Make sure to move the entire s1 `models` folder to `content/` **then run the script**.
 * Make sure to move the entire s1 `sound` folder to `content/` and rename it to `sounds`.
+* Make sure to have `gameinfo.txt` present in Import Game.
 * Make sure to read [this guide](https://developer.valvesoftware.com/wiki/Half-Life:_Alyx_Workshop_Tools/Importing_Source_1_Maps) for importing map files.
   - It suggests that your s1 files be in `game/<modname>` and imported files be in `content/hlvr_addons/<modname>_imported` – you will get correct texture scale and fixed up entities *only* that way.
 
 Download app from [Releases](https://github.com/kristiker/source1import/releases).  
 The app can be slow to open up, but has no prerequisites. If you want to make edits to the scripts & have Python installed, run the advanced way by downloading the code.
-## Advanced:
-### GUI:
-* Just double-click on `source1import.pyw`.
-
+## Advanced Usage:
 ### CLI:
 ```bash
 cd utils

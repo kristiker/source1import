@@ -2083,6 +2083,7 @@ def ImportPSD(ParticleSystemDefinition: dmx.Element, out_root: Path, bOverwrite 
     imports.append(vpcf.path.local.as_posix())
 
     if not bOverwrite and vpcf.path.exists():
+        sh.skip('already-exist', vpcf.path)
         return vpcf.path
     
     process_material(ParticleSystemDefinition.get('material'))

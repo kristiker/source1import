@@ -18,7 +18,7 @@ def ImportMDLtoVMDL(mdl_path, move_s1_assets = False):
 def main():
     print('Source 2 VMDL Generator!')
 
-    mdl_files = sh.collect('models', '.mdl', '.vmdl', SHOULD_OVERWRITE)
+    mdl_files = sh.collect('models', '.mdl', '.vmdl', SHOULD_OVERWRITE, searchPath=sh._dest()/'models')
 
     for mdl in mdl_files:
         ImportMDLtoVMDL(mdl)
