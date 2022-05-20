@@ -217,8 +217,17 @@ class VMAT(ValveMaterial):
         self._kv['shader'] = n
 
 # keep everything lowercase !!!
-main_ubershader = lambda: "vr_standard" if STEAMVR else "vr_complex"
-main_blendable = lambda: "vr_simple_2way_blend" if HLVR else main_ubershader
+def main_ubershader():
+    if STEAMVR: return "vr_standard"
+    elif DOTA2: return "global_lit_simple"
+    else: return "vr_complex"
+
+def main_blendable():
+    if HLVR: return "vr_simple_2way_blend"
+    elif SBOX: return "blendable"
+    elif DOTA2: return "multiblend"
+    else: return main_ubershader
+
 shaderDict = {
     "black":                "black",
     "sky":                  "sky",
