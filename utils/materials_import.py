@@ -340,10 +340,7 @@ def createMask(image_path, copySub = '_mask', channel = 'A', invert = False, que
 
     if not image_path.is_file():
         msg("Couldn't find image", image_path)
-        failureList.add(f"createMask not found", f'{vmt.path} - {image_path}')
-        #if vmtTexture in vmt_to_vmat['textures']:
-        #    failureList.add(f"{vmtTexture} not found", vmt.path) # FIXME ALL OF ME vmtTexture
-        #else:
+        failureList.add(f"createMask not found", f'{vmt.path.local} - {image_path.local}')
         print(f"~ ERROR: Couldn't find requested image ({image_path.local}).\nPlease make sure all textures have been pre-exported.")
         return default(copySub)
 
@@ -963,7 +960,7 @@ def convertVmtToVmat():
                             msg(outKey, returnValue)
                         except ValueError as errrrr:
                             print("Got ValueError:", errrrr, "on", f'{vmtKey}: {vmtVal} with {func_.__name__}')
-                            failureList.add(f'ValueError on {func_.__name__}', f'{vmt.path} @ "{vmtKey}": "{vmtVal}"')
+                            failureList.add(f'ValueError on {func_.__name__}', f'{vmt.path.local} @ "{vmtKey}": "{vmtVal}"')
                             outVal = vmatDefaultVal
 
             # no equivalent key-value for this key, only exists
@@ -1273,7 +1270,7 @@ def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False):
                 vmt.shader, vmt.KeyValues = getKeyValues(sh.src(includePath), ignoreList) # TODO: kv1read
             except FileNotFoundError:
                 print("Did not find.")
-                failureList.add("Include not found", f'{vmt.path} -- {includePath}' )
+                failureList.add("Include not found", f'{vmt.path.local} -- {includePath}' )
                 return
             if not any(wd in vmt.shader for wd in shaderDict):
                 vmt.KeyValues.clear()

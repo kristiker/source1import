@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import functools
 from pathlib import Path
 from threading import Thread
@@ -25,11 +25,17 @@ class TabContext:
     enabled: IntVar
     further_options: dict
     module: str
+    overwrite_ones: set = field(default_factory=set)
+
+    def add_overwrite_toggles(self, *toggle_list: tuple[str, str]):
+        self.overwrite_ones.update(option_name for option_name, _ in toggle_list)
+        return self.add_toggles(*toggle_list)
 
     def add_toggles(self, *toggle_list: tuple[str, str]):
         for toggle_name, description in toggle_list:
             self.add_widget(toggle_name, IntVar(master=self.frame),
-                functools.partial(Checkbutton, self.frame, text=description,bd=0,selectcolor=bg1,bg=bg1,fg=fg1,activeforeground=fg1,activebackground=bg2)
+                functools.partial(Checkbutton, self.frame, command = self.frame.master.master.verify_all_overwrite,
+                text=description,bd=0,selectcolor=bg1,bg=bg1,fg=fg1,activeforeground=fg1,activebackground=bg2)
             )
         return self
 
@@ -77,6 +83,7 @@ class SampleApp(Tk):
         self.is_running = False
         self.isSingle = IntVar()
         self.allChecked = IntVar()
+        self.allOverwrite = IntVar()
 
         self.in_path = StringVar(name="IMPORT_GAME")
         self.out_path = StringVar(name="EXPORT_GAME")
@@ -133,18 +140,23 @@ class SampleApp(Tk):
         self.widgets[1] = Button(text="❌", command=lambda: self.filter.set(''),font=15,fg=fg1,bg=bg1,highlightcolor=bg1,relief=GROOVE,width=3)
         self.widgets[1].grid(row=3, column = 3, in_=self.io_grid)
 
-        # Settings grid
-        self.sett_grid = Frame(self, width=310, height=100, bg=bg1)
-        self.sett_grid.pack(fill="both", expand=False, padx=15, pady=1)#side="left", fill="both", expand=True)
-        self.sett_grid.grid_columnconfigure(0, weight=0, pad=0)
-        self.sett_grid.grid_rowconfigure(0, weight=0, pad=1, minsize=15)
 
-        self.widgets[99] = Checkbutton(text="   Import All  ", variable=self.allChecked, command=self.checkbutton_toggle_all, width=11,selectcolor=bg1,)
-        self.widgets[99].grid(pady= 5, row = 0, column = 0, columnspan=2, in_=self.sett_grid, sticky="w")
+        self.sett_grid = Frame(self, width=310, bg=bg1, pady=0)
+        self.sett_grid.pack(fill="both", expand=False, padx=15, pady=0, ipady=1)
+        self.module_picking_grid = Frame(self, width=310, height=100, bg=bg1)
+        self.module_picking_grid.pack(fill="both", expand=False, padx=15, pady=1, ipady=0)
+        self.module_picking_grid.grid_columnconfigure(0, weight=0, pad=0)
+        self.module_picking_grid.grid_rowconfigure(0, weight=0, pad=1, minsize=15)
+        
+        self.widgets[99] = Checkbutton(text="   Import All  ", variable=self.allChecked, command=self.checkbutton_toggle_all, width=11,selectcolor=bg1,padx=0)
+        self.widgets[99].grid(pady= 2, row = 0, column = 0, columnspan=2, in_=self.sett_grid, sticky="w")
+        self.widgets[53] = Checkbutton(self, text="Overwrite All", variable=self.allOverwrite, command=self.overwrite_toggle_all, selectcolor=bg1, width=10, bd=0, padx=4)
+        self.widgets[53].grid(pady= 2, padx=4, row = 0, column = 2, in_=self.sett_grid, sticky="w")
         self.widgets[50] = OptionMenu(self, self.destmod, *(name.value for name in sh.eS2Game), command=lambda v: sh.update_destmod(sh.eS2Game(v)))
-        self.widgets[50].grid(pady= 5, row = 0, column = 2, in_=self.sett_grid, sticky="e")
-        #self.widgets[1] = Checkbutton(self, text="Force Overwrite", variable=self.Overwrite,selectcolor=bg1, bd = 0)#.grid(row=1, sticky=W)
-        #self.widgets[1].grid(pady= 5, row = 0, column = 1, columnspan = 2, in_=self.sett_grid, sticky="n")#.grid(row=0, sticky=W)
+        self.widgets[50].grid(pady= 2, padx=0, row = 0, column = 4, in_=self.sett_grid, sticky="e")
+        self.sett_grid.grid_columnconfigure(4, weight=2)
+        self.widgets[50]["menu"].configure(bg=bg1,fg=fg1,activebackground=bghighlight,activeforeground="white", takefocus=0)
+        
 
         style = ttk.Style()
         style.theme_create( "yummy", parent="alt", settings={
@@ -159,48 +171,49 @@ class SampleApp(Tk):
         }}})
         style.theme_use("yummy")
         # Settings tabs
-        self.tab_notebook = ttk.Notebook(self, padding=0, width=341)
+        self.tab_notebook = ttk.Notebook(self, padding=0, width=341, height=100)
         self.tabs: dict[str, TabContext] = {}
 
         def add_tab(name: str, enable: IntVar, description: str, module: str = "") -> TabContext:
             count = len(self.tabs)
-            frame = LabelFrame(self.tab_notebook, relief=GROOVE, bg=bg1, labelanchor="nw", text="")
+            frame = LabelFrame(self.tab_notebook, relief=GROOVE, bg=bg1, labelanchor="nw", text="", height=100)
             self.widgets[10+count] = Checkbutton(self, padx=0, pady=2, width=2, variable=enable, command=functools.partial(self.checkbutton_tab_update, name), bd=0,selectcolor=bg1)
-            self.widgets[10+count].grid(row = count+1, in_=self.sett_grid, sticky=W)
+            self.widgets[10+count].grid(row = count, in_=self.module_picking_grid, sticky=W)
             self.widgets[30+count] = Label(self, text="• "+description, justify=LEFT)
             self.widgets[30+count].grid(in_=frame)
             self.tabs[name] = TabContext(frame, enable, {}, module)
             return self.tabs[name]
 
-        add_tab("textures", self.Textures, "Decompile VTF to sources", "vtf_to_tga").add_toggles(
+        add_tab("textures", self.Textures, "Decompile VTF to sources", "vtf_to_tga").add_overwrite_toggles(
             ("OVERWRITE", "Overwrite Existing TGAs"),
         )
-        add_tab("materials", self.Materials, "Import VMT materials", "materials_import").add_toggles(
+        add_tab("materials", self.Materials, "Import VMT materials", "materials_import").add_overwrite_toggles(
             ("OVERWRITE_VMAT", "Overwrite Existing VMATs"),
             ("OVERWRITE_SKYBOX_VMATS", "Overwrite Skybox VMATs"),
             ("OVERWRITE_SKYCUBES", "Overwrite Sky Images"),
+        ).add_toggles(
             ("NORMALMAP_G_VTEX_INVERT", "Invert Normal Via Settings File"),
             ("SIMPLE_SHADER_WHERE_POSSIBLE", "Use Simple Shader if possible"),
             ("PRINT_LEGACY_IMPORT", "Print old material inside new"),
         )
-        add_tab("models", self.Models, "Generate VMDL models", "models_import").add_toggles(
+        add_tab("models", self.Models, "Generate VMDL models", "models_import").add_overwrite_toggles(
             ("SHOULD_OVERWRITE", "Overwrite Existing VMDLs"),
-            ("MOVE_MODELS", "Move .mdls"),
+            #("MOVE_MODELS", "Move .mdls"),
         )
-        add_tab("particles", self.Particles, "Import particles", "particles_import").add_toggles(
+        add_tab("particles", self.Particles, "Import particles", "particles_import").add_overwrite_toggles(
             ("OVERWRITE_PARTICLES", "Overwrite Existing Particles"),
         )
         #add_tab("maps", self.Maps, "Import VMF entities (soon)")
-        add_tab("sessions", self.Sessions, "Import Source Filmmaker Sessions", "elements_import").add_toggles(
+        add_tab("sessions", self.Sessions, "Import Source Filmmaker Sessions", "elements_import").add_overwrite_toggles(
             ("SHOULD_OVERWRITE", "Overwrite Existing Sessions"),
         )
-        add_tab("scripts", self.Scripts, "Import various script files", "scripts_import").add_toggles(
+        add_tab("scripts", self.Scripts, "Import various script files", "scripts_import").add_overwrite_toggles(
             ("OVERWRITE_SCRIPTS", "Overwrite Existing Scripts"),
         )
         add_tab("scenes", self.Scenes, "Generate vcdlist from vcds", "scenes_import").add_toggles(
             ("EVERYTHING_TO_ROOT", "Add everything to _root.vcdlist"),
         )
-        self.tab_notebook.grid(in_=self.sett_grid, column=1, row=1, rowspan=len(self.tabs), columnspan=2)#.pack(expand=1, fill="both")
+        self.tab_notebook.grid(in_=self.module_picking_grid, column=1, row=0, rowspan=len(self.tabs), columnspan=2)#.pack(expand=1, fill="both")
 
         self.widgets[19]=Text(self, wrap=NONE, bd=1, relief=SUNKEN, height=7) #, textvariable=self.status
         self.widgets[19].see(END)
@@ -208,7 +221,6 @@ class SampleApp(Tk):
         for tab in self.tabs:
             self.tabs[tab].frame.configure(bg=bg1, highlightbackground=bg1, highlightcolor = bg1, padx=6, pady=6, relief=GROOVE)
             self.tab_notebook.add(self.tabs[tab].frame, text=tab.capitalize())
-        self.checkbutton_tab_update()
         self.Console = Console(self.widgets[19])
 
         # replace sys.stdout with our object
@@ -218,11 +230,11 @@ class SampleApp(Tk):
             if widget in range(30, 50): # Module title
                 self.widgets[widget].configure(bg=bg1, fg ="white", font='Helvetica 11')
                 continue
-            if widget !=2: # Filter box is self configured
+            if widget not in (2, 51): # Filter box is self configured
                 self.widgets[widget].configure(bg=bg1, fg =fg1, highlightbackground=bg1, highlightcolor = bg1, relief=GROOVE, font='Helvetica 10 bold' if widget in (5,7) else 'Helvetica 10')
                 if widget == 19: # Console has darker bg
                     self.widgets[widget].configure(bg=bg2)
-            if widget in (1,4,5,7,9,10,11,12,13,14,15,16,17,50,99): # buttons
+            if widget in (1,4,5,7,9,10,11,12,13,14,15,16,17,50,51,53,99): # buttons
                 self.widgets[widget].configure(bg=bg1,fg=fg1,activeforeground=fg1,activebackground=bg2)
 
         self.go_and_status = Frame(self, bg=bg1)
@@ -237,8 +249,8 @@ class SampleApp(Tk):
    
         self.gobutton = Button(width=10,text="Go", command=self.launch_importer_thread, bg=bg1, fg =fg1, activebackground = bg2, activeforeground = fg1, relief=GROOVE, disabledforeground=bg2)
         self.gobutton.grid(in_=self.go_and_status, row=0, column=1)
-        
         self.widgets[19].pack(fill=BOTH, padx = 6, pady = 2, side=BOTTOM, expand=True)#, side=BOTTOM
+        self.checkbutton_tab_update()
 
         # restore app state from last session
         self.cfg = {'app_geometry':"480x500"}
@@ -331,6 +343,29 @@ class SampleApp(Tk):
         messagebox.showinfo(title=self.APP_TITLE, message="Looks like we are done!")
         return stop()
 
+    def overwrite_toggle_all(self):
+        self.allOverwrite.set(0 if not self.allOverwrite.get() else 1)
+        for tab in self.tabs.values():
+            if not tab.enabled.get():
+                continue
+            for overwrite_opt in tab.overwrite_ones:
+                tab.further_options[overwrite_opt].set(self.allOverwrite.get())
+
+    def verify_all_overwrite(self):
+        """Auto toggle Overwrite All based on status of other checkboxes"""
+        for tab in self.tabs.values():
+            if not tab.enabled.get():
+                continue
+            if self.allOverwrite.get(): # Overwrite All is toggled on!
+                if not all(tab.further_options[overwrite_opt].get() for overwrite_opt in tab.overwrite_ones): # but this option is not
+                    self.allOverwrite.set(0) # so deselect Overwrite All
+                    break
+            else: # Overwrite All is toggled off
+                if not all(tab.further_options[overwrite_opt].get() for overwrite_opt in tab.overwrite_ones): # and I found an option that is not toggled
+                    return # it can't be toggled on, so don't bother checking the rest
+        else:
+            self.allOverwrite.set(1) # all tabs are toggled on, so select Overwrite All
+
     def checkbutton_toggle_all(self):
         # .toggle, select, deselect
         self.allChecked.set(0 if not self.allChecked.get() else 1)
@@ -361,6 +396,14 @@ class SampleApp(Tk):
     def checkbutton_tab_update(self, specificTab: str = None):
         """Sets tab enable status and selects when one is toggled specifically"""
         self.verify_all_toggled()
+        self.verify_all_overwrite()
+        if any(tab.enabled.get() for tab in self.tabs.values()):
+            self.gobutton.configure(state=NORMAL)
+            self.widgets[53].configure(state=NORMAL)
+        else:
+            self.gobutton.configure(state=DISABLED)
+            self.widgets[53].configure(state=DISABLED)
+            self.allOverwrite.set(0)
         for tab in self.tab_notebook.tabs():
             capitalizedTabName = self.tab_notebook.tab(tab, option="text")
             if specificTab is not None and specificTab != capitalizedTabName.lower():
