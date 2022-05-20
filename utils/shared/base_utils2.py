@@ -222,6 +222,7 @@ def parse_out_path(source2_mod: Path):
                 break
         if destmod is not eS2Game.hlvr:
             break
+    update_destmod(destmod)
     # Optionals
 
     # Unknowns

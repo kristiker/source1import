@@ -171,7 +171,7 @@ class SampleApp(Tk):
         }}})
         style.theme_use("yummy")
         # Settings tabs
-        self.tab_notebook = ttk.Notebook(self, padding=0, width=341)
+        self.tab_notebook = ttk.Notebook(self, padding=0, width=341, height=100)
         self.tabs: dict[str, TabContext] = {}
 
         def add_tab(name: str, enable: IntVar, description: str, module: str = "") -> TabContext:
