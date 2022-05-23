@@ -191,6 +191,7 @@ class SampleApp(Tk):
             ("OVERWRITE_VMAT", "Overwrite Existing VMATs"),
             ("OVERWRITE_SKYBOX_VMATS", "Overwrite Skybox VMATs"),
             ("OVERWRITE_SKYCUBES", "Overwrite Sky Images"),
+            ("OVERWRITE_MODIFIED", "Overwrite Materials that have been modified"),
         ).add_toggles(
             ("NORMALMAP_G_VTEX_INVERT", "Invert Normal Via Settings File"),
             ("SIMPLE_SHADER_WHERE_POSSIBLE", "Use Simple Shader if possible"),

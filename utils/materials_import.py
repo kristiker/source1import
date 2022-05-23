@@ -19,6 +19,7 @@ COMPLEX_SH = not GENERIC_SHADER
 # Set this to True if you wish to overwrite your old vmat files.
 OVERWRITE_VMAT = False
 OVERWRITE_SKYBOX_VMATS = False
+OVERWRITE_MODIFIED = False
 OVERWRITE_SKYCUBES = False
 
 # True to let vtex handle the inverting of the normalmap.
@@ -1066,8 +1067,7 @@ def convertVmtToVmat():
             # dont break some keys have more than 1 translation (e.g. $selfillum)
 
     if USE_SUGESTED_DEFAULT_ROUGHNESS:
-        ## if f_specular use this else use "[1.000000 1.000000 1.000000 0.000000]"
-        # 2way blend has specular force enabled so maxing the rough should minimize specularity TODO
+        # 2way blend has specular force enabled so maxing the rough should minimize specularity
         if not vmat.shader == "vr_simple_2way_blend":
             vmat.KeyValues.setdefault("TextureRoughness", default("_rough_s1import"))
         else:
@@ -1085,13 +1085,12 @@ def convertVmtToVmat():
             "F_TRANSLUCENT",
             "F_TINT_MASK",
             "F_UNLIT",
-            "F_SPECULAR",
             "F_SELF_ILLUM",
             "F_DETAIL_TEXTURE",
             "F_SECONDARY_UV",
         }
         if vmat.shader == "vr_complex":
-            if not any(key in complex_shader_params for key in vmat.KeyValues):
+            if not any(key in complex_shader_params for key in vmat.KeyValues) and "F_SPECULAR" in vmat.KeyValues:
                 vmat.shader = "vr_simple"
                 if "TextureAmbientOcclusion" in vmat.KeyValues:
                     vmat.KeyValues['F_AMBIENT_OCCLUSION_TEXTURE'] = 1
@@ -1117,8 +1116,9 @@ def convertSpecials():
         vmt.KeyValues['$translucent'] = 1
 
     # fix unlit shader ## what about generic?
-    if (vmt.shader == 'unlitgeneric') and (vmat.shader == main_ubershader):
-        vmat.KeyValues["F_UNLIT"] = 1
+    if (vmt.shader == 'unlitgeneric'):
+        if (vmat.shader == main_ubershader()):
+            vmat.KeyValues["F_UNLIT"] = 1
 
     if STEAMVR:
         # 2 in 2 out
@@ -1298,7 +1298,13 @@ def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False):
         vmat.shader = chooseShader()
         vmat.path = OutName(vmt.path)
 
-    vmat.path.parent.MakeDir()
+    if not OVERWRITE_MODIFIED and vmat.path.is_file():
+        with open(vmat.path, 'r') as fp:
+            # don't overwrite if material has been modified
+            if fp.readline() == "// THIS FILE IS AUTO-GENERATED\n":
+                return
+    else:
+        vmat.path.parent.MakeDir()
 
     convertSpecials()
     convertVmtToVmat()
