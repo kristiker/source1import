@@ -1116,23 +1116,6 @@ def convertVmtToVmat():
 
             vmat.KeyValues.setdefault("TextureRoughnessA", default_rough)
             vmat.KeyValues.setdefault("TextureRoughnessB", default_rough)
-        
-    if SIMPLE_SHADER_WHERE_POSSIBLE:
-        complex_shader_params = {
-            "F_MORPH_SUPPORTED",
-            "F_ALPHA_TEST",
-            "F_TRANSLUCENT",
-            "F_TINT_MASK",
-            "F_UNLIT",
-            "F_SELF_ILLUM",
-            "F_DETAIL_TEXTURE",
-            "F_SECONDARY_UV",
-        }
-        if vmat.shader == "vr_complex":
-            if not any(key in complex_shader_params for key in vmat.KeyValues) and "F_SPECULAR" in vmat.KeyValues:
-                vmat.shader = "vr_simple"
-                if "TextureAmbientOcclusion" in vmat.KeyValues:
-                    vmat.KeyValues['F_AMBIENT_OCCLUSION_TEXTURE'] = 1
 
 def convertSpecials():
 
@@ -1352,6 +1335,24 @@ def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False):
         kvalues, vmat.KeyValues['DynamicParams'] = ProxiesToDynamicParams(proxies, KNOWN, vmt.KeyValues)
         vmat.KeyValues.update(kvalues)
 
+    if SIMPLE_SHADER_WHERE_POSSIBLE:
+        complex_shader_params = {
+            "F_MORPH_SUPPORTED",
+            "F_TEXTURE_ANIMATION",
+            "F_ALPHA_TEST",
+            "F_TRANSLUCENT",
+            "F_TINT_MASK",
+            "F_UNLIT",
+            "F_SELF_ILLUM",
+            "F_DETAIL_TEXTURE",
+            "F_SECONDARY_UV",
+        }
+        if vmat.shader == "vr_complex":
+            if not any(key in complex_shader_params for key in vmat.KeyValues) and "F_SPECULAR" in vmat.KeyValues:
+                vmat.shader = "vr_simple"
+                if "TextureAmbientOcclusion" in vmat.KeyValues:
+                    vmat.KeyValues['F_AMBIENT_OCCLUSION_TEXTURE'] = 1
+    
     if PRINT_LEGACY_IMPORT:
         vmat.KeyValues['legacy_import'] = vmt.KeyValues.as_value()
 
