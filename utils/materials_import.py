@@ -1,3 +1,4 @@
+import math
 from pathlib import Path
 from shutil import copyfile
 from typing import Callable, Optional
@@ -307,16 +308,29 @@ def fixVmtTextureDir(localPath, fileExt = TEXTURE_FILEEXT) -> str:
         return ""
     return (materials / localPath.lstrip('\\/')).with_suffix(fileExt).as_posix()
 
-# TODO: renameee, remap table etc...
 def formatNewTexturePath(vmtPath, textureType = TEXTURE_FILEEXT, noRename = False, forReal = True):
-
-    #vmtPath = sh.src(fixVmtTextureDir(vmtPath)) + "." + textureType.split(".", 1)[1] or ''
-
     #if USE_DEFAULT_FOR_MISSING_TEXTURE and not os.path.exists(vmtPath):
     #    return default(textureType)
 
-    #return vmtPath.local
-    return str(fixVmtTextureDir(vmtPath))
+    texturePath = sh.output(fixVmtTextureDir(vmtPath))
+    if not texturePath.is_file():
+        # it's an animated texture!
+        if (frame:=texturePath.with_stem(texturePath.stem + "000")).is_file():
+            frames = [frame]
+            for i in range(1, 1000):
+                frame = texturePath.with_stem(f"{texturePath.stem}{i:03}")
+                if not frame.is_file(): break
+                frames.append(frame)
+            grid_w, grid_h, texturePath = TextureFramesToSheet(frames)
+            vmat.KeyValues["g_nNumAnimationCells"] = len(frames)
+            #vmat.KeyValues["g_flAnimationTimePerFrame"] = 1 / fps
+            vmat.KeyValues["g_vAnimationGrid"] = f"[{grid_w} {grid_h}]"
+    else:
+        # animation sheet is already built
+        if (sheetdata:=texturePath.with_name(texturePath.stem + '.sheet.json')).is_file():
+            vmat.KeyValues.update(sh.GetJson(sheetdata))
+
+    return str(texturePath.local)
 
 def getTexture(vtf_path):
     "get vtf source"
@@ -485,6 +499,33 @@ def createSkyCubemap(json_collection: Path, maxFaceRes: int = 0):
         PFM.write_pfm(sky_cubemap_path, uncompress)
 
     return sky_cubemap_path
+
+def TextureFramesToSheet(frames: list[Path]):
+    # find closest power of two number
+    grid_max_power = math.ceil(math.log2(len(frames)))
+    # keep the grid squarish
+    grid_rows = 2 ** math.ceil(grid_max_power/2)
+    grid_columns = 2 ** math.floor(grid_max_power/2)
+
+    sheet_image = None
+    for frame_no, frame in enumerate(frames):
+        frame_image = Image.open(frame)
+        if sheet_image is None:
+            sheet_width = frame_image.width*grid_rows
+            sheet_height = frame_image.height*grid_columns
+            sheet_image = Image.new('RGB', (sheet_width, sheet_height), color = (0, 0, 0))
+            sheet_path = sh.output(frame.with_stem(frame.stem[:-3]))
+        frame_position_in_sheet = (
+            (frame_no % grid_rows) * frame_image.width,
+            (frame_no // grid_rows) * frame_image.height
+        )
+        sheet_image.paste(frame_image, frame_position_in_sheet)
+
+    sheet_image.save(sheet_path)
+    print("+ Saved animated texture", sheet_path.local)
+    sh.write(f'{{"g_nNumAnimationCells":{len(frames)},"g_vAnimationGrid":"[{grid_rows} {grid_columns}]"}}',
+        sheet_path.with_name(sheet_path.stem + '.sheet.json'))
+    return grid_rows, grid_columns, sheet_path
 
 def flipNormalMap(localPath):
 
@@ -712,16 +753,13 @@ vmt_to_vmat_pre: Callable[[], dict[str, dict[str, Optional[tuple]]]] = lambda: {
     '$phongwarptexture': ('TextureSpecularWarp', '_specwarp', [formatNewTexturePath],   ('F_SPECULAR_WARP', 1)),
 
     '$envmapmask':  ('TextureCubeMapSeparateMask', '_mask', ('F_MASK_CUBE_MAP_BY_SEPARATE_MASK', 1)) if DOTA2 else \
-                    ('$envmapmask',         '_env_mask',   [formatNewTexturePath]) if not BASIC_PBR else \
                     ('TextureRoughness',    '_rough',      [createMask, 'L', True]) if not GENERIC_SHADER else \
                     ('TextureGlossiness',   '_gloss',      [formatNewTexturePath]),
 
-    ('$phong', 1): {
-        '$phongmask':   ('$phongmask',          '_phong_mask', [formatNewTexturePath]) if not BASIC_PBR else \
-                        ('TextureRoughness',    '_rough',      [formatNewTexturePath]) if not GENERIC_SHADER else \
-                        ('TextureGlossiness',   '_gloss',      [formatNewTexturePath]),
-    },
-    '$phongmask': ('TextureRoughness',    '_rough',      [formatNewTexturePath]),
+    #('$phong', 1): {
+    '$phongmask':   ('TextureRoughness',    '_rough',      [formatNewTexturePath]) if not GENERIC_SHADER else \
+                    ('TextureGlossiness',   '_gloss',      [formatNewTexturePath]),
+    #},
 },
 
 'transform': {  # Center Scale Rotation Offset F_TEXTURETRANSFORMS
@@ -729,7 +767,7 @@ vmt_to_vmat_pre: Callable[[], dict[str, dict[str, Optional[tuple]]]] = lambda: {
     '$detailtexturetransform':  ('g_vDetailTexCoord',),  #  g_vDetailTexCoordXform
     '$bumptransform':           ('g_vNormalTexCoord',),  # g_vLayer1NormalTexCoord for blends F_LAYERS
     '$blendmodulatetransform':  ('g_vBlendModulateTexCoord',),
-    '$bumptransform2':          ('g_vLayer2NormalTexCoord',),
+    '$bumptransform2':          ('g_vLayer2NormalTexCoord',), # g_vTexCoordScale2 in hlvr
     '$basetexturetransform2':   ('g_vLayer2TexCoord',),
     '$texture2transform':       ('g_vTexCoord2',),
     #'$blendmasktransform':      (''),
@@ -763,6 +801,7 @@ vmt_to_vmat_pre: Callable[[], dict[str, dict[str, Optional[tuple]]]] = lambda: {
     # perhaps default to 0.5 0.5 0.5 and scale it with $phongboost, etc
     '$phongtint':           ('g_vSpecularColor',    '[1.000 1.000 1.000 0.000]',    [fixVector, True]),
 
+    '$frame':               ('g_flAnimationFrame',      '0.000',    [float_val], ('F_TEXTURE_ANIMATION', 1)),
     '$alpha':               ('g_flOpacityScale',        '1.000',    [float_val]),
     '$alphatestreference':  ('g_flAlphaTestReference',  '0.500',    [float_val], ('g_flAntiAliasedEdgeStrength', 1.0)),
     '$blendtintcoloroverbase':('g_flModelTintAmount',   '1.000',    [float_val]),  # $layertint1
@@ -1117,7 +1156,7 @@ def convertSpecials():
 
     # fix unlit shader ## what about generic?
     if (vmt.shader == 'unlitgeneric'):
-        if (vmat.shader == main_ubershader()):
+        if (vmat.shader in (main_ubershader(), "generic")):
             vmat.KeyValues["F_UNLIT"] = 1
 
     if STEAMVR:
@@ -1310,8 +1349,8 @@ def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False):
     convertVmtToVmat()
 
     if proxies:= vmt.KeyValues["proxies"]:
-        vmat.KeyValues['DynamicParams'] = ProxiesToDynamicParams(proxies, KNOWN, vmt.KeyValues)
-        print(vmat.KeyValues['DynamicParams'])
+        kvalues, vmat.KeyValues['DynamicParams'] = ProxiesToDynamicParams(proxies, KNOWN, vmt.KeyValues)
+        vmat.KeyValues.update(kvalues)
 
     if PRINT_LEGACY_IMPORT:
         vmat.KeyValues['legacy_import'] = vmt.KeyValues.as_value()
