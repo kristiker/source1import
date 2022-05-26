@@ -189,6 +189,7 @@ def FormDynamicExpression(proxy: str, proxyParams: dict, mainResultVar: str, kno
     return dynEx
 
 def ProxiesToDynamicParams(vmtProxies: VDFDict, known, KeyValues) -> tuple[dict, dict[str, DynamicExpression]]:
+    """Convert proxy chains to a dynamic expressions"""
     vmatDynamicParams: dict[str, DynamicExpression] = {}
     vmatKeyValues: dict = {}
 
@@ -280,12 +281,3 @@ if __name__ == "__main__":
             self.maxDiff = None
             self.assertEqual(result, expected_result)
     unittest.main()
-#def Sinee(sineperiod, sinemin = -1, sinemax = 1, timeoffset = 0):
-#    quit()
-    #return """
-    #m_Sine_sinemin = 0;
-    #m_Sine_sinemax = 6;
-    #m_Sine_sineperiod = 5;
-    #m_Sine_timeoffset = 0;
-    #_proxy_sinewaveOutput = ( m_Sine_sinemax - m_Sine_sinemin ) * (( sin( 2.0 * 3.14159265358979323846264338327950288 * (time() - m_Sine_timeoffset) / m_Sine_sineperiod ) * 0.5 ) + 0.5) + m_Sine_sinemin;
-    #"""

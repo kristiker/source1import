@@ -7,6 +7,7 @@
 import shared.base_utils2 as sh
 from pathlib import Path
 from shared.keyvalues1 import KV, VDFDict
+from shared.keyvalues3 import KV3
 import itertools
 
 OVERWRITE_SCRIPTS = False
@@ -88,13 +89,13 @@ def ImportSoundscape(file: Path):
     new_soundscapes = ''
     for key, value in soundscapes.items():
         if isinstance(value, VDFDict):
-            new_soundscapes += f"{key}{value.ToStr()}"
+            new_soundscapes += f"{key}{value.ToString()}"
         else:
             new_soundscapes += f'{key}\t"{value}"\n'
 
     newsc_path = sh.output(file, '.txt')
     newsc_path.parent.MakeDir()
-    sh.write(new_soundscapes, newsc_path)
+    sh.write(newsc_path, new_soundscapes)
     print("+ Saved", newsc_path.local)
     return newsc_path
     #soundscapes_manifest.add("file", f'scripts/{newsc_path.name}')
@@ -127,7 +128,6 @@ def ImportSoundscapeManifest(asset_path: Path):
 # 	...
 # }
 
-from shared.keyvalues3 import dict_to_kv3_text
 
 collected = {}
 def collect_dev(k, v):
@@ -243,7 +243,7 @@ def ImportGameSound(asset_path: Path):
         return vsndevts_file
     
     kv = KV.CollectionFromFile(asset_path)
-    kv3 = {}
+    kv3 = KV3()
 
     for gamesound, gs_kv in kv.items():
         
@@ -322,12 +322,12 @@ def ImportGameSound(asset_path: Path):
     if HLVR_ADDON_WRITE:# and sh.is_addon():
         addon_vsndevts = sh.EXPORT_CONTENT / "soundevents" / f"{sh.EXPORT_CONTENT.name}_soundevents.vsndevts"
         if not addon_vsndevts.is_file():
-            sh.write(dict_to_kv3_text({}),addon_vsndevts)
+            sh.write(addon_vsndevts, KV3().ToString())
         with open(addon_vsndevts, 'a') as fp:
             """Bad way of writing, manual fixing is necessary."""
-            fp.write('\n' + '\n'.join(dict_to_kv3_text(kv3).splitlines()[2:-1]))
+            fp.write('\n' + '\n'.join(str(kv3).splitlines()[2:-1]))
 
-    sh.write(dict_to_kv3_text(kv3), vsndevts_file)
+    sh.write(vsndevts_file, kv3.ToString())
 
     print("+ Saved", vsndevts_file.local)
     return vsndevts_file
@@ -346,7 +346,7 @@ def ImportSurfaceProperties(asset_path: Path):
         return sh.skip('already-exist', vsurf_file)
     
     kv = KV.CollectionFromFile(asset_path)
-    vsurf = dict(SurfacePropertiesList = [])
+    vsurf = KV3(SurfacePropertiesList = [])
 
     for surface, properties in {**kv}.items():
         new_surface = dict(surfacePropertyName = surface)
@@ -371,7 +371,7 @@ def ImportSurfaceProperties(asset_path: Path):
 
         vsurf['SurfacePropertiesList'].append(new_surface)
     
-    sh.write(dict_to_kv3_text(vsurf), vsurf_file)
+    sh.write(vsurf_file, vsurf.ToString())
     print("+ Saved", vsurf_file.local)
 
     return vsurf_file, vsurf['SurfacePropertiesList']
@@ -400,7 +400,7 @@ class VsurfManifestHandler:
         if not (self.manifest_files and self.all_surfaces):
             return
         vsurf_path = next(iter(self.all_surfaces)).with_stem('surfaceproperties')
-        vsurf = dict(SurfacePropertiesList = [])
+        vsurf = KV3(SurfacePropertiesList = [])
         for file in self.manifest_files[::-1]:
             file = vsurf_path.parents[1] / 'surfaceproperties' / Path(file).with_suffix('.vsurf').name
             for surfaceproperty in self.all_surfaces.get(file, ()):
@@ -412,7 +412,7 @@ class VsurfManifestHandler:
                         for surfaceproperty2 in vsurf['SurfacePropertiesList']):
                     vsurf['SurfacePropertiesList'].append(surfaceproperty)
 
-        sh.write(dict_to_kv3_text(vsurf), vsurf_path)
+        sh.write(vsurf_path, vsurf.ToString())
         print("+ Saved", vsurf_path.local)
 
 

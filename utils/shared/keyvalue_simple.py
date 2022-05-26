@@ -56,7 +56,7 @@ def parseKeyValue(line, vmtKeyValues):
 
 def getKV_tailored(vmtFilePath: Path, ignoreList: list):
     """
-    Tailored for vmt files. Returns material type + keyvalues
+    Tailored to vmt files. Returns material type + keyvalues
     """
     matType = ''
     vmtKeyValues = {}

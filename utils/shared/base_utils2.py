@@ -396,7 +396,7 @@ def source2namefixup(path: Path):
 def skip(skip_reason: str, path: Path):
     status(f"- skipping [{skip_reason}]: {path.local.as_posix()}")
 
-def write(content: str, path: Path):
+def write(path: Path, content: str):
     with open(path, 'w') as fp:
         fp.write(content)
 

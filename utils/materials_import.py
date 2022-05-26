@@ -13,10 +13,6 @@ from shared.material_proxies import ProxiesToDynamicParams
 import numpy as np
 from shared import PFM
 
-# generic, blend instead of vr_complex, vr_simple_2wayblend etc...
-GENERIC_SHADER = False
-COMPLEX_SH = not GENERIC_SHADER
-
 # Set this to True if you wish to overwrite your old vmat files.
 OVERWRITE_VMAT = False
 OVERWRITE_SKYBOX_VMATS = False
@@ -271,8 +267,7 @@ def chooseShader():
             failureList.add(f"{vmt.shader} unsupported shader", vmt.path)
         return "vr_black_unlit"
 
-    if GENERIC_SHADER and not STEAMVR:   d["generic"] += 1
-    else:               d[get_shader(shaderDict[vmt.shader])] += 1
+    d[get_shader(shaderDict[vmt.shader])] += 1
 
     if vmt.KeyValues['$beachfoam']: return "csgo_beachfoam"
 
@@ -523,8 +518,10 @@ def TextureFramesToSheet(frames: list[Path]):
 
     sheet_image.save(sheet_path)
     print("+ Saved animated texture", sheet_path.local)
-    sh.write(f'{{"g_nNumAnimationCells":{len(frames)},"g_vAnimationGrid":"[{grid_rows} {grid_columns}]"}}',
-        sheet_path.with_name(sheet_path.stem + '.sheet.json'))
+    sh.write(
+        path=sheet_path.with_name(sheet_path.stem + '.sheet.json'),
+        content=f'{{"g_nNumAnimationCells":{len(frames)},"g_vAnimationGrid":"[{grid_rows} {grid_columns}]"}}'
+    )
     return grid_rows, grid_columns, sheet_path
 
 def flipNormalMap(localPath):
@@ -668,7 +665,7 @@ VMAT_DEFAULTVAL = 1
 VMAT_TRANSLFUNC = 2
 VMAT_EXTRALINES = 3
 
-
+# callable - to evaluate conditionals at runtime
 vmt_to_vmat_pre: Callable[[], dict[str, dict[str, Optional[tuple]]]] = lambda: {
 
 # http://counter-strike.net/workshop/workshopmaps#hammer
@@ -718,13 +715,13 @@ vmt_to_vmat_pre: Callable[[], dict[str, dict[str, Optional[tuple]]]] = lambda: {
 
     ## Layer blend mask
     '$blendmodulatetexture':\
-                        ('TextureMask',             '_mask',   [createMask, 'G', False], ('F_BLEND', 1)) if COMPLEX_SH else \
+                        ('TextureMask',             '_mask',   [createMask, 'G', False], ('F_BLEND', 1)) if not STEAMVR else \
                         ('TextureLayer1RevealMask', '_blend',  [createMask, 'G', False], ('F_BLEND', 1)),
     ## Layer 1
-    '$basetexture2':    ('TextureColorB' if COMPLEX_SH else 'TextureLayer1Color',  '_color',  [formatNewTexturePath]),
+    '$basetexture2':    ('TextureColorB' if not STEAMVR else 'TextureLayer1Color',  '_color',  [formatNewTexturePath]),
     # There is also Texture2Color, F_TWOTEXTURE, Texture2Translucency, g_vTexCoord2
-    '$texture2':        ('TextureColorB' if COMPLEX_SH else 'TextureLayer1Color',   '_color',  [formatNewTexturePath]),  # UnlitTwoTexture
-    '$bumpmap2':        ('TextureNormalB' if COMPLEX_SH else 'TextureLayer1Normal', '_normal', [formatNewTexturePath], None if COMPLEX_SH else ('F_BLEND_NORMALS',  1)),
+    '$texture2':        ('TextureColorB' if not STEAMVR else 'TextureLayer1Color',   '_color',  [formatNewTexturePath]),  # UnlitTwoTexture
+    '$bumpmap2':        ('TextureNormalB' if not STEAMVR else 'TextureLayer1Normal', '_normal', [formatNewTexturePath], None if not STEAMVR else ('F_BLEND_NORMALS',  1)),
 
     ## Layer 2-3
     '$basetexture3':    ('TextureLayer2Color',  '_color',  [formatNewTexturePath]),
@@ -753,11 +750,11 @@ vmt_to_vmat_pre: Callable[[], dict[str, dict[str, Optional[tuple]]]] = lambda: {
     '$phongwarptexture': ('TextureSpecularWarp', '_specwarp', [formatNewTexturePath],   ('F_SPECULAR_WARP', 1)),
 
     '$envmapmask':  ('TextureCubeMapSeparateMask', '_mask', ('F_MASK_CUBE_MAP_BY_SEPARATE_MASK', 1)) if DOTA2 else \
-                    ('TextureRoughness',    '_rough',      [createMask, 'L', True]) if not GENERIC_SHADER else \
+                    ('TextureRoughness',    '_rough',      [createMask, 'L', True]) if not STEAMVR else \
                     ('TextureGlossiness',   '_gloss',      [formatNewTexturePath]),
 
     #('$phong', 1): {
-    '$phongmask':   ('TextureRoughness',    '_rough',      [formatNewTexturePath]) if not GENERIC_SHADER else \
+    '$phongmask':   ('TextureRoughness',    '_rough',      [formatNewTexturePath]) if not STEAMVR else \
                     ('TextureGlossiness',   '_gloss',      [formatNewTexturePath]),
     #},
 },
@@ -1111,8 +1108,8 @@ def convertVmtToVmat():
             vmat.KeyValues.setdefault("TextureRoughness", default("_rough_s1import"))
         else:
             default_rough = default("_rough_s1import")
-            if vmat.KeyValues['F_SPECULAR'] == 1: # TODO: phong2 envmap2 and those sorts of stuff
-                default_rough = "[1.000000 1.000000 1.000000 0.000000]"
+            #if vmat.KeyValues['F_SPECULAR'] == 1:
+            #    default_rough = "[1.000000 1.000000 1.000000 0.000000]"
 
             vmat.KeyValues.setdefault("TextureRoughnessA", default_rough)
             vmat.KeyValues.setdefault("TextureRoughnessB", default_rough)
@@ -1260,11 +1257,11 @@ def ImportSkyJSONtoVMAT(json_collection: Path):
         sky_cubemap_path = cubemap.local
 
     with open(vmat_path, 'w') as fp:
-        fp.write(
-            'Layer0\n{\n\tshader "sky.vfx"\n'
-            f'\tSkyTexture\t"{sky_cubemap_path.as_posix()}"\n'
-            '\tF_TEXTURE_FORMAT2 0\n}'
-        )
+        fp.write(KV('Layer0', {
+            'shader': 'sky.vfx',
+            'SkyTexture': sky_cubemap_path.as_posix(),
+            'F_TEXTURE_FORMAT2': 0,
+        }).ToString())
 
     print("+ Saved", vmat_path.local)
 
@@ -1357,7 +1354,7 @@ def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False):
         vmat.KeyValues['legacy_import'] = vmt.KeyValues.as_value()
 
     msg(vmt.shader + " => " + vmat.shader, "\n")
-    sh.write(vmat.KeyValues.ToStr(), vmat.path) ####################
+    sh.write(path=vmat.path, content=vmat.KeyValues.ToString())
 
     print("+ Saved", vmat.path if sh.DEBUG else vmat.path.local)
 
