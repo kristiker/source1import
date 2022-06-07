@@ -1,6 +1,8 @@
-from itertools import islice, tee, zip_longest
+import enum
+from itertools import zip_longest
 import os
 import sys
+import time
 
 from prettytable import PrettyTable
 
@@ -185,19 +187,34 @@ class CMapWorld(_BaseEnt):
 
 
             vertexEdgeIndices: int_array = factory(int_array)
+            """Vertex tied to this Edge // edge pointing to this vertex"""
             vertexDataIndices: int_array = factory(int_array)
+            """Vertex order"""
             edgeVertexIndices: int_array = factory(int_array)
+            """Origin Vertex of this Half"""
             edgeOppositeIndices: int_array = factory(int_array)
+            """Opposite Half of this Half"""
             edgeNextIndices: int_array = factory(int_array)
+            """Previous Half of this Half"""
+            #"""Next Half of this Half"""
             edgeFaceIndices: int_array = factory(int_array)
+            """Face adjacent of this Half"""
             edgeDataIndices: int_array = factory(int_array)
+            """Edge index"""
             edgeVertexDataIndices: int_array = factory(int_array)
+            """Half index???"""
             faceEdgeIndices: int_array = factory(int_array)
+            """Edge tied to this Face"""
             faceDataIndices: int_array = factory(int_array)
+            """Face index"""
             materials: string_array = factory(string_array)
             vertexData: CDmePolygonMeshDataArray = factory(CDmePolygonMeshDataArray)
+            """Vertex Position"""
             faceVertexData: CDmePolygonMeshDataArray = factory(CDmePolygonMeshDataArray)
             edgeData: CDmePolygonMeshDataArray = factory(CDmePolygonMeshDataArray)
+            class EdgeDataFlag(enum.IntFlag):
+                soft_normals = enum.auto() # Despite being flags,
+                hard_normals = enum.auto() # these two can't combine
             faceData: CDmePolygonMeshDataArray = factory(CDmePolygonMeshDataArray)
             subdivisionData: CDmePolygonMeshSubdivisionData = factory(CDmePolygonMeshSubdivisionData)
 
@@ -287,6 +304,71 @@ class CMapWorld(_BaseEnt):
                 
                 return half_edges
 
+            @classmethod
+            def FromDCEL2(cls, dcel: dcel.DCEL):
+                a = cls(name='meshData')
+                vertex_count = dcel.vert_count
+                edge_count = dcel.edge_count
+                half_edge_count = dcel.edge_count*2
+                face_count = dcel.face_count
+
+                vert_incidency = [None] * vertex_count
+                vert_positions = [None] * vertex_count
+
+                for i, half in enumerate(dcel.halfList):
+                    if vert_positions[half.origin.idx] is None:
+                        vert_incidency[half.dest.idx] = i
+                        vert_positions[half.origin.idx] = str(half.origin.position)
+                    if vert_incidency[half.dest.idx] is None:
+                        vert_incidency[half.dest.idx] = i
+                    # HACK face inverting
+                    incident_face = half.opposite.incident_face.idx
+
+                    a.edgeVertexIndices.append(half.origin.idx)
+                    a.edgeFaceIndices.append(incident_face)
+                    a.edgeVertexDataIndices.append(i)
+                    if i % 2:
+                        a.edgeOppositeIndices.append(i-1)
+                    else:
+                        a.edgeOppositeIndices.append(i+1)
+
+                a.vertexEdgeIndices += vert_incidency
+                a.vertexDataIndices += [*range(vertex_count)]
+
+                for half in dcel.halfList:
+                    a.edgeNextIndices.append(dcel.halfList.index(half.previous))
+
+                for n in range(edge_count):
+                    a.edgeDataIndices += [n,n]
+                # faceEdgeIndices
+                for face in dcel.faces: # HACK face inverting
+                    a.faceEdgeIndices.append(dcel.halfList.index(face.opposite))
+                # faceDataIndices
+                a.faceDataIndices+= [n for n in range(face_count)]
+                a.materials.append("materials/dev/reflectivity_30.vmat")
+                # vertexData
+                a.vertexData.size = vertex_count
+                a.vertexData.streams[0].data += vert_positions # position
+                # faceVertexData
+                a.faceVertexData.size = half_edge_count
+                a.faceVertexData.streams[0].data += [Vector2("0 0".split()) for _ in range(half_edge_count)] # texcoord
+                a.faceVertexData.streams[1].data += [Vector3("0 0 1".split()) for _ in range(half_edge_count)] # normal
+                a.faceVertexData.streams[2].data += [Vector4("1 0 0 -1".split()) for _ in range(half_edge_count)] # tangent
+                # edgeData
+                a.edgeData.size = edge_count
+                for _ in range(edge_count):
+                    a.edgeData.streams[0].data.append(0)
+                
+                # make edge 0 hard
+                a.edgeData.streams[0].data[0] = a.EdgeDataFlag.soft_normals.value
+                # make edge 1 soft
+                a.edgeData.streams[0].data[1] = a.EdgeDataFlag.hard_normals.value
+
+
+                # faceData
+                a.faceData.size = face_count
+                print(a)
+                return a
             @classmethod
             def FromDCEL(cls, dcel: dcel.DCEL):
                 """Code friendly Linked-list structure to array based serializable structure"""
@@ -878,7 +960,7 @@ if __name__ == "__main__":
     def test_quad():
         mesh = CMapWorld.CMapMesh()
         mesh.origin = Vector3([0,0,0])
-        mesh.meshData = CMapWorld.CMapMesh.CDmePolygonMesh.SampleQuad()
+        mesh.meshData = CMapWorld.CMapMesh.CDmePolygonMesh.FromDCEL2(dcel.e0)
         out_vmap.prefix_attributes['map_asset_references'].append("materials/dev/reflectivity_30.vmat")
         vmap['world']['children'].append(mesh.get_element(vmap))
         out_vmap.write("utils/dev/out_sample_quad.vmap.txt", 'keyvalues2', 4)
@@ -901,9 +983,9 @@ if __name__ == "__main__":
         vmap['world']['children'].append(mesh.get_element(vmap))
         out_vmap.write("utils/dev/out_sample_box.vmap.txt", 'keyvalues2', 4)
         print("Saved", "utils/dev/out_sample_box.vmap.txt")
-    test_joinedtris()
+    test_quad()
     import subprocess, shutil
-    shutil.copy("utils/dev/out_sample_joinedtris.vmap.txt", "D:/Games/steamapps/common/Half-Life Alyx/content/hlvr_addons/test/maps/test.vmap")
+    shutil.copy("utils/dev/out_sample_quad.vmap.txt", "D:/Games/steamapps/common/Half-Life Alyx/content/hlvr_addons/test/maps/test.vmap")
     p = subprocess.run(
         args=[
             "-game", "hlvr",
@@ -920,8 +1002,37 @@ if __name__ == "__main__":
             print("Parsed sucesfully.")
             if b"Created 1 world node" in p.stdout:
                 print("Mesh was valid!")
+
+                ## Reload in hammer
+                import win32gui, win32com.client, win32con, ctypes
+                shell = win32com.client.Dispatch("WScript.Shell")
+                def windowEnumerationHandler(hwnd, top_windows):
+                    top_windows.append((hwnd, win32gui.GetWindowText(hwnd)))
+                top_windows = []
+                win32gui.EnumWindows(windowEnumerationHandler, top_windows)
+                for i in top_windows:
+                    if "Hammer -" in i[1]:
+                        win32gui.ShowWindow(i[0],5)
+                        win32gui.SetForegroundWindow(i[0])
+                        #win32gui.PostMessage(i[0], win32con.WM_CLOSE, 0, 0)
+                        ctypes.windll.user32.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
+                        ctypes.windll.user32.keybd_event(win32con.VK_SHIFT, 0, 0, 0)
+                        VirtualKey = ctypes.windll.user32.MapVirtualKeyA(win32con.VK_F12, 0)
+                        win32gui.PostMessage(i[0], win32con.WM_KEYDOWN, win32con.VK_F12, 0x0001|VirtualKey<<16)
+                        time.sleep(.1)
+                        win32gui.PostMessage(i[0], win32con.WM_KEYUP, win32con.VK_F12, 0x0001|VirtualKey<<16|0xC0<<24)
+                        ctypes.windll.user32.keybd_event(win32con.VK_SHIFT, 0, 0x0002, 0)
+                        ctypes.windll.user32.keybd_event(win32con.VK_CONTROL, 0, 0x0002, 0)
+                        time.sleep(.2)
+                        ctypes.windll.user32.keybd_event(win32con.VK_LEFT, 0, 0, 0)
+                        ctypes.windll.user32.keybd_event(win32con.VK_LEFT, 0, 0x0002, 0)
+                        time.sleep(.1)
+                        ctypes.windll.user32.keybd_event(win32con.VK_RETURN, 0, 0, 0)
+                        ctypes.windll.user32.keybd_event(win32con.VK_RETURN, 0, 0x0002, 0)
+                        break
             else:
-                print(p.stdout.decode('utf-8'))
+                #print(p.stdout.decode('utf-8'))
+                print("Invalid mesh!")
 
         else:
             print("Mesh was corrupted!")

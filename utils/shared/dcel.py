@@ -513,14 +513,21 @@ e2 = DCEL.from_pydata(
     0------2
 """
 e0 = DCEL.from_pydata(
-    [coord3d(-3.5, -3.5, 0),
-    coord3d(-3.5, 3.5, 0),
-    coord3d(3.5, -3.5, 0),
-    coord3d(3.5, 3.5, 0),],
-    [[0, 2, 3, 1]]
-    #[[0, 1, 3, 2]]
+    [coord3d(-32, -32, 0),
+    coord3d(32, -32, 0),
+    coord3d(32, 32, 0),
+    coord3d(-32, 32, 0),],
+    [[0,1,2,3]]
 )
 
+# make it a triangle
+e7 = DCEL.from_pydata(
+    [coord3d(-32, -32, 0),
+    coord3d(32, -32, 0),
+    coord3d(32, 32, 0),
+    coord3d(-32, 32, 0),],
+    [[0,1,2]]
+)
 
 m0 = om.PolyMesh()
 # add a a couple of vertices to the mesh
@@ -534,8 +541,8 @@ fh0 = m0.add_face(vh0, vh2, vh3, vh1)
 
 e3 = pydata()
 
-e1 = pydata2()
-e2 = pydata3()
+#e1 = pydata2()
+#e2 = pydata3()
 
 #assert repr(e0.edgeList) == '[0(0, 1), ➀(1, 0), ➀(2, 3), 0(3, 2), ➀(0, 2), 0(2, 0), ➀(3, 1), 0(1, 3)]'
 #assert repr(e2.edgeList) == '[1(0, 1), ➀(1, 0), ➀(2, 3), 0(3, 2), ➀(0, 2), 1(2, 0), ➀(3, 1), 0(1, 3), 0(2, 1), 1(1, 2)]'
@@ -684,7 +691,7 @@ if __name__ == '__main__':
         def test_block(self):
             self.common(self.block)
 
-    class Test_Array(unittest.TestCase):
+    """class Test_Array(unittest.TestCase):
         quad_arrangement = [
             coord3d(-3.5, -3.5, 0),
             coord3d(-3.5, 3.5, 0),
@@ -711,5 +718,5 @@ if __name__ == '__main__':
                 self.assertEqual(arr.edgeOppositeIndices, [1, 0, 3, 2, 5, 4, 7, 6])
                 self.assertEqual(arr.edgeNextIndices, [7, 4, 6, 5, 2, 0, 1, 3])
                 self.assertEqual(arr.edgeFaceIndices, [0, -1, -1, 0, -1, 0, -1, 0])
-
+"""
     unittest.main()
