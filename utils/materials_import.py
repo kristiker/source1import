@@ -104,12 +104,10 @@ def main():
 
     print("\nSkybox materials...")
 
-    # Skip importing skies if searching a different folder
-    if sh.search_scope is None or legacy_skyfaces.is_relative_to(sh.search_scope):
-        for skyfaces_json in sh.collect(
-                None, '.json', OUT_EXT, OVERWRITE_SKYBOX_VMATS,
-                outNameRule=OutName_Sky, searchPath=sh.EXPORT_CONTENT/legacy_skyfaces):
-            ImportSkyJSONtoVMAT(skyfaces_json)
+    for skyfaces_json in sh.collect(
+            None, '.json', OUT_EXT, OVERWRITE_SKYBOX_VMATS,
+            outNameRule=OutName_Sky, searchPath=sh.EXPORT_CONTENT/legacy_skyfaces):
+        ImportSkyJSONtoVMAT(skyfaces_json)
 
     if failureList:
         print("\n\t<<<< THESE MATERIALS HAVE ERRORS >>>>")

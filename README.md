@@ -1,9 +1,10 @@
 # source1import
-Set of scripts for importing Source 1 assets such as materials, models, and particle effects into Source 2. Inspired by Valve's own internal utility (written in C++ and Perl), this one is in Python.
+Set of scripts for importing Source 1 assets such as materials, models, and particle effects into Source 2. Inspired by Valve's own internal utility (written in C++ and Perl), this one is in Python. 
+
+Fork of the popular long-standing [source2utils](https://github.com/AlpyneDreams/source2utils) tool.
 
 ## Usage
 #### Note:
-* Make sure to extract s1 assets from VPK archives.
 * Make sure to convert textures before materials. 
 * Make sure to move the entire s1 `models` folder to `content/` **then run the script**.
 * Make sure to move the entire s1 `sound` folder to `content/` and rename it to `sounds`.

@@ -8,6 +8,9 @@ import sys
 import json
 from traceback import format_tb
 
+sys.excepthook = \
+    lambda type, value, traceback: messagebox.showwarning("source1import init fail", f"{Tk().withdraw()}{''.join(format_tb(traceback)[1:])}\n\n{type.__name__}:{value}")
+
 sys.path.insert(0, sys.path[0] + '\\utils')
 
 import utils.shared.base_utils2 as sh
@@ -81,7 +84,6 @@ class SampleApp(Tk):
         self.APP_TITLE = "Source 1 Asset Importer"
 
         self.is_running = False
-        self.isSingle = IntVar()
         self.allChecked = IntVar()
         self.allOverwrite = IntVar()
 
@@ -155,7 +157,7 @@ class SampleApp(Tk):
         self.widgets[50] = OptionMenu(self, self.destmod, *(name.value for name in sh.eS2Game), command=lambda v: sh.update_destmod(sh.eS2Game(v)))
         self.widgets[50].grid(pady= 2, padx=0, row = 0, column = 4, in_=self.sett_grid, sticky="e")
         self.sett_grid.grid_columnconfigure(4, weight=2)
-        self.widgets[50]["menu"].configure(bg=bg1,fg=fg1,activebackground=bghighlight,activeforeground="white", takefocus=0)
+        self.widgets[50]["menu"].configure(bg=bg1,fg=fg1,activebackground=bghighlight,activeforeground="white",font='Arial 10 bold', takefocus=0)
         
 
         style = ttk.Style()
@@ -225,14 +227,14 @@ class SampleApp(Tk):
         self.Console = Console(self.widgets[19])
 
         # replace sys.stdout with our object
-        sys.stdout = self.Console
+        sys.stdout = sys.stderr = self.Console
         #font=('arial',16,'normal')
         for widget in self.widgets:
             if widget in range(30, 50): # Module title
                 self.widgets[widget].configure(bg=bg1, fg ="white", font='Helvetica 11')
                 continue
             if widget not in (2, 51): # Filter box is self configured
-                self.widgets[widget].configure(bg=bg1, fg =fg1, highlightbackground=bg1, highlightcolor = bg1, relief=GROOVE, font='Helvetica 10 bold' if widget in (5,7) else 'Helvetica 10')
+                self.widgets[widget].configure(bg=bg1, fg =fg1, highlightbackground=bg1, highlightcolor = bg1, relief=GROOVE, font='Helvetica 10 bold' if widget in (5,7,50) else 'Helvetica 10')
                 if widget == 19: # Console has darker bg
                     self.widgets[widget].configure(bg=bg2)
             if widget in (1,4,5,7,9,10,11,12,13,14,15,16,17,50,51,53,99): # buttons
@@ -262,14 +264,14 @@ class SampleApp(Tk):
 
     def update_paths(self):
         if self.in_path.get():
-            sh._args_known.__setattr__('src1gameinfodir', self.in_path.get())
+            sh.args_known.__setattr__('src1gameinfodir', self.in_path.get())
             try:
                 sh.parse_in_path()
             except SystemExit as exc:
                 messagebox.showwarning(title="The path provided is invalid.",
                     message=f"{self.in_path.get()}\n\nERROR: {exc.args[0]}"
                 )
-                sh._args_known.__setattr__('src1gameinfodir', None)
+                sh.args_known.__setattr__('src1gameinfodir', None)
                 self.in_path.set("")
                 self.widgets[7].configure(state=DISABLED)
                 self.gobutton.configure(state=DISABLED)
@@ -305,8 +307,7 @@ class SampleApp(Tk):
     def pick_in_path(self):
         if path := filedialog.askdirectory(initialdir=self.in_path.get()):
             self.in_path.set(Path(path).as_posix())
-            #self.widgets[4].configure(font=f'Helvetica 10{" bold"*self.isSingle}')
-            self.widgets[5].configure(font=f'Helvetica 10{" bold"*(not self.isSingle)}')
+            self.widgets[5].configure(font='Helvetica 10')
             self.update_paths()
 
     def pick_out_path(self):
