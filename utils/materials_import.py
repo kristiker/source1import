@@ -226,7 +226,7 @@ def main_blendable():
     if HLVR: return "vr_simple_2way_blend"
     elif SBOX: return "blendable"
     elif DOTA2: return "multiblend"
-    else: return main_ubershader
+    else: return main_ubershader()
 
 shaderDict = {
     "black":                "black",
@@ -242,7 +242,8 @@ shaderDict = {
     "water":                "simple_water",
     #"refract":              "refract",
     "worldvertextransition":main_blendable,
-    "lightmapped_4wayblend":main_blendable,
+    "lightmapped_4wayblend":main_blendable,  # TODO: Form blendmap from luminance https://developer.valvesoftware.com/wiki/Lightmapped_4WayBlend#Controlling_Blendinghttps://developer.valvesoftware.com/wiki/Lightmapped_4WayBlend#Controlling_Blending
+    "multiblend":           main_blendable,
     "lightmappedtwotexture":main_ubershader,  # 2 multiblend $texture2 nocull scrolling, model, additive.
     "unlittwotexture":      main_ubershader,  # 2 multiblend $texture2 nocull scrolling, model, additive.
     "cable":                "cables",
@@ -589,8 +590,11 @@ def mapped_val(v: str, dMap: dict):
 def float_val(v: str):
     return "{:.6f}".format(float(v.strip(' \t"')))
 
+def uniform_vec2(v: str):
+    return "[{:.6f} {:.6f}]".format(float(v), float(v))
+
 def vmat_layered_param(vmatKey, layer = 'A', force = False):
-    if vmat.shader == "vr_simple_2way_blend" or force:
+    if vmat.shader in ("vr_simple_2way_blend", "blendable") or force:
         return vmatKey + layer
     return vmatKey
 
@@ -689,8 +693,10 @@ vmt_to_vmat_pre: Callable[[], dict[str, dict[str, Optional[tuple]]]] = lambda: {
 
     ## Layer blend mask
     '$blendmodulatetexture':\
-                        ('TextureMask',             '_mask',   [createMask, 'G', False], ('F_BLEND', 1)) if COMPLEX_SH else \
-                        ('TextureLayer1RevealMask', '_blend',  [createMask, 'G', False], ('F_BLEND', 1)),
+                        ('TextureMask',             '_mask',   [createMask, 'G', False], ('F_BLEND', 1)) if HLVR else \
+                        ('TextureLayer1RevealMask', '_blend',  [createMask, 'G', False], ('F_BLEND', 1)) if STEAMVR else \
+                        ('TextureBlendMaskB',      '_blend',  [createMask, 'G', False]) if SBOX else \
+                        None,
     ## Layer 1
     '$basetexture2':    ('TextureColorB' if COMPLEX_SH else 'TextureLayer1Color',  '_color',  [formatNewTexturePath]),
     # There is also Texture2Color, F_TWOTEXTURE, Texture2Translucency, g_vTexCoord2
@@ -698,8 +704,8 @@ vmt_to_vmat_pre: Callable[[], dict[str, dict[str, Optional[tuple]]]] = lambda: {
     '$bumpmap2':        ('TextureNormalB' if COMPLEX_SH else 'TextureLayer1Normal', '_normal', [formatNewTexturePath], None if COMPLEX_SH else ('F_BLEND_NORMALS',  1)),
 
     ## Layer 2-3
-    '$basetexture3':    ('TextureLayer2Color',  '_color',  [formatNewTexturePath]),
-    '$basetexture4':    ('TextureLayer3Color',  '_color',  [formatNewTexturePath]),
+    '$basetexture3':    ('TextureColorC' if SBOX else 'TextureLayer2Color',  '_color',  [formatNewTexturePath]),
+    '$basetexture4':    ('TextureColorD' if SBOX else 'TextureLayer3Color',  '_color',  [formatNewTexturePath]),
 
     '$normalmap2':      ('TextureNormal2',      '_normal', [formatNewTexturePath],     ('F_SECONDARY_NORMAL', 1)),  # used with refract shader
     '$flowmap':         ('TextureFlow',         '',        [formatNewTexturePath],     ('F_FLOW_NORMALS', 1), ('F_FLOW_DEBUG', 1)),
@@ -770,6 +776,11 @@ vmt_to_vmat_pre: Callable[[], dict[str, dict[str, Optional[tuple]]]] = lambda: {
     '$gradientcolorstop1':  ('g_vGradientColorStop1', '[1.000 1.000 1.000 0.000]',  [fixVector, True]),
     '$gradientcolorstop2':  ('g_vGradientColorStop2', '[1.000 1.000 1.000 0.000]',  [fixVector, True]),
     '$uvscale':             ('g_flTexCoordScale', '', [float_val]),
+    # MultiBlend
+    '$scale':               None,
+    '$scale2':              ('g_vTexCoordScale2', '[1.000 1.000]', [uniform_vec2]),
+    '$scale3':              ('g_vTexCoordScale3', '[1.000 1.000]', [uniform_vec2]),
+    '$scale4':              ('g_vTexCoordScale4', '[1.000 1.000]', [uniform_vec2]),
     
     # s1 channels relative to each other "[0 0 0]" = "[1 1 1]" (lum preserving) -> s2 is color so it has a brightness factor within it
     # perhaps default to 0.5 0.5 0.5 and scale it with $phongboost, etc
@@ -811,7 +822,8 @@ vmt_to_vmat_pre: Callable[[], dict[str, dict[str, Optional[tuple]]]] = lambda: {
     #'$diffuseexp':          ('g_flDiffuseExponent',     '2.000',    [float_var], 'g_vDiffuseWrapColor "[1.000000 1.000000 1.000000 0.000000]'),
 
     # shader.blend and shader.vr_standard(SteamVR) -- $NEWLAYERBLENDING
-    '$blendsoftness':       ('g_flLayer1BlendSoftness', '0.500',    [float_val]),
+    '$blendsoftness':       ('g_flLayer1BlendSoftness' if not SBOX else 'g_flBlendSoftnessB', 
+                                                        '0.500',    [float_val]),
     '$layerborderstrenth':  ('g_flLayer1BorderStrength','0.500',    [float_val]),
     '$layerborderoffset':   ('g_flLayer1BorderOffset',  '0.000',    [float_val]),
     '$layerbordersoftness': ('g_flLayer1BorderSoftness','0.500',    [float_val]),
@@ -1142,6 +1154,11 @@ def convertSpecials():
         # 4 in 3 out, one is rip
         if vmt.shader == 'lightmapped_4wayblend':
             vmat.KeyValues['F_BLEND'] = 2 # 3 layers max in steamvr, not 4
+    elif SBOX:
+        if vmt.shader == 'worldvertextransition':
+            vmat.KeyValues['F_MULTIBLEND'] = 1  # 2 layers
+        if vmt.shader == 'lightmapped_4wayblend':
+            vmat.KeyValues['F_MULTIBLEND'] = 3 # 4 layers
 
     # fix mod2x logic for "vr_projected_decals"
     if vmt.shader == 'decalmodulate':
