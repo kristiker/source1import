@@ -211,7 +211,7 @@ def ProxiesToDynamicParams(vmtProxies: VDFDict, known, KeyValues) -> tuple[dict,
             except (ValueError, KeyError):
                 # bad proxyParams
                 continue
-            vmatKeyValues["g_vTexCoordScrollSpeed"] = f"[{u:.6f}, {v:.6f}]"
+            vmatKeyValues["g_vTexCoordScrollSpeed"] = f"[{u:.6f} {v:.6f}]"
             continue
         # resultvar needs to be a vmt $key that can be translated
         if (resultvar:=get_resultvar(proxyParams)) not in known:
