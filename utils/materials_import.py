@@ -515,7 +515,7 @@ def TextureFramesToSheet(frames: list[Path]):
         sheet_image.paste(frame_image, frame_position_in_sheet)
 
     sheet_image.save(sheet_path)
-    print("+ Saved animated texture", sheet_path.local)
+    print("+ Saved animated texture", sheet_path.local.as_posix())
     sh.write(
         path=sheet_path.with_name(sheet_path.stem + '.sheet.json'),
         content=f'{{"g_nNumAnimationCells":{len(frames)},"g_vAnimationGrid":"[{grid_rows} {grid_columns}]"}}'
@@ -904,9 +904,7 @@ vmt_to_vmat_pre: Callable[[], dict[str, dict[str, Optional[tuple]]]] = lambda: {
 'others2': {
     # ssbump dose not work?
     #'$ssbump':               ('TextureBentNormal',    '_bentnormal.tga', 'F_ENABLE_NORMAL_SELF_SHADOW 1\n\tF_USE_BENT_NORMALS 1\n'),
-
     #'$iris': ('',    '',     ''),  # paste iris into basetexture
-
     # fRimMask = vMasks1Params.r;
     # fPhongAlbedoMask = vMasks1Params.g;
     # fMetalnessMask = vMasks1Params.b;
@@ -917,14 +915,8 @@ vmt_to_vmat_pre: Callable[[], dict[str, dict[str, Optional[tuple]]]] = lambda: {
     #'$masks1':  ('',    '',     ''),
     #'$masks2':  ('',    '',     ''),
     #'$phong':   ('',    '',     ''),
-
     # $selfillumfresnelminmaxexp "[1.1 1.7 1.9]"
     #'$selfillum_envmapmask_alpha':     ('',    '',     ''),
-
-    # TODO: the fake source next to outside area on de_nuke;
-    # x = texturescrollrate * cos(texturescrollangle) ?????
-    # y = texturescrollrate * sin(texturescrollangle) ?????
-    #'TextureScroll':    (('texturescrollvar', 'texturescrollrate', 'texturescrollangle'), 'g_vTexCoordScrollSpeed', '[0.000 0.000]')
 }
 }
 
@@ -1261,7 +1253,7 @@ def ImportSkyJSONtoVMAT(json_collection: Path):
             'F_TEXTURE_FORMAT2': 0,
         }).ToString())
 
-    print("+ Saved", vmat_path.local)
+    print("+ Saved", vmat_path.local.as_posix())
 
     return vmat_path
 
@@ -1354,7 +1346,7 @@ def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False):
     msg(vmt.shader + " => " + vmat.shader, "\n")
     sh.write(path=vmat.path, content=vmat.KeyValues.ToString())
 
-    print("+ Saved", vmat.path if sh.DEBUG else vmat.path.local)
+    print("+ Saved", vmat.path if sh.DEBUG else vmat.path.local.as_posix())
 
     #if vmat.shader == "vr_projected_decals":
     #    _ImportVMTtoExtraVMAT(vmt_path, shader="vr_static_overlay",

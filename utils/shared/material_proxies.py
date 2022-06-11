@@ -6,7 +6,8 @@ try:
     from .keyvalues1 import VDFDict
 except ImportError:
     from keyvalues1 import VDFDict
-    
+from math import cos, sin
+
 class Proxies(VDFDict): pass
 
 def add(srcvar1, srcvar2, **_):         return f"{srcvar1} + {srcvar2}"
@@ -200,6 +201,17 @@ def ProxiesToDynamicParams(vmtProxies: VDFDict, known, KeyValues) -> tuple[dict,
                 continue
             vmatKeyValues["F_TEXTURE_ANIMATION"] = 1
             vmatKeyValues["g_flAnimationTimePerFrame"] = 1 / float(proxyParams["animatedtextureframerate"])
+            continue
+        elif proxy == "texturescroll":
+            if proxyParams["texturescrollvar"] != "$basetexturetransform":
+                continue
+            try:
+                u = float(proxyParams["texturescrollrate"]) * cos(_int(proxyParams["texturescrollangle"]))
+                v = float(proxyParams["texturescrollrate"]) * sin(_int(proxyParams["texturescrollangle"]))
+            except (ValueError, KeyError):
+                # bad proxyParams
+                continue
+            vmatKeyValues["g_vTexCoordScrollSpeed"] = f"[{u:.6f}, {v:.6f}]"
             continue
         # resultvar needs to be a vmt $key that can be translated
         if (resultvar:=get_resultvar(proxyParams)) not in known:

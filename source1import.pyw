@@ -72,7 +72,7 @@ class TabContext:
             traceback = format_tb(e.__traceback__, None)
             for l in traceback:
                 print(l, end='')
-            print(f"Failed! Something went wrong with the {self.module} module!\n\t", e)
+            print(f"Failed! Something went wrong with the {self.module} module!\n\t", repr(e))
         print('=========================================================')
 
 class SampleApp(Tk):
