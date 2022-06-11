@@ -2,6 +2,7 @@
 from contextlib import suppress
 from pathlib import Path
 from enum import Enum
+import fnmatch
 import subprocess
 from types import GeneratorType
 from typing import Callable, Optional
@@ -11,12 +12,13 @@ except ImportError:
     from shared.keyvalues1 import KV
 
 import argparse
-arg_parser = argparse.ArgumentParser(usage = "-src1gameinfodir <s1gameinfodir> -game <s2 mod> [<src1 file or folder>]") # -filter <substring> [optional] Filter for matching files
-arg_parser.add_argument("-src1gameinfodir", "-i", help="An absolute path to S1 mod gameinfo.txt.")
-arg_parser.add_argument("-game", "-e", help="Specify the S2 mod/addon to import into (ie. left4dead2_source2 or C:/../ep2).")
-#arg_parser.add_argument("-filter", "-filelist_filter", help="Apply a substring filter to the import filelist")
+arg_parser = argparse.ArgumentParser(usage = "-i <s1gameinfodir> -e <s2 mod>")
+arg_parser.add_argument("-i", "--src1gameinfodir", "-src1gameinfodir", help="An absolute path to S1 mod gameinfo.txt.")
+arg_parser.add_argument("-e", "--game", "-game", help="Specify the S2 mod/addon to import into (ie. left4dead2_source2 or C:/../ep2).")
+arg_parser.add_argument("-b", "--branch", type=str, default= "hlvr", help="Specify the Source 2 Engine branch to import into (ie. hlvr or steamvr).")
+arg_parser.add_argument("--filter", help="Apply a substring filter to the import filelist")
 
-_args_known, args_unknown = arg_parser.parse_known_args()
+args_known, args_unknown = arg_parser.parse_known_args()
 
 '-src1gameinfodir "D:/Games/steamapps/common/Half-Life Alyx/game/csgo" -game hlvr_addons/csgo'
 
@@ -101,7 +103,6 @@ IMPORT_GAME: Path = None
 EXPORT_CONTENT: Path = None
 EXPORT_GAME: Path = None
 #IMPORT_LEAFIEST_GAME,IMPORT_LEAFIEST_CONTENT,EXPORT_LEAFIEST_GAME,EXPORT_LEAFIEST_CONTENT
-search_scope: Path = None
 gameinfo: KV = None
 gameinfo2: KV = None
 
@@ -118,7 +119,7 @@ def update_destmod(new_dest: eS2Game):
         globals()[game.upper()] = False
     globals()[new_dest.value.upper()] = True
 
-destmod: eS2Game = eS2Game("hlvr")
+destmod: eS2Game = eS2Game(args_known.branch)
 import_context: dict = None
 RemapTable: KVUtilFile = None
 
@@ -153,15 +154,14 @@ def in_source2_environment():
 
 def argv_error(*args, **kwargs):
     arg_parser.print_usage()
-    print()
-    print("ERROR:", *args, **kwargs)
+    #print("ERROR:", *args, **kwargs)
     raise SystemExit(*args)
 
 def parse_in_path():
     global IMPORT_CONTENT, IMPORT_GAME, EXPORT_CONTENT, EXPORT_GAME
-    global search_scope, gameinfo, gameinfo2, IMPORT_MOD    
+    global gameinfo, gameinfo2, IMPORT_MOD    
 
-    in_path = Path(_args_known.src1gameinfodir)
+    in_path = Path(args_known.src1gameinfodir)
     if not in_path.exists():
         argv_error(f"src1 game path does not exist \"{in_path}\"")
     if in_path.is_file() and in_path.name == 'gameinfo.txt':
@@ -182,7 +182,7 @@ def parse_in_path():
 def parse_out_path(source2_mod: Path):
     "Must call after parse_in_path"
     global IMPORT_CONTENT, IMPORT_GAME, EXPORT_CONTENT, EXPORT_GAME
-    global destmod, search_scope, gameinfo, gameinfo2
+    global destmod, gameinfo, gameinfo2
 
     if source2_mod.is_absolute():
         if source2_mod.is_file():
@@ -211,24 +211,21 @@ def parse_out_path(source2_mod: Path):
     elif EXPORT_GAME is EXPORT_CONTENT is None:
         argv_error(f"Invalid export game \"{source2_mod}\"")
 
-    #print("Paths sucessfuly parsed......")
-    pp = {"sbox":eS2Game.sbox, "steamtours": eS2Game.steamvr, "dota": eS2Game.dota2}
-    for p in EXPORT_GAME.parts:
-        if "hlvr" in p:
-            break
-        for k, v in pp.items():
-            if k in p:
-                destmod = v
-                break
-        if destmod is not eS2Game.hlvr:
-            break
-    # Optionals
 
-    # Unknowns
-    if args_unknown:
-        search_scope = Path(args_unknown[0])
-        with suppress(Exception):
-            search_scope = search_scope.relative_to(IMPORT_GAME)
+    # if not forcing a branch, try to guess it from the path
+    if not args_known.branch == "hlvr":
+        pp = {"sbox":eS2Game.sbox, "steamtours": eS2Game.steamvr, "dota": eS2Game.dota2}
+        for p in EXPORT_GAME.parts:
+            if "hlvr" in p:
+                break
+            for k, v in pp.items():
+                if k in p:
+                    destmod = v
+                    break
+            if destmod is not eS2Game.hlvr:
+                break
+        update_destmod(destmod)
+    # Optionals
     
     # Done Parsing. Fill variables
     global import_context, RemapTable
@@ -271,12 +268,15 @@ def parse_out_path(source2_mod: Path):
         return out
 
 def parse_argv():
-    if not _args_known.src1gameinfodir:
-        argv_error(f"Missing required argument: -i | -src1gameinfodir")
+    if not args_known.src1gameinfodir:
+        argv_error(f"Missing required argument: -e")
     parse_in_path()
-    if not _args_known.game:
-        argv_error(f"Missing required argument: -e | -game")
-    parse_out_path(Path(_args_known.game))
+    if not args_known.game:
+        argv_error(f"Missing required argument: -e")
+    parse_out_path(Path(args_known.game))
+
+importing = Path()
+filter_=args_known.filter
 
 if __name__ == 'shared.base_utils2':
     #print(__name__, 'parse on import?')
@@ -285,8 +285,11 @@ if __name__ == 'shared.base_utils2':
 elif __name__ == '__main__':
     parse_argv()
     print(f"{ROOT=}\n{IMPORT_CONTENT=}\n{IMPORT_GAME=}\n{EXPORT_CONTENT=}\n{EXPORT_GAME=}")
-    print(f"{gameinfo['game']=}, {destmod=}")
+    print(f"{gameinfo['game']=}")
+    print(f"{destmod=}")
+    print(f"{filter_=}")
     print(BIN, eEngineUtils.dmxconvert.value, eEngineUtils.dmxconvert.avaliable)
+    print(args_known.__dict__)
 
     import unittest
     class Test_ParsedPaths(unittest.TestCase):
@@ -300,11 +303,6 @@ elif __name__ == '__main__':
             self.assertTrue(EXPORT_GAME.is_dir())
     unittest.main()
     raise SystemExit
-
-importing = Path()
-
-import fnmatch
-filter_=None
 
 @add_method(Path)
 def without_spaces(self, repl = '_') -> Path:
@@ -329,9 +327,6 @@ def collect(root, inExt, outExt, existing:bool = False, outNameRule = None, sear
 
     if searchPath is None:
         searchPath = src(root)
-        if search_scope is not None:
-            try: searchPath = searchPath / search_scope.relative_to(root)
-            except Exception: searchPath = searchPath / search_scope
     if skiplist is None:    skiplist = _get_blacklist(root)
 
     if searchPath.is_file():
@@ -395,7 +390,7 @@ def source2namefixup(path: Path):
 def skip(skip_reason: str, path: Path):
     status(f"- skipping [{skip_reason}]: {path.local.as_posix()}")
 
-def write(content: str, path: Path):
+def write(path: Path, content: str):
     with open(path, 'w') as fp:
         fp.write(content)
 

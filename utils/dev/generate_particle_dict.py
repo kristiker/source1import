@@ -90,11 +90,11 @@ def parse_sub(op, line):
     subs.setdefault(op, {})[key] = val
 
 main = 'emitters'
-f = r'D:\Users\kristi\Desktop\WORK\April 22nd 2020, random leaked shit\mega-archive\full\cstrike15_src\particles\builtin_particle_emitters.cpp'
+f = r'cstrike15_src/particles/builtin_particle_emitters.cpp'
 main = 'forces'
-f = r'D:\Users\kristi\Desktop\WORK\April 22nd 2020, random leaked shit\mega-archive\full\cstrike15_src\particles\builtin_particle_forces.cpp'
+f = r'cstrike15_src/particles/builtin_particle_forces.cpp'
 main = 'constraints'
-f = r'D:\Users\kristi\Desktop\WORK\April 22nd 2020, random leaked shit\mega-archive\full\cstrike15_src\particles\builtin_constraints.cpp'
+f = '/cstrike15_src/particles/builtin_constraints.cpp'
 with open(f, 'r') as fp:
     unpack = ''
     unpack_lines = []
