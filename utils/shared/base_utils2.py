@@ -359,7 +359,7 @@ def collect(root, inExt, outExt, existing:bool = False, outNameRule = None, sear
 
             for skip_match in skiplist:
                 if skip_reason: break
-                if (skip_match.replace("\\", "/") in filePath2.as_posix()) or filePath2.match(skip_match):
+                if (skip_match.replace("\\", "/") in filePath2.local.as_posix()) or filePath2.match(skip_match):
                     skipCountBlacklist += 1
                     skip_reason = 'blacklist'
 
