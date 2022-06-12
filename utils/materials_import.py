@@ -212,11 +212,16 @@ class VMAT(ValveMaterial):
         self._shader = n
         self._kv['shader'] = n
 
+def vr(shader: str):
+    if HLVR or STEAMVR:
+        return "vr_" + shader
+    return shader
+
 # keep everything lowercase !!!
 def main_ubershader():
-    if STEAMVR: return "vr_standard"
+    if STEAMVR: return vr("standard")
     elif DOTA2: return "global_lit_simple"
-    else: return "vr_complex"
+    else: return vr("complex")
 
 def main_blendable():
     if HLVR: return "vr_simple_2way_blend"
@@ -224,18 +229,23 @@ def main_blendable():
     elif DOTA2: return "multiblend"
     else: return main_ubershader()
 
+def main_water():
+    if SBOX: return "water"
+    elif DOTA2: return "dota_water"
+    else: return "simple_water"
+
 shaderDict = {
     "black":                "black",
     "sky":                  "sky",
     "unlitgeneric":         main_ubershader,
     "vertexlitgeneric":     main_ubershader,
-    "decalmodulate":        "vr_static_overlay",  # https://developer.valvesoftware.com/wiki/Decals#DecalModulate
+    "decalmodulate":        vr("static_overlay"),  # https://developer.valvesoftware.com/wiki/Decals#DecalModulate
     "lightmappedgeneric":   main_ubershader,
     "lightmappedreflective":main_ubershader,
     "character":            main_ubershader,  # https://developer.valvesoftware.com/wiki/Character_(shader)
     "customcharacter":      main_ubershader,
     "teeth":                main_ubershader,
-    "water":                "simple_water",
+    "water":                main_water,
     #"refract":              "refract",
     "worldvertextransition":main_blendable,
     "lightmapped_4wayblend":main_blendable,  # TODO: Form blendmap from luminance https://developer.valvesoftware.com/wiki/Lightmapped_4WayBlend#Controlling_Blendinghttps://developer.valvesoftware.com/wiki/Lightmapped_4WayBlend#Controlling_Blending
@@ -244,7 +254,7 @@ shaderDict = {
     "unlittwotexture":      main_ubershader,  # 2 multiblend $texture2 nocull scrolling, model, additive.
     "cable":                "cables",
     "splinerope":           "cables",
-    "shatteredglass":       "vr_glass",
+    "shatteredglass":       vr("glass"),
     "wireframe":            "tools_wireframe",
     "wireframe_dx9":        "error",
     #"spritecard":           "spritecard",  these are just vtexes with params defined in vpcf renderer - skip
@@ -273,13 +283,13 @@ def chooseShader():
     if vmt.shader not in shaderDict:
         if sh.DEBUG:
             failureList.add(f"{vmt.shader} unsupported shader", vmt.path)
-        return "vr_black_unlit"
+        return vr("black_unlit")
 
     d[get_shader(shaderDict[vmt.shader])] += 1
 
     if vmt.KeyValues['$beachfoam']: return "csgo_beachfoam"
 
-    if vmt.KeyValues['$decal'] == 1: d["vr_static_overlay"] += 2
+    if vmt.KeyValues['$decal'] == 1: d[vr("static_overlay")] += 2
 
     if vmt.shader == "worldvertextransition":
         if vmt.KeyValues['$basetexture2']: d[main_blendable()] += 10
@@ -287,7 +297,7 @@ def chooseShader():
     elif vmt.shader == "lightmappedgeneric":
         if vmt.KeyValues['$newlayerblending'] == 1: d[main_blendable()] += 10
 
-    #if vmt.KeyValues['$decal'] == 1: sh["vr_projected_decals"] += 10
+    #if vmt.KeyValues['$decal'] == 1: sh[vr("projected_decals")] += 10
 
     return get_shader(max(d, key = d.get))
 
@@ -682,7 +692,7 @@ vmt_to_vmat_pre: Callable[[], dict[str, dict[str, Optional[tuple]]]] = lambda: {
 # http://counter-strike.net/workshop/workshopmaps#hammer
 'f_keys': {
 
-    '$translucent':     ('F_TRANSLUCENT',           '1'),  # "F_BLEND_MODE 0" for "vr_projected_decals"
+    '$translucent':     ('F_TRANSLUCENT',           '1'),  # "F_BLEND_MODE 0" for vr("projected_decals")
     '$alphatest':       ('F_ALPHA_TEST',            '1'),
     '$phong':           ('F_SPECULAR',              '1'), # why did i do this
     '$envmap':          ('F_SPECULAR',              '1', [fix_envmap]),  # in "environment maps/metal" | "env_cubemap" F_SPECULAR_CUBE_MAP 1 // In-game Cube Map
@@ -1022,9 +1032,9 @@ def convertVmtToVmat():
 
             # F_RENDER_BACKFACES 1 etc
             if keyType == 'f_keys':
-                if vmtKey == "$translucent" and vmat.shader in ("vr_projected_decals", "vr_static_overlay"):
+                if vmtKey == "$translucent" and vmat.shader in (vr("projected_decals"), vr("static_overlay")):
                     outKey = "F_BLEND_MODE"
-                    outVal = (0 if (vmat.shader == "vr_projected_decals") else 1)
+                    outVal = (0 if (vmat.shader == vr("projected_decals")) else 1)
 
             elif(keyType == 'textures'):
                 # Layer A
@@ -1166,16 +1176,16 @@ def convertSpecials():
         if vmt.shader == 'lightmapped_4wayblend':
             vmat.KeyValues['F_MULTIBLEND'] = 3 # 4 layers
 
-    # fix mod2x logic for "vr_projected_decals"
+    # fix mod2x logic for vr("projected_decals")
     if vmt.shader == 'decalmodulate':
-        vmat.KeyValues['F_BLEND_MODE'] = 1 if (vmat.shader == "vr_projected_decals") else 2
+        vmat.KeyValues['F_BLEND_MODE'] = 1 if (vmat.shader == vr("projected_decals")) else 2
 
-    # fix lit logic for "vr_projected_decals"
+    # fix lit logic for vr("projected_decals")
     if vmt.shader in ('lightmappedgeneric', 'vertexlitgeneric'):
-        if vmat.shader == "vr_static_overlay":      vmat.KeyValues["F_LIT"] = 1
-        elif vmat.shader == "vr_projected_decals": vmat.KeyValues["F_SAMPLE_LIGHTMAP"] = 1  # what does this do
+        if vmat.shader == vr("static_overlay"):      vmat.KeyValues["F_LIT"] = 1
+        elif vmat.shader == vr("projected_decals"): vmat.KeyValues["F_SAMPLE_LIGHTMAP"] = 1  # what does this do
     
-    if vmat.shader == "vr_projected_decals":
+    if vmat.shader == vr("projected_decals"):
         vmat.KeyValues['F_CUTOFF_ANGLE'] = 1
 
     elif vmat.shader == main_ubershader():
@@ -1231,7 +1241,7 @@ def collectSkybox(name:str, face: str, vmt: VMT):
         face_path = sh.output(fixVmtTextureDir(texture, src_extension))
         if face_path.is_relative_to(sh.output(skyboxmaterials)):
             # Move annoying face files into a folder 'legacy_faces'
-            # Not deleting just incase they are needed somewhere separately, and to save time on future imports
+            # Not deleting just incase they are needed somewhere else, and to save time on future imports
             face_path_new = sh.output(legacy_skyfaces / face_path.name)
             if face_path.is_file():
                 face_path.parent.MakeDir()
@@ -1254,6 +1264,8 @@ def collectSkybox(name:str, face: str, vmt: VMT):
                 Collect[face] = path
             print(f"    + Collected face {face.upper()} for {name}_cube{src_extension}")
             sh.UpdateJson(face_collect_path, Collect)
+        else:
+            print("missing sky face:", face_path.local)
 
         return face_collect_path
 
@@ -1367,9 +1379,9 @@ def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False):
             "F_DETAIL_TEXTURE",
             "F_SECONDARY_UV",
         }
-        if vmat.shader == "vr_complex":
+        if vmat.shader == vr("complex"):
             if not any(key in complex_shader_params for key in vmat.KeyValues) and "F_SPECULAR" in vmat.KeyValues:
-                vmat.shader = "vr_simple"
+                vmat.shader = vr("simple")
                 if "TextureAmbientOcclusion" in vmat.KeyValues:
                     vmat.KeyValues['F_AMBIENT_OCCLUSION_TEXTURE'] = 1
     
@@ -1381,8 +1393,8 @@ def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False):
 
     print("+ Saved", vmat.path if sh.DEBUG else vmat.path.local.as_posix())
 
-    #if vmat.shader == "vr_projected_decals":
-    #    _ImportVMTtoExtraVMAT(vmt_path, shader="vr_static_overlay",
+    #if vmat.shader == vr("projected_decals"):
+    #    _ImportVMTtoExtraVMAT(vmt_path, shader=vr("static_overlay"),
     #        path=(vmat.path.parent / (vmat.path.stem + '-static' + vmat.path.suffix)))
 
     return vmat.path
