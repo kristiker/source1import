@@ -41,6 +41,21 @@ class TabContext:
                 text=description,bd=0,selectcolor=bg1,bg=bg1,fg=fg1,activeforeground=fg1,activebackground=bg2)
             )
         return self
+    
+    def add_spinbox(self, var_name, description):
+        self.further_options[var_name] = IntVar(master=self.frame)
+        Spinbox(self.frame,bg=bg2,fg=fg1,
+            textvariable=self.further_options[var_name], from_=0, to=12, width=3, wrap=True).grid(
+            sticky="w", padx=0,
+            in_=self.frame
+        )
+        row = self.frame.grid_size()[1]-1
+        self.frame.grid_rowconfigure(row, uniform='row')
+        Label(self.frame, text=description,bd=0,bg=bg1,fg=fg1).grid(
+            row=row, column=0,
+            in_=self.frame, sticky="w", padx=40)
+
+        return self
 
     def add_widget(self, key, var: Variable, widget_partial: functools.partial[Widget]):
         self.further_options[key] = var
@@ -205,6 +220,8 @@ class SampleApp(Tk):
         )
         add_tab("particles", self.Particles, "Import particles", "particles_import").add_overwrite_toggles(
             ("OVERWRITE_PARTICLES", "Overwrite Existing Particles"),
+        ).add_spinbox(
+            "BEHAVIOR_VERSION", "Behavior Version"
         )
         #add_tab("maps", self.Maps, "Import VMF entities (soon)")
         add_tab("sessions", self.Sessions, "Import Source Filmmaker Sessions", "elements_import").add_overwrite_toggles(
