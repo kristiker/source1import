@@ -231,7 +231,7 @@ def main_blendable():
 
 def main_water():
     if SBOX: return "water"
-    elif DOTA2: return "dota_water"
+    elif DOTA2: return "water_dota"
     else: return "simple_water"
 
 shaderDict = {
@@ -711,8 +711,11 @@ vmt_to_vmat_pre: Callable[[], dict[str, dict[str, Optional[tuple]]]] = lambda: {
     '$selfillum_envmapmask_alpha': ('F_SELF_ILLUM', '1'),
     '$forceenvmap':     ('F_REFLECTION_TYPE', 1),  # Water reflection type
     '$addbumpmaps':     ('F_ADDBUMPMAPS',     1),
-    "$masks1": ('F_MASKS_1',    '1') if DOTA2 else None,  #
-    "$masks2": ('F_MASKS_2',    '1') if DOTA2 else None,  #
+    "$masks1":          ('F_MASKS_1',    '1') if DOTA2 else None,
+    "$masks2":          ('F_MASKS_2',    '1') if DOTA2 else None,
+    "$newlayerblending":('F_LAYER_BORDER_TINT', '2') if DOTA2 else \
+                        ('F_FANCY_BLENDING', '1') if STEAMVR else \
+                        None,
 
     #'$phong':           ('F_PHONG',                 '1'),
     #'$vertexcolor:      ('F_VERTEX_COLOR',          '1'),
@@ -833,7 +836,7 @@ vmt_to_vmat_pre: Callable[[], dict[str, dict[str, Optional[tuple]]]] = lambda: {
     '$blendtintcoloroverbase':('g_flModelTintAmount',   '1.000',    [float_val]),  # $layertint1
     '$selfillumscale':      ('g_flSelfIllumScale',      '1.000',    [float_val]),
     '$phongexponent':       ('g_flSpecularExponent',    '32.000',   [float_val]),
-    '$phongboost':          ('g_flPhongBoost',          '1.000',    [float_val]),  #
+    '$phongboost':          ('g_flPhongBoost',          '1.000',    [float_val]),
     '$metalness':           ('g_flMetalness',           '0.000',    [float_val]),
     '$_metalness2':         ('g_flMetalnessB',          '0.000',    [float_val]),
     '$ssbump':   ('g_flLightRangeForSelfShadowNormals', '1.000',    [float_val]) if SBOX else None, # tiny hack
@@ -1387,6 +1390,11 @@ def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False):
     
     if PRINT_LEGACY_IMPORT:
         vmat.KeyValues['legacy_import'] = vmt.KeyValues.as_value()
+
+    if DOTA2:
+        if vmat.KeyValues.get("F_UNLIT"):
+            del vmat.KeyValues['F_UNLIT']
+            vmat.KeyValues['F_FULLBRIGHT'] = 1
 
     msg(vmt.shader + " => " + vmat.shader, "\n")
     sh.write(path=vmat.path, content=vmat.KeyValues.ToString())
