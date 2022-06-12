@@ -694,7 +694,7 @@ vmt_to_vmat_pre: Callable[[], dict[str, dict[str, Optional[tuple]]]] = lambda: {
 
     '$translucent':     ('F_TRANSLUCENT',           '1'),  # "F_BLEND_MODE 0" for vr("projected_decals")
     '$alphatest':       ('F_ALPHA_TEST',            '1'),
-    '$phong':           ('F_SPECULAR',              '1'), # why did i do this
+    '$phong':           ('F_SPECULAR',              '1'),
     '$envmap':          ('F_SPECULAR',              '1', [fix_envmap]),  # in "environment maps/metal" | "env_cubemap" F_SPECULAR_CUBE_MAP 1 // In-game Cube Map
     '$envmapanisotropy':('F_SPECULAR_CUBE_MAP_ANISOTROPIC_WARP', '1'), # requires F_ANISOTROPIC_GLOSS 1
     '$ssbump':          ('F_ENABLE_NORMAL_SELF_SHADOW', '1') if SBOX else None,
@@ -704,7 +704,7 @@ vmt_to_vmat_pre: Callable[[], dict[str, dict[str, Optional[tuple]]]] = lambda: {
     '$nocull':          ('F_RENDER_BACKFACES',      '1'),  # F_NO_CULLING 1 # see this for certain sheeted texs -> F_USE_SHEETS 1
     '$decal':           ('F_OVERLAY',               '1'),
     '$flow_debug':      ('F_FLOW_DEBUG',            '0'),
-    '$detailblendmode': ('F_DETAIL_TEXTURE',        '1', [mapped_val, {'0':'1', '1':'2', '12':'0'} ]),  # https://developer.valvesoftware.com/wiki/$detail#Parameters_and_Effects
+    '$detailblendmode': ('F_DETAIL_TEXTURE',        '1', [mapped_val, {'0':'1', '1':'2', '7': '1', '12':'0'} ]),  # https://developer.valvesoftware.com/wiki/$detail#Parameters_and_Effects
     '$decalblendmode':  ('F_DETAIL_TEXTURE',        '1', [mapped_val, {'0':'1', '1':'2', '12':'0'} ]),  # materialsystem\stdshaders\BaseVSShader.h#L26
     '$sequence_blend_mode': ('F_FAST_SEQUENCE_BLEND_MODE', '1', [mapped_val, {'0':'1', '1':'2', '2':'3'}]),
     '$gradientmodulation':  ('F_GRADIENTMODULATION', '1'),
@@ -757,8 +757,9 @@ vmt_to_vmat_pre: Callable[[], dict[str, dict[str, Optional[tuple]]]] = lambda: {
     '$normalmap2':      ('TextureNormal2',      '_normal', [formatNewTexturePath],     ('F_SECONDARY_NORMAL', 1)),  # used with refract shader
     '$flowmap':         ('TextureFlow',         '',        [formatNewTexturePath],     ('F_FLOW_NORMALS', 1), ('F_FLOW_DEBUG', 1)),
     '$flow_noise_texture':('TextureNoise',      '_noise',  [formatNewTexturePath],     ('F_FLOW_NORMALS', 1), ('F_FLOW_DEBUG', 2)),
-    '$detail':          ('TextureDetail',       '_detail', [formatNewTexturePath],     ('F_DETAIL_TEXTURE', 1)),  # $detail2
+    '$detail':          ('TextureDetail',       '_detail', [formatNewTexturePath],     ('F_DETAIL_TEXTURE', 1)),
     '$decaltexture':    ('TextureDetail',       '_detail', [formatNewTexturePath],     ('F_DETAIL_TEXTURE', 1), ('F_SECONDARY_UV',  1), ('g_bUseSecondaryUvForDetailTexture',  1)),
+    '$detail2':         ('TextureDetail2',      '_detail', [formatNewTexturePath]),
 
     '$selfillummask':   ('TextureSelfIllumMask','_selfillummask', [formatNewTexturePath]),
     '$tintmasktexture': ('TextureTintMask',     '_mask',   [createMask, 'G', False],   ('F_TINT_MASK',  1)), #('TextureTintTexture',)
@@ -1049,9 +1050,10 @@ def convertVmtToVmat():
 
                     # don't flip default normal
                     if not outVal == default("_normal"):
-                        if SBOX and vmt.KeyValues["$ssbump"]:
-                            continue
-                        flipNormalMap(Path(outVal))
+                        # don't flip ssbump
+                        if not vmt.KeyValues["$ssbump"]:
+                            flipNormalMap(Path(outVal))
+                        
 
             elif(keyType == 'transform'):  # here one key can add multiple keys
                 if not vmatReplacement:
@@ -1379,6 +1381,7 @@ def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False):
             "F_TINT_MASK",
             "F_UNLIT",
             "F_SELF_ILLUM",
+            "F_ENABLE_NORMAL_SELF_SHADOW",
             "F_DETAIL_TEXTURE",
             "F_SECONDARY_UV",
         }
