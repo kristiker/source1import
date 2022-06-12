@@ -15,7 +15,7 @@ import argparse
 arg_parser = argparse.ArgumentParser(usage = "-i <s1gameinfodir> -e <s2 mod>")
 arg_parser.add_argument("-i", "--src1gameinfodir", "-src1gameinfodir", help="An absolute path to S1 mod gameinfo.txt.")
 arg_parser.add_argument("-e", "--game", "-game", help="Specify the S2 mod/addon to import into (ie. left4dead2_source2 or C:/../ep2).")
-arg_parser.add_argument("-b", "--branch", type=str, default= "hlvr", help="Specify the Source 2 Engine branch to import into (ie. hlvr or steamvr).")
+arg_parser.add_argument("-b", "--branch", type=str, help="Specify the Source 2 Engine branch to import into (ie. hlvr or steamvr).")
 arg_parser.add_argument("--filter", help="Apply a substring filter to the import filelist")
 
 args_known, args_unknown = arg_parser.parse_known_args()
@@ -119,7 +119,7 @@ def update_destmod(new_dest: eS2Game):
         globals()[game.upper()] = False
     globals()[new_dest.value.upper()] = True
 
-destmod: eS2Game = eS2Game(args_known.branch)
+destmod: eS2Game = eS2Game(args_known.branch if args_known.branch else "hlvr")
 import_context: dict = None
 RemapTable: KVUtilFile = None
 
@@ -213,18 +213,13 @@ def parse_out_path(source2_mod: Path):
 
 
     # if not forcing a branch, try to guess it from the path
-    if not args_known.branch == "hlvr":
-        pp = {"sbox":eS2Game.sbox, "steamtours": eS2Game.steamvr, "dota": eS2Game.dota2}
+    if not args_known.branch:
+        pp = {"sbox":eS2Game.sbox, "steamtours": eS2Game.steamvr, "hlvr": eS2Game.hlvr, "dota": eS2Game.dota2}
         for p in EXPORT_GAME.parts:
-            if "hlvr" in p:
-                break
             for k, v in pp.items():
                 if k in p:
-                    destmod = v
+                    update_destmod(v)
                     break
-            if destmod is not eS2Game.hlvr:
-                break
-        update_destmod(destmod)
     # Optionals
     
     # Done Parsing. Fill variables
