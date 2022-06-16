@@ -15,7 +15,7 @@ class KV3Header:
 class resource:
     path: Path
     def __str__(self):
-        return f'resource:"{self.path.as_posix()}"'
+        return f'resource:"{self.path.as_posix().lower()}"'
 
 class KV3(dict):
     def __init__(self, *args, **kwargs):
