@@ -12,15 +12,6 @@ import itertools
 
 OVERWRITE_SCRIPTS = False
 
-HLVR_ADDON_WRITE = False
-"""
-For hlvr_addons:
-    Set to True to also write sound event imports to `soundevents/{addon}_soundevents.vsndevts` FILE
-    The addon system demands all addon sounds be in this one file.
-
-https://developer.valvesoftware.com/wiki/Half-Life:_Alyx_Workshop_Tools/Addon_Sounds#Sound_Events_files
-"""
-
 scripts = Path('scripts')
 SOUNDSCAPES_MANIFEST = scripts / "soundscapes_manifest.txt"
 SURFACEPROPERTIES_MANIFEST = scripts / "surfaceproperties_manifest.txt"
@@ -50,9 +41,6 @@ def main():
 
     if (boss:=sh.src(scripts)/'level_sounds_general.txt').is_file():
         ImportGameSound(boss)
-
-    if HLVR_ADDON_WRITE:
-        print("Fix the misplaced brace ({) inside addon soundevent file or it won't compile.")
 
     # surfaceproperties...
     manifest_handle = VsurfManifestHandler()
@@ -108,10 +96,6 @@ def ImportSoundscapeManifest(asset_path: Path):
 
     with open(asset_path) as old, open(out_manifest, 'w') as out:
         contents = old.read().replace('.vsc', '.txt').replace('soundscaples_manifest', 'soundscapes_manifest')
-        if False:  # importing to an hla addon fix
-            ls = contents.split('{', 1)
-            ls[1] = '\n\t"file"\t"scripts/test123.txt"' + ls[1]
-            contents = '{'.join(ls)
         out.write(contents)
 
     print("+ Saved manifest file", out_manifest.local)
@@ -318,14 +302,6 @@ def ImportGameSound(asset_path: Path):
         if out_kv == dict(type='src1_3d'):  # empty
             out_kv = None
         kv3[gamesound] = out_kv
-
-    if HLVR_ADDON_WRITE:# and sh.is_addon():
-        addon_vsndevts = sh.EXPORT_CONTENT / "soundevents" / f"{sh.EXPORT_CONTENT.name}_soundevents.vsndevts"
-        if not addon_vsndevts.is_file():
-            sh.write(addon_vsndevts, KV3().ToString())
-        with open(addon_vsndevts, 'a') as fp:
-            """Bad way of writing, manual fixing is necessary."""
-            fp.write('\n' + '\n'.join(str(kv3).splitlines()[2:-1]))
 
     sh.write(vsndevts_file, kv3.ToString())
 
