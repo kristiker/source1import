@@ -12,6 +12,10 @@ import itertools
 
 OVERWRITE_SCRIPTS = False
 
+SOUNDSCAPES = True
+GAMESOUNDS = True
+SURFACES = True
+
 scripts = Path('scripts')
 SOUNDSCAPES_MANIFEST = scripts / "soundscapes_manifest.txt"
 SURFACEPROPERTIES_MANIFEST = scripts / "surfaceproperties_manifest.txt"
@@ -19,39 +23,41 @@ SOUND_OPERATORS_FILE = scripts / "sound_operator_stacks.txt" # TODO.....
 
 def main():
     sh.import_context['dest'] = sh.EXPORT_GAME
-    print("Importing Scripts!")
 
-    # soundscapes vsc, txt, and manifest...
-    for soundscapes in itertools.chain(
-        sh.collect("scripts", ".vsc", ".txt", OVERWRITE_SCRIPTS, match="soundscapes_*.vsc"),
-        sh.collect("scripts", ".txt", ".txt", OVERWRITE_SCRIPTS, match="soundscapes_*.txt")
-    ):
-        if soundscapes.name == SOUNDSCAPES_MANIFEST.name:
-            ImportSoundscapeManifest(soundscapes)
-            continue
-        ImportSoundscape(soundscapes)
+    if SOUNDSCAPES:
+        print("Importing Soundscapes!") # soundscapes vsc, txt, and manifest...
+        for soundscapes in itertools.chain(
+            sh.collect("scripts", ".vsc", ".txt", OVERWRITE_SCRIPTS, match="soundscapes_*.vsc"),
+            sh.collect("scripts", ".txt", ".txt", OVERWRITE_SCRIPTS, match="soundscapes_*.txt")
+        ):
+            if soundscapes.name == SOUNDSCAPES_MANIFEST.name:
+                ImportSoundscapeManifest(soundscapes)
+                continue
+            ImportSoundscape(soundscapes)
 
     # game sounds...
     sh.import_context['dest'] = sh.EXPORT_CONTENT
 
-    # 'scripts' 'soundevents' hybrid base_utils2 FIXME
-    for file in (sh.src(scripts)).glob('**/game_sounds*.txt'):
-        if file.name != 'game_sounds_manifest.txt':
-            ImportGameSound(file)
+    if GAMESOUNDS:
+        print("Importing Game Sounds!") # game sounds: scripts -> soundevents
+        for file in (sh.src(scripts)).glob('**/game_sounds*.txt'):
+            if file.name != 'game_sounds_manifest.txt':
+                ImportGameSound(file)
 
-    if (boss:=sh.src(scripts)/'level_sounds_general.txt').is_file():
-        ImportGameSound(boss)
+        if (boss:=sh.src(scripts)/'level_sounds_general.txt').is_file():
+            ImportGameSound(boss)
 
-    # surfaceproperties...
-    manifest_handle = VsurfManifestHandler()
-    for surfprop_txt in sh.collect("scripts", ".txt", ".txt", OVERWRITE_SCRIPTS, match="surfaceproperties*.txt"):
-        if surfprop_txt.name == SURFACEPROPERTIES_MANIFEST.name:
-            manifest_handle.read_manifest(surfprop_txt)
-            continue
-        manifest_handle.retrieve_surfaces(
-            ImportSurfaceProperties(surfprop_txt)
-        )
-    manifest_handle.after_all_converted()
+    if SURFACES:
+        print("Importing Surfaces!") # surfaces: scripts -> surfaceproperties.vsurf
+        manifest_handle = VsurfManifestHandler()
+        for surfprop_txt in sh.collect("scripts", ".txt", ".txt", OVERWRITE_SCRIPTS, match="surfaceproperties*.txt"):
+            if surfprop_txt.name == SURFACEPROPERTIES_MANIFEST.name:
+                manifest_handle.read_manifest(surfprop_txt)
+                continue
+            manifest_handle.retrieve_surfaces(
+                ImportSurfaceProperties(surfprop_txt)
+            )
+        manifest_handle.after_all_converted()
 
     print("Looks like we are done!")
 

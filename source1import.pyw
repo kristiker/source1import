@@ -229,6 +229,10 @@ class SampleApp(Tk):
         )
         add_tab("scripts", self.Scripts, "Import various script files", "scripts_import").add_overwrite_toggles(
             ("OVERWRITE_SCRIPTS", "Overwrite Existing Scripts"),
+        ).add_toggles(
+            ("SOUNDSCAPES", "Soundscapes"),
+            ("GAMESOUNDS", "Game Sounds"),
+            ("SURFACES", "Surface Properties"),
         )
         add_tab("scenes", self.Scenes, "Generate vcdlist from vcds", "scenes_import").add_toggles(
             ("EVERYTHING_TO_ROOT", "Add everything to _root.vcdlist"),
