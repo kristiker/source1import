@@ -217,6 +217,8 @@ class SampleApp(Tk):
         add_tab("models", self.Models, "Generate VMDL models", "models_import").add_overwrite_toggles(
             ("SHOULD_OVERWRITE", "Overwrite Existing VMDLs"),
             #("MOVE_MODELS", "Move .mdls"),
+        ).add_toggles(
+            ("SAMPBOX", "Temporary s&box path fix"),
         )
         add_tab("particles", self.Particles, "Import particles", "particles_import").add_overwrite_toggles(
             ("OVERWRITE_PARTICLES", "Overwrite Existing Particles"),
