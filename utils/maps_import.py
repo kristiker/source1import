@@ -14,8 +14,8 @@ from shared.datamodel import (
     _StrArray as string_array,
 )
 
-OVERWRITE_MAPS = True
-WRITE_TO_PREFAB = True
+OVERWRITE_MAPS = False
+#WRITE_TO_PREFAB = True
 
 maps = Path("maps")
 

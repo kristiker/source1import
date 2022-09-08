@@ -225,7 +225,9 @@ class SampleApp(Tk):
         ).add_spinbox(
             "BEHAVIOR_VERSION", "Behavior Version"
         )
-        #add_tab("maps", self.Maps, "Import VMF entities (soon)")
+        add_tab("maps", self.Maps, "Import VMF Entities (only entities)", "maps_import").add_overwrite_toggles(
+            ("OVERWRITE_MAPS", "Overwrite Existing Map Files"),
+        )
         add_tab("sessions", self.Sessions, "Import Source Filmmaker Sessions", "elements_import").add_overwrite_toggles(
             ("SHOULD_OVERWRITE", "Overwrite Existing Sessions"),
         )
