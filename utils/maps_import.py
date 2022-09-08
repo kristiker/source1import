@@ -1,7 +1,8 @@
 
 from dataclassy import dataclass, factory
 import shared.base_utils2 as sh
-from shared.keyvalues1 import KV
+import vdf
+from pathlib import Path
 import shared.datamodel as dmx
 from shared.datamodel import (
     uint64,
@@ -11,15 +12,7 @@ from shared.datamodel import (
     _ElementArray as element_array,
     _IntArray as int_array,
     _StrArray as string_array,
-    _VectorArray as vector_array,
-    _Vector2Array as vector2_array,
-    _Vector3Array as vector3_array,
-    _Vector4Array as vector4_array,
-
 )
-from shared.datamodel import Vector2, Vector3, Vector4
-from pathlib import Path
-
 
 OVERWRITE_MAPS = True
 WRITE_TO_PREFAB = True
@@ -38,23 +31,22 @@ def ImportVMFToVMAP(vmf_path):
     vmap_path = sh.output(vmf_path, ".vmap")
     vmap_path.parent.MakeDir()
 
-    vmf = KV.CollectionFromFile(vmf_path, case_sensitive=True)
+    sh.status(f'- Reading {vmf_path.local}')
+    with open(vmf_path) as fp:
+        vmf: vdf.VDFDict = vdf.load(fp, mapper=vdf.VDFDict, merge_duplicate_keys=False)#KV.CollectionFromFile(vmf_path, case_sensitive=True)
 
     out_vmap = create_fresh_vmap()
     vmap = out_vmap.root
 
     #merge_multiple_worlds() use latest properties
-    for (i, key), value in vmf.items(indexed_keys=True):
+    for key, value in vmf.items():
         # dismiss excess base keys (exlcuding entity)
-        if i >= 1 or key in (base_vmf.world, base_vmf.entity):
+        if len(vmf.get_all_for(key)) > 1 or key in (base_vmf.world, base_vmf.entity):
             continue
         main_to_root(vmap, key, value)
 
-    for (i, key), value in vmf.items(indexed_keys=True):
-        if key != base_vmf.entity:
-            continue
-        t_ent = CMapWorld.CMapEntity.FromVMFEntity(value)
-        print(t_ent)
+    for vmfEntityKeyValues in vmf.get_all_for("entity"):
+        t_ent = CMapWorld.CMapEntity.FromVMFEntity(vmfEntityKeyValues)
         vmap["world"]["children"].append(
             t_ent.get_element(vmap)
         )
@@ -113,23 +105,21 @@ class _BaseNode(_CustomElement):
 
     def Value_to_Value2(self, k, v):
         "generic KV1 str value to typed KV2 value"
-        print("Translating", k, v)
+        
         if k not in self.__annotations__:
             return v
         _type = self.__annotations__[k]
+
         if issubclass(_type, list):
             if issubclass(_type, dmx._Array):
-                #print(v, "->", v.split(), "-> make_array", _type)
                 return dmx.make_array(v.split(), _type)
             else:
-                #print(v, "->", v.split(), "-> vec[n]", _type)
                 return _type(v.split())
-        #print(v, "->", _type(v))
-        
+            
         return _type(v)
 
     @classmethod
-    def FromKeyValues(cls, KV: KV): # keyvalues of who's?
+    def FromKeyValues(cls, KV: vdf.VDFDict): # keyvalues of who's?
         t = cls()
         baseDict = {}
         editorDict = {}
@@ -139,12 +129,12 @@ class _BaseNode(_CustomElement):
             elif k == "name":
                 t.name = v
             elif k in cls.__annotations__:
-                print("caling v_v2")
+                #print("caling v_v2")
                 baseDict[k] = t.Value_to_Value2(k, v)
             elif not isinstance(v, dict):
                 editorDict[k] = v
-            else:
-                print("Unknown editor object", k, type(v))
+            #else:
+            #    print("Unknown editor object", k, type(v))
         t.__dict__.update(baseDict)
         if hasattr(t, "entity_properties"):
             t.entity_properties.__dict__.update(editorDict)
@@ -177,7 +167,7 @@ class CMapWorld(_BaseEnt):
         isProceduralEntity: bool = False
 
         @classmethod
-        def FromVMFEntity(cls, KV: KV):
+        def FromVMFEntity(cls, KV: vdf.VDFDict):
             editorDict = {}
             if KV.get("editor") is not None:
                 editorDict.update(KV.pop("editor"))
@@ -186,7 +176,6 @@ class CMapWorld(_BaseEnt):
                 KV["scales"] = KV["uniformscale"]
                 del KV["uniformscale"]
             rv = super(cls, cls).FromKeyValues(KV)
-            #print(rv)
             rv.entity_properties.__dict__.update(editorDict)
             return rv
 
@@ -195,7 +184,7 @@ class CMapWorld(_BaseEnt):
     mapUsageType: str = "standard"
 
     @classmethod
-    def FromVMFWorld(cls, worldKV: KV):
+    def FromVMFWorld(cls, worldKV: vdf.VDFDict):
         for (i, key), value in worldKV.items(indexed_keys=True):
             if key in ("solid", "group", "hidden"):
                 continue
