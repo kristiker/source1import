@@ -168,13 +168,34 @@ class CMapWorld(_BaseEnt):
 
         @classmethod
         def FromVMFEntity(cls, KV: vdf.VDFDict):
+            classname = KV.get("classname")
             editorDict = {}
             if KV.get("editor") is not None:
                 editorDict.update(KV.pop("editor"))
             
-            if "uniformscale" in KV:
-                KV["scales"] = KV["uniformscale"]
-                del KV["uniformscale"]
+            # Add your translations here
+            # TODO: not here
+
+            if classname in ("info_player_terrorist", "info_player_counterterrorist"):
+                KV["classname"] = "info_player_spawn"
+
+            if classname == "prop_static":
+                # color and alpha are merged into a vec4
+                if "color" in KV:
+                    KV["rendercolor"] = f'{KV.pop("color")} {KV.pop("renderamt")}'
+                if "rendercolor" in KV:
+                    KV["rendercolor"] = f'{KV.pop("rendercolor")} {KV.pop("renderamt")}'
+
+                # from ('uniformscale' '1') to ('scales', '1 1 1')
+                if "uniformscale" in KV:
+                    KV["scales"] = " ".join([KV.pop("uniformscale")]*3)
+                
+                if "model" in KV:
+                    KV["model"] = Path(KV["model"]).with_suffix(".vmdl").as_posix()
+            
+            if classname == "etc":
+                ...
+
             rv = super(cls, cls).FromKeyValues(KV)
             rv.entity_properties.__dict__.update(editorDict)
             return rv
