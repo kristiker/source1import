@@ -50,13 +50,14 @@ def ImportVMFToVMAP(vmf_path):
             continue
         main_to_root(vmap, key, value)
 
-    #for (i, key), value in vmf.items(indexed_keys=True):
-    #    if key != base_vmf.entity:
-    #        continue
-    #    t_ent = CMapWorld.translate_ent(value)
-    #    vmap['world']['children'].append(
-    #        t_ent.get_element(vmap)
-    #    )
+    for (i, key), value in vmf.items(indexed_keys=True):
+        if key != base_vmf.entity:
+            continue
+        t_ent = CMapWorld.CMapEntity.FromVMFEntity(value)
+        print(t_ent)
+        vmap["world"]["children"].append(
+            t_ent.get_element(vmap)
+        )
 
     out_vmap.write(vmap_path, "keyvalues2", 4)
     print("+ Generated", vmap_path.local)
