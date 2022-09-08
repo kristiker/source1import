@@ -27,15 +27,15 @@ WRITE_TO_PREFAB = True
 maps = Path("maps")
 
 def main():
-    print('Importing maps (entities only)!')
-    for vmf_path in sh.collect(maps, '.vmf', '.vmap', OVERWRITE_MAPS):
+    print("Importing maps (entities only)!")
+    for vmf_path in sh.collect(maps, ".vmf", ".vmap", OVERWRITE_MAPS):
         ImportVMFToVMAP(vmf_path)
 
     print("Looks like we are done!")
 
 def ImportVMFToVMAP(vmf_path):
 
-    vmap_path = sh.output(vmf_path, '.vmap')
+    vmap_path = sh.output(vmf_path, ".vmap")
     vmap_path.parent.MakeDir()
 
     vmf = KV.CollectionFromFile(vmf_path, case_sensitive=True)
@@ -58,21 +58,21 @@ def ImportVMFToVMAP(vmf_path):
     #        t_ent.get_element(vmap)
     #    )
 
-    out_vmap.write(vmap_path, 'keyvalues2', 4)
-    print('+ Generated', vmap_path.local)
+    out_vmap.write(vmap_path, "keyvalues2", 4)
+    print("+ Generated", vmap_path.local)
     return vmap_path
 
 from enum import Enum
 class base_vmf(str, Enum):
-    versioninfo = 'versioninfo'
-    visgroups = 'visgroups'
-    viewsettings = 'viewsettings'
-    world = 'world'
-    entity = 'entity'
-    hidden = 'hidden'
-    cameras = 'cameras'
-    cordon = 'cordon'
-    cordons = 'cordons'
+    versioninfo = "versioninfo"
+    visgroups = "visgroups"
+    viewsettings = "viewsettings"
+    world = "world"
+    entity = "entity"
+    hidden = "hidden"
+    cameras = "cameras"
+    cordon = "cordon"
+    cordons = "cordons"
 
 def create_fresh_vmap() -> dmx.DataModel:
     boilerplate = dmx.load("utils/shared/empty.vmap.txt")
@@ -88,11 +88,11 @@ class _CustomElement:
         for k, v in self.__dict__.items():
             if k == "name":
                 continue
-            if hasattr(v, 'get_element'):
+            if hasattr(v, "get_element"):
                 v = v.get_element(dm)
             elif isinstance(v, list):
                 for i, item in enumerate(v):
-                    if hasattr(item, 'get_element'):
+                    if hasattr(item, "get_element"):
                         v[i] = item.get_element(dm)
             el[k] = v
         return el
@@ -133,9 +133,9 @@ class _BaseNode(_CustomElement):
         baseDict = {}
         editorDict = {}
         for k, v in KV.items():
-            if k == 'id':
-                t.nodeID = t.Value_to_Value2('nodeID', v)
-            elif k == 'name':
+            if k == "id":
+                t.nodeID = t.Value_to_Value2("nodeID", v)
+            elif k == "name":
                 t.name = v
             elif k in cls.__annotations__:
                 print("caling v_v2")
@@ -145,7 +145,7 @@ class _BaseNode(_CustomElement):
             else:
                 print("Unknown editor object", k, type(v))
         t.__dict__.update(baseDict)
-        if hasattr(t, 'entity_properties'):
+        if hasattr(t, "entity_properties"):
             t.entity_properties.__dict__.update(editorDict)
         return t
 
@@ -178,12 +178,12 @@ class CMapWorld(_BaseEnt):
         @classmethod
         def FromVMFEntity(cls, KV: KV):
             editorDict = {}
-            if KV.get('editor') is not None:
-                editorDict.update(KV.pop('editor'))
+            if KV.get("editor") is not None:
+                editorDict.update(KV.pop("editor"))
             
-            if 'uniformscale' in KV:
-                KV['scales'] = KV['uniformscale']
-                del KV['uniformscale']
+            if "uniformscale" in KV:
+                KV["scales"] = KV["uniformscale"]
+                del KV["uniformscale"]
             rv = super(cls, cls).FromKeyValues(KV)
             #print(rv)
             rv.entity_properties.__dict__.update(editorDict)
@@ -196,7 +196,7 @@ class CMapWorld(_BaseEnt):
     @classmethod
     def FromVMFWorld(cls, worldKV: KV):
         for (i, key), value in worldKV.items(indexed_keys=True):
-            if key in ('solid', 'group', 'hidden'):
+            if key in ("solid", "group", "hidden"):
                 continue
         base = super().FromKeyValues(worldKV) # Base worldspawn entity properties.
         world = cls(**base.__dict__)
