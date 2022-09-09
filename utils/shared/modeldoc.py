@@ -8,7 +8,7 @@ class _BaseNode(dict):
     __delattr__ = dict.__delitem__
     
     _class: str = __name__
-    note: str = "Type note..."
+    note: str = ""
     children: list["_BaseNode"] = field(default_factory=list)
 
     def __post_init__(self):
@@ -27,6 +27,12 @@ class _BaseNode(dict):
 class _Node(_BaseNode):
     "Node with _class, note, name, and children"
     name: str = ""
+
+def containerof(*node_types):
+    def inner(cls):
+        # cls is supposed to contain *node_types
+        return cls
+    return inner
 
 class ModelDoc:
     
@@ -57,13 +63,27 @@ class ModelDoc:
             )
         )
 
-    #def containerof(*node_types):
-    #    def inner(cls):
-    #        # cls is supposed to contain *node_types
-    #        return cls
-    #    return inner
-
-
+    @dataclass
+    class AnimFile(_Node):
+        activity_name: str = ""
+        activity_weight: int = 1
+        weight_list_name: str = ""
+        fade_in_time: float = 0.2
+        fade_out_time: float = 0.2
+        looping: bool = False
+        delta: bool = False
+        worldSpace: bool = False
+        hidden: bool = False
+        anim_markup_ordered: bool = False
+        disable_compression: bool = False
+        source_filename: str = ""
+        start_frame: int = -1
+        end_frame: int = -1
+        framerate: int = -1.0
+        take: int = 0
+        reverse: bool = False
+    
+    #@containerof(BodyGroup)
     class BodyGroupList(_BaseNode):
         @dataclass
         class BodyGroup(_Node):
@@ -74,6 +94,9 @@ class ModelDoc:
             class BodyGroupChoice(_Node):
                 meshes: list[str] = field(default_factory=list) # list of names of meshes
 
-
-    #@containerof(RenderMeshFile,)
+    @containerof(RenderMeshFile,)
     class RenderMeshList(_BaseNode): pass
+    @dataclass
+    @containerof(AnimFile)
+    class AnimationList(_BaseNode):
+        default_root_bone_name: str = ""
