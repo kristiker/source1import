@@ -61,9 +61,9 @@ class ModelDoc:
         import_translation: list[float] = field(default_factory=lambda: [0, 0, 0])
         import_rotation: list[float] = field(default_factory=lambda: [0, 0, 0])
         import_scale: float = 1.0
-        align_origin_x_type = "None"
-        align_origin_y_type = "None"
-        align_origin_z_type = "None"
+        align_origin_x_type: str = "None"
+        align_origin_y_type: str = "None"
+        align_origin_z_type: str = "None"
         parent_bone: namelink = ""
         import_filter: dict = field(
             default_factory=lambda:dict(
@@ -93,6 +93,30 @@ class ModelDoc:
         reverse: bool = False
 
     @dataclass
+    class PhysicsHullFile(_Node):
+        parent_bone: str = ""
+        surface_prop: str = "default"
+        collision_tags: str = "solid"
+        recenter_on_parent_bone: bool = False
+        offset_origin = [ 0.0, 0.0, 0.0 ]
+        offset_angles = [ 0.0, 0.0, 0.0 ]
+        align_origin_x_type: str = "None"
+        align_origin_y_type: str = "None"
+        align_origin_z_type: str = "None"
+        filename: resourcepath = "models/citizen.fbx"
+        import_scale: float = 1.0
+        faceMergeAngle: float = 10.0
+        maxHullVertices: int = 0
+        import_mode: str = "SingleHull"
+        optimization_algorithm: str = "QEM"
+        import_filter: dict = field(
+            default_factory=lambda:dict(
+                exclude_by_default = False,
+                exception_list = [  ]
+            )
+        )
+
+    @dataclass
     class BodyGroupChoice(_Node):
         meshes: list[namelink] = field(default_factory=list) # list of names of meshes
 
@@ -117,3 +141,6 @@ class ModelDoc:
     @dataclass
     class AnimationList(_BaseNode):
         default_root_bone_name: str = ""
+    
+    @containerof(PhysicsHullFile)
+    class PhysicsShapeList(_BaseNode): pass

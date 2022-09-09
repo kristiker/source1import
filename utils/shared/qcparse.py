@@ -16,7 +16,8 @@ class QCParse:
 
             for i, (var_name, type) in enumerate(self.__annotations__.items(), 1):
                 if type is _options:
-                    #setattr(self, var_name, "done")
+                    if '{' in command_list:
+                        setattr(self, var_name, command_list[command_list.index('{'):])
                     continue
                 if not get_origin(type):
                     setattr(self, var_name, type(command_list[i]))
@@ -35,6 +36,9 @@ class QCParse:
             self.options = _options(option_list)
 
     class staticprop(): pass
+
+    class surfaceprop(_command):
+        name: str
     
     class bodygroup(_command):
         name: str
@@ -53,15 +57,17 @@ class QCParse:
     class sequence(_command):
         name: str
         mesh_filename: str
-        #class options:
-        #    ...
-        #opt: options
-        
+        options: _options
+    
+    class collisionmodel(_command):
+        mesh_filename: str
+        options: _options
+
     @staticmethod
     def parse(qc_path: Path):
         qc: list["commands"] = []
         with qc_path.open() as fp:
-            contents = fp.read()
+            contents = fp.read() + "\n"
             
             command = [""]
             argument_index = 0
@@ -91,7 +97,7 @@ class QCParse:
                                 if "options" in cls.__annotations__ and not hasattr(cls(command), "options"):
                                     bNextAreOptionsForLast = True
                                 command = cls(command)
-                                print("command created:", command.__dict__)
+                                print("command created:", cls.__name__, command.__dict__)
                             except Exception:
                                 print("command couldn't create:", command)
                         # single cmd
@@ -103,9 +109,6 @@ class QCParse:
                             bNextAreOptionsForLast = False
                             hLast.update_options(command)
                             print("command updated:", hLast.__dict__)
-                            command = [""]
-                            argument_index = 0
-                            return False
                         else:
                             print("command parsed:", command)
                     hLast = command
@@ -142,8 +145,8 @@ class QCParse:
                         finalize_token()
                         continue
                     finalize_command()
-                    continue
-                
+                    continue           
+
                 command[argument_index] += char
 
         return qc

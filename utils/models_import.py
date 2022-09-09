@@ -45,11 +45,18 @@ def ImportQCtoVMDL(qc_path: Path):
 
     qc_commands = QCParse.parse(qc_path)
 
+    global_surfaceprop = "default"
+    # These first
+    for command in qc_commands:
+        if isinstance(command, QCParse.surfaceprop):
+            global_surfaceprop = command.name
+
     for command in qc_commands:
         if command is QCParse.staticprop:
             vmdl.root.model_archetype = "static_prop_model"
             vmdl.root.primary_associated_entity = "prop_static"
         
+        # https://developer.valvesoftware.com/wiki/$body
         elif isinstance(command, QCParse.body):
             command: QCParse.body
             rendermeshfile = ModelDoc.RenderMeshFile(
@@ -58,6 +65,7 @@ def ImportQCtoVMDL(qc_path: Path):
             )
             vmdl.add_to_appropriate_list(rendermeshfile)
         
+        # https://developer.valvesoftware.com/wiki/$sequence
         elif isinstance(command, QCParse.sequence):
             command: QCParse.sequence
             animfile = ModelDoc.AnimFile(
@@ -66,6 +74,7 @@ def ImportQCtoVMDL(qc_path: Path):
             )
             vmdl.add_to_appropriate_list(animfile)
 
+        # https://developer.valvesoftware.com/wiki/$bodygroup
         elif isinstance(command, QCParse.bodygroup):
             command: QCParse.bodygroup
             bodygroup = ModelDoc.BodyGroup(name=command.name)
@@ -81,6 +90,17 @@ def ImportQCtoVMDL(qc_path: Path):
                     bodygroup.add_nodes(ModelDoc.BodyGroupChoice())
 
             vmdl.add_to_appropriate_list(bodygroup)
+        
+        # https://developer.valvesoftware.com/wiki/$collisionmodel
+        elif isinstance(command, QCParse.collisionmodel):
+            command: QCParse.collisionmodel
+            physicsmeshfile = ModelDoc.PhysicsHullFile(
+                filename=f"models/{command.mesh_filename}",
+                surface_prop=global_surfaceprop
+            )
+
+
+            vmdl.add_to_appropriate_list(physicsmeshfile)
 
     sh.write(out_vmdl_path, vmdl.ToString())
     print('+ Saved', out_vmdl_path.local)
