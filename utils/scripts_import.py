@@ -23,8 +23,11 @@ def main():
 
     print("Importing Scripts!")
 
+    # update branch conditionals
+    globals().update((k,v) for (k, v) in sh.__dict__.items() if k in ("SBOX"))
+
     if SOUNDSCAPES:
-        print("Importing Soundscapes!") # soundscapes vsc, txt, and manifest...
+        print("- Soundscapes!") # soundscapes vsc, txt, and manifest...
         
         if SBOX:
             sh.import_context['dest'] = sh.EXPORT_CONTENT
@@ -49,7 +52,7 @@ def main():
     sh.import_context['dest'] = sh.EXPORT_CONTENT
 
     if GAMESOUNDS:
-        print("Importing Game Sounds!") # game sounds: scripts -> soundevents
+        print("- Game Sounds!") # game sounds: scripts -> soundevents
         
         for file in (sh.src(scripts)).glob('**/game_sounds*.txt'):
             if file.name != 'game_sounds_manifest.txt':
@@ -59,7 +62,7 @@ def main():
             ImportGameSounds(boss)
 
     if SURFACES:
-        print("Importing Surfaces!") # surfaces: scripts -> surfaceproperties.vsurf
+        print("- Surfaces!") # surfaces: scripts -> surfaceproperties.vsurf
 
         manifest_handle = VsurfManifestHandler()
         for surfprop_txt in (sh.src(scripts)).glob('**/surfaceproperties*.txt'):
@@ -155,7 +158,7 @@ class SoundscapeImporter:
                 }
             }
             """
-            sh.write(KV3File(data=sndscape_data).ToString(), sndscape_file)
+            sh.write(sndscape_file, KV3File(data=sndscape_data).ToString())
             print("+ Saved", sndscape_file.local)
         return sndscape_folder
 
@@ -193,6 +196,8 @@ def ImportGameSounds(asset_path: Path):
     vsndevts_file = sh.EXPORT_CONTENT / "soundevents" / asset_path.local.relative_to(scripts).with_suffix('.vsndevts')
     out_sound_folder = sh.EXPORT_CONTENT / sounds / asset_path.stem.removeprefix('game_sounds_')
     if not SBOX:
+        if not OVERWRITE_ASSETS and vsndevts_file.exists():
+            return vsndevts_file
         vsndevts_file.parent.MakeDir()
     else:
         out_sound_folder.MakeDir()
@@ -272,24 +277,21 @@ def ImportGameSounds(asset_path: Path):
             selectionmode = "0",
         )
 
-        if not OVERWRITE_ASSETS and sound_file.exists():
+        if SBOX and not OVERWRITE_ASSETS and sound_file.exists():
             sh.status(f"Skipping {sound_file.local} [already-exist]")
             continue
+
         for (i, k), v in gs_data.items(indexed_keys=True):
             out_k, out_v = k, v
             ## Turns out you can have multiple 'wave' in counter strike global offensive!
             # instead of using rndwave {} !!
             if k == 'wave':
                 fixed_wav = fix_wave_resource(v)
-                if i != 0:
-                    if i == 1:
-                        out_kv['vsnd_files'] = [out_kv['vsnd_files'], ]
-                    else:
-                        out_kv['vsnd_files'].append(fixed_wav)
+                #if out_v == "sounds/common/null.vsnd" and not SBOX:
+                #    continue
+                if not SBOX:
+                    out_kv.setdefault('vsnd_files', []).append(fixed_wav)
                     continue
-                if out_v == "sounds/common/null.vsnd" and not SBOX:
-                    continue
-                out_k, out_v = 'vsnd_files', fixed_wav
                 sound_data['sounds'].append(fix_wave_resource(v))
 
             elif k == 'rndwave':
@@ -311,11 +313,16 @@ def ImportGameSounds(asset_path: Path):
                     sound_data[k+'random'] = range[1]
                     continue
                 if k == 'volume':
-                    if v == 'VOL_NORM':
+                    if isinstance(v, str) and 'VOL_NORM' in v:
                         if SBOX:
                             continue
-                        out_v = 1.0  # aka just continue? (default)
-                    out_v = sound_data[k] = float(v)
+                        v = 1.0  # aka just continue? (default)
+                    else:
+                        try:
+                            v = float(v)
+                        except ValueError:
+                            v = 1.0
+                    out_v = sound_data[k] = v
                 elif k == 'pitch':
                     if type(v) is str:
                         v = PITCH.get(v, 100)
@@ -348,13 +355,19 @@ def ImportGameSounds(asset_path: Path):
             
             out_kv[out_k] = out_v
         
-        if out_kv == dict(type='src1_3d'):  # empty
-            out_kv = None
-        
         if SBOX:
-            sh.write(KV3File(data=sound_data).ToString(), sound_file)
+            sh.write(sound_file, KV3File(data=sound_data).ToString())
             print("+ Saved", sound_file.local)
         else:
+            if out_kv == dict(type='src1_3d'):  # empty
+                out_kv = None
+            else:
+                wav_list = out_kv.get('vsnd_files')
+                if wav_list is not None and len(wav_list) == 1:
+                    if wav_list[0] == 'sounds/common/null.vsnd':
+                        out_kv['vsnd_files'] = None
+                    else:
+                        out_kv['vsnd_files'] = wav_list[0]
             kv3[gamesound] = out_kv
     
     if SBOX:
@@ -449,7 +462,7 @@ def ImportSurfaceProperties(asset_path: Path):
                 surface_data["Sounds"][key] = value
 
         if SBOX:
-            sh.write(KV3File(data=surface_data).ToString(), surface_file)
+            sh.write(surface_file, KV3File(data=surface_data).ToString())
             print("+ Saved", surface_file.local)
         else:
             # Add default base

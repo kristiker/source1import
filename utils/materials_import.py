@@ -70,7 +70,7 @@ total=import_total=import_invalid=import_extra = 0
 def main():
     print('\nSource 2 Material Converter!')
 
-    # update branch condition
+    # update branch conditionals
     globals().update((k,v) for (k, v) in sh.__dict__.items() if k in ("IMPORT_MOD", "DOTA2", "STEAMVR", "HLVR", "SBOX"))
 
     # update translation table based on branch conditions
