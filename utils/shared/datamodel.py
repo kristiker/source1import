@@ -20,6 +20,7 @@
 #  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 #  THE SOFTWARE.
 
+from math import isclose
 import struct, array, io, binascii, collections, uuid
 from typing import Iterable, Optional
 from struct import unpack,calcsize
@@ -67,7 +68,7 @@ def _validate_array_list(iterable,array_type):
 def _quote(str):
 	return "\"{}\"".format(str)
 	
-def get_bool(file)-> bool:
+def get_bool(file):
 	return file.read(1) != b'\x00'
 def get_byte(file):
 	return int(unpack("B",file.read(1))[0])
@@ -111,6 +112,12 @@ def _get_kv2_repr(var):
 	else:
 		return str(var)
 
+class NullElement(str):
+	pass
+class uint64(int):
+	def __repr__(self):
+		return hex(self)
+
 class _Array(list):
 	type = None
 	type_str = ""	
@@ -123,7 +130,7 @@ class _Array(list):
 		
 	def to_kv2(self):
 		if len(self) == 0:
-			return f"\n{_kv2_indent}[\n{_kv2_indent}]"
+			return "[ ]"
 		if self.type == Element:
 
 			out = "\n{}[\n".format(_kv2_indent)
@@ -158,12 +165,29 @@ class _Vector(list):
 	type_str = ""
 	def __init__(self,l):
 		if len(l) != len(self.type_str):
-			raise TypeError("Expected {} values".format(len(self.type_str)))
+			raise TypeError("Expected {} values, got {}".format(len(self.type_str), len(l)))
 		l = _validate_array_list(l,float if self.type is None else self.type)
 		super().__init__(l)
-		
+	
+	# TODO 9 decimals max, no decimals on int, no scientific
 	def __repr__(self):
-		return " ".join([str(ord) for ord in self])
+		if self.type == int:
+			nl = ['%i' % ord for ord in self]
+		else:
+			nl = []
+			for ord in self:
+				rord = round(ord)
+				if ord%1 < 1e-4:
+					if isclose(ord, rord, rel_tol=1e-06):
+						nl.append(str(rord))
+					# isclose won't work with zero
+					elif rord == 0 and ord < 1e-06:
+						nl.append('0')
+					else:
+						nl.append('%.6f' % ord)
+				else:
+					nl.append(str(ord))
+		return " ".join(nl)
 
 	def __hash__(self):
 		return hash(tuple(self))
@@ -175,15 +199,20 @@ class _Vector(list):
 		return struct.pack(self.type_str,*self)
 		
 class Vector2(_Vector):
+	type = float
 	type_str = "ff"
 class Vector3(_Vector):
+	type = float
 	type_str = "fff"
 class Vector4(_Vector):
+	type = float
 	type_str = "ffff"
 class Quaternion(Vector4):
 	'''XYZW'''
 	pass
 class Angle(Vector3):
+	pass
+class QAngle(Vector3):
 	pass
 class _VectorArray(_Array):
 	type = list
@@ -200,7 +229,8 @@ class _QuaternionArray(_Vector4Array):
 	type = Quaternion
 class _AngleArray(_Vector3Array):
 	type = Angle
-
+class _QAngleArray(_Vector3Array):
+	type = QAngle
 class Matrix(list):
 	type = list
 	def __init__(self,matrix=None):
@@ -239,7 +269,7 @@ class Color(Vector4):
 	def tobytes(self):
 		out = bytes()
 		for i in self:
-			out += self.type(i).to_bytes(intsize, 'little')
+			out += bytes(int(self[i]))
 		return out
 class _ColorArray(_Vector4Array):
 	pass
@@ -351,7 +381,7 @@ class Element(collections.OrderedDict):
 			return super().__setitem__(key,item)
 		else:
 			if t in _array_types:
-				raise ValueError("Cannot create an attribute from a generic Python list. Use make_array() first.")
+				raise ValueError(f"Cannot create an attribute {key}:{item} from a generic Python list. Use make_array() first.")
 			else:
 				raise ValueError("Invalid attribute type ({})".format(t))
 		
@@ -415,10 +445,14 @@ class Element(collections.OrderedDict):
 class _ElementArray(_Array):
 	type = Element
 
-_dmxtypes = [Element,int,float,bool,str,Binary,Time,Color,Vector2,Vector3,Vector4,Angle,Quaternion,Matrix,int,int]
-_dmxtypes_array = [_ElementArray,_IntArray,_FloatArray,_BoolArray,_StrArray,_BinaryArray,_TimeArray,_ColorArray,_Vector2Array,_Vector3Array,_Vector4Array,_AngleArray,_QuaternionArray,_MatrixArray,_IntArray,_IntArray]
+class _NullElementArray(_Array):
+	type = Element
+
+
+_dmxtypes = [Element,NullElement,int,float,bool,str,Binary,Time,Color,Vector2,Vector3,Vector4,Angle,QAngle,Quaternion,Matrix,uint64,int]
+_dmxtypes_array = [_ElementArray,_NullElementArray,_IntArray,_FloatArray,_BoolArray,_StrArray,_BinaryArray,_TimeArray,_ColorArray,_Vector2Array,_Vector3Array,_Vector4Array,_AngleArray,_QAngleArray,_QuaternionArray,_MatrixArray,_IntArray,_IntArray]
 _dmxtypes_all = _dmxtypes + _dmxtypes_array
-_dmxtypes_str = ["element","int","float","bool","string","binary","time","color","vector2","vector3","vector4","angle","quaternion","matrix","uint64","uint8"]
+_dmxtypes_str = ["element","element","int","float","bool","string","binary","time","color","vector2","vector3","vector4","angle","qangle","quaternion","matrix","uint64","uint8"]
 
 attr_list_v1 = [
 	None,Element,int,float,bool,str,Binary,"ObjectID",Color,Vector2,Vector3,Vector4,Angle,Quaternion,Matrix,
@@ -594,14 +628,14 @@ class DataModel:
 		if len(self.elements) == 1: self.root = elem
 		return elem
 		
-	def find_elements(self,name=None,id=None,elemtype=None) -> Iterable[Element]:
+	def find_elements(self,name=None,id=None,elemtype=None) -> Optional[Iterable[Element]]:
 		out = []
 		if isinstance(id, str): id = uuid.UUID(id)
 		for elem in self.elements:
 			if elem.id == id: return [elem]
 			if elem.name == name: out.append(elem)
 			if elem.type == elemtype: out.append(elem)
-		return out
+		if len(out): return out
 		
 	def _write(self,value, elem = None, suppress_dict = None):
 		t = type(value)
@@ -738,7 +772,7 @@ class DataModel:
 
 			for elem in self.elem_chain: del elem._index
 		elif self.encoding == 'keyvalues2':
-			self.out.write(self.root.get_kv2() + "\n\n")
+			self.out.write(self.prefix_attributes.get_kv2() + "\n" + self.root.get_kv2() + "\n\n")
 			for elem in out_elems:
 				if elem._users > 1:
 					self.out.write(elem.get_kv2() + "\n\n")
@@ -820,24 +854,24 @@ def load(path = None, in_file = None, element_path = None):
 			def read_element(elem_type, line_tracker):
 				id = None
 				name = None
-				is_prefix = (elem_type == "$prefix_element$")
-				if is_prefix: element_chain.append(dm.prefix_attributes)
+				prefix = elem_type == "$prefix_element$"
+				if prefix: element_chain.append(dm.prefix_attributes)
 				
 				def read_value(name,type_str,kv2_value, index=-1):
 					if type_str == 'element': # make a record; will link everything up once all elements have been read
 						if not kv2_value:
-							return None
+							return NullElement(kv2_value)#None
 						else:
 							element_users[kv2_value].append(AttributeReference(element_chain[-1], name, index))
 							return dm.add_element("Missing element",id=uuid.UUID(hex=kv2_value),_is_placeholder=True)
 					
 					elif type_str == 'string': return kv2_value
 					elif type_str in ['int',"uint8"]: return int(kv2_value)
-					elif type_str == "uint64": return int(kv2_value, 0)
+					elif type_str == "uint64": return uint64(kv2_value, 0)
 					elif type_str == 'float': return float(kv2_value)
 					elif type_str == 'bool': return bool(int(kv2_value))
 					elif type_str == 'time': return Time(kv2_value)
-					elif type_str.startswith('vector') or type_str in ['color','quaternion','angle']:
+					elif type_str.startswith('vector') or type_str in ['color','quaternion','angle', 'qangle']:
 						return _get_type_from_string(type_str)( [float(i) for i in kv2_value.split(" ")] )
 					elif type_str == 'binary': return Binary(binascii.unhexlify(kv2_value))
 				
@@ -853,7 +887,7 @@ def load(path = None, in_file = None, element_path = None):
 						continue
 					
 					if line[0] == 'id':
-						if not is_prefix:
+						if not prefix:
 							new_elem = dm.add_element(name,elem_type,uuid.UUID(hex=line[2]))
 							element_chain.append(new_elem)
 						continue
@@ -880,7 +914,7 @@ def load(path = None, in_file = None, element_path = None):
 						elif len(element_path):
 							del element_path[0]
 					
-					if new_elem == None and not is_prefix:
+					if new_elem == None and not prefix:
 						continue
 					
 					if len(line) >= 2:
@@ -992,6 +1026,7 @@ def load(path = None, in_file = None, element_path = None):
 				elif attr_type == Vector2:		return Vector2(get_vec(in_file,2))
 				elif attr_type == Vector3:		return Vector3(get_vec(in_file,3))
 				elif attr_type == Angle:		return Angle(get_vec(in_file,3))
+				elif attr_type == QAngle:		return QAngle(get_vec(in_file,3))
 				elif attr_type == Vector4:		return Vector4(get_vec(in_file,4))
 				elif attr_type == Quaternion:	return Quaternion(get_vec(in_file,4))
 				elif attr_type == Matrix:
