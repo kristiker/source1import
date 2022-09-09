@@ -2,7 +2,7 @@ import shared.base_utils2 as sh
 #from shared.base_utils2 import SBOX
 from pathlib import Path
 from shared.keyvalues1 import KV, VDFDict
-from shared.keyvalues3 import dict_to_kv3_text, KV3File
+from shared.keyvalues3 import KV3File
 import itertools
 
 SBOX = True
@@ -123,7 +123,6 @@ class SoundscapeImporter:
         sndscape_folder.MakeDir()
 
         for name, properties in SoundscapeImporter.FixedUp(file).items():
-            sndscape_data = dict()
             sndscape_file = sndscape_folder / f'{name}.sndscape'
             sndscape_data = dict(properties)
             if not OVERWRITE_ASSETS and sndscape_file.exists():
@@ -157,7 +156,7 @@ class SoundscapeImporter:
                 }
             }
             """
-            sh.write(dict_to_kv3_text(dict(data=sndscape_data)), sndscape_file)
+            sh.write(KV3File(data=sndscape_data).ToString(), sndscape_file)
             print("+ Saved", sndscape_file.local)
         return sndscape_folder
 
@@ -251,7 +250,7 @@ def ImportGameSounds(asset_path: Path):
             return out_v, range
 
     kv = KV.CollectionFromFile(asset_path)
-    kv3 = dict()
+    kv3 = KV3File()
 
     for gamesound, gs_data in kv.items(): # "weapon.fire", {}
         
@@ -354,7 +353,7 @@ def ImportGameSounds(asset_path: Path):
             out_kv = None
         
         if SBOX:
-            sh.write(dict_to_kv3_text(dict(data=sound_data)), sound_file)
+            sh.write(KV3File(data=sound_data).ToString(), sound_file)
             print("+ Saved", sound_file.local)
         else:
             kv3[gamesound] = out_kv
@@ -362,7 +361,7 @@ def ImportGameSounds(asset_path: Path):
     if SBOX:
         return out_sound_folder
     else:
-        sh.write(vsndevts_file, dict_to_kv3_text(kv3))
+        sh.write(vsndevts_file, kv3.ToString())
 
         print("+ Saved", vsndevts_file.local)
         return vsndevts_file
@@ -398,7 +397,7 @@ def ImportSurfaceProperties(asset_path: Path):
         surface_folder.MakeDir()
 
     surface_collection = KV.CollectionFromFile(asset_path)
-    vsurf = dict(SurfacePropertiesList = [])
+    vsurf = KV3File(SurfacePropertiesList = [])
 
     for surface, properties in {**surface_collection}.items():
         new_surface = dict(surfacePropertyName = surface)
@@ -451,7 +450,7 @@ def ImportSurfaceProperties(asset_path: Path):
                 surface_data["Sounds"][key] = value
 
         if SBOX:
-            sh.write(dict_to_kv3_text(dict(data=surface_data)), surface_file)
+            sh.write(KV3File(data=surface_data).ToString(), surface_file)
             print("+ Saved", surface_file.local)
         else:
             # Add default base
@@ -468,7 +467,7 @@ def ImportSurfaceProperties(asset_path: Path):
     if SBOX:
         return surface_folder
     else:
-        sh.write(vsurf_file, dict_to_kv3_text(vsurf))
+        sh.write(vsurf_file, vsurf.ToString())
         print("+ Saved", vsurf_file.local)
 
         return vsurf_file, vsurf['SurfacePropertiesList']

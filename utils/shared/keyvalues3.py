@@ -12,26 +12,16 @@ class KV3Header:
     def __str__(self):
         return self._common % (self.encoding, self.encoding_ver, self.format, self.format_ver)
 
-@dataclass
-class KV3File(dict):
-    version: UUID = UUID('7412167c-06e9-4698-aff2-e63eb59037e7')
-
-    def __str__(self):
-        return dict_to_kv3_text(self, KV3Header(format="source1imported", format_ver=str(self.version)))
-    
-    def ToString(self):
-        return self.__str__()
-
 @dataclass(frozen=True)
 class resource:
     path: Path
     def __str__(self):
         return f'resource:"{self.path.as_posix().lower()}"'
 
-class KV3(dict):
+class KV3File(dict):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.header = KV3Header()
+        self.header = KV3Header(format="source1imported")
 
     def __str__(self):
         kv3 = str(self.header) + '\n'
@@ -96,7 +86,7 @@ if __name__ == '__main__':
                 '\n\tb = \n\t{\n\t\t"(2,)" = 3\n\t}'+\
                 '\n\tc = ["listed_text1", "listed_text2"]\n}'
             self.assertEqual(
-                KV3(
+                KV3File(
                     a='asd asd',
                     b={(2,):3}, 
                     c=["listed_text1", "listed_text2"]

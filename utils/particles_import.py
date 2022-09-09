@@ -2053,7 +2053,7 @@ def ImportParticleSnapshotFile(psf_path: Path) -> Path:
     vsnap_path.parent.MakeDir()
     return copyfile(psf_path, vsnap_path)
 
-class VPCF(kv3.KV3):
+class VPCF(kv3.KV3File):
     def __init__(self, path, **kwargs):
         super().__init__(**kwargs)
         self.header = kv3.KV3Header(format='vpcf26', format_ver='26288658-411e-4f14-b698-2e1e5d00dec6')
