@@ -1,11 +1,10 @@
 import shared.base_utils2 as sh
-#from shared.base_utils2 import SBOX
+from shared.base_utils2 import SBOX
 from pathlib import Path
 from shared.keyvalues1 import KV, VDFDict
 from shared.keyvalues3 import KV3File
 import itertools
 
-SBOX = True
 OVERWRITE_ASSETS = False
 
 SOUNDSCAPES = True
