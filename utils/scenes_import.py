@@ -25,7 +25,7 @@ def main():
     print("Looks like we are done!")
 
 def _ensure_scenes_vrman():
-    scenes_vrman = sh._dest() / 'scenes/scenes.vrman'
+    scenes_vrman = sh.output('scenes/scenes.vrman')
     if not scenes_vrman.is_file():
         scenes_vrman.parent.mkdir(exist_ok=True, parents=True)
         with open(scenes_vrman, 'w') as fp:
@@ -37,7 +37,7 @@ def ImportVCD(vcd_in: Path, to='_root.vcdlist'):
     
     _ensure_scenes_vrman()
     
-    vcdlist = sh._dest() / 'scenes' / to
+    vcdlist = sh.output('scenes') / to
     vcdlist.parent.mkdir(exist_ok=True, parents=True)
     vcd_out = sh.output(vcd_in)
     vcd_out.parent.MakeDir()

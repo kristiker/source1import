@@ -220,7 +220,7 @@ class VDFDict(dict):
             return False
 
         return dict_recurse(self)
-    def ToStr(self, level = 0, quoteKeys=False):
+    def ToString(self, level = 0, quoteKeys=False):
         line_indent = '\t' * level
         s = ""
         s += "\n" + line_indent + '{\n'
@@ -228,7 +228,7 @@ class VDFDict(dict):
             if quoteKeys:
                 key = '"'+key+'"'
             if isinstance(value, VDFDict):
-                s += line_indent + f"\t{key}{value.ToStr(level+1, quoteKeys)}"
+                s += line_indent + f"\t{key}{value.ToString(level+1, quoteKeys)}"
             else:
                 s += line_indent + f'\t{key}\t"{value}"\n'
         s += line_indent + "}\n"
@@ -294,18 +294,18 @@ class KV(VDFDict):
         return f"{self.__class__.__name__}({self.keyName!r}, {list(self.iteritems())!r})"
 
     def __str__(self):
-        return self.ToStr()
+        return self.ToString()
 
     def as_value(self):
         return VDFDict({self.keyName:self})
 
-    def ToStr(self, level=0, quoteKeys=False):
+    def ToString(self, level=0, quoteKeys=False):
         line_indent = "\t" * level
-        return line_indent + f'"{self.keyName}"{super().ToStr(level, quoteKeys)}'
+        return line_indent + f'"{self.keyName}"{super().ToString(level, quoteKeys)}'
 
     def save(self, path, quoteKeys=False):
         with open(path, 'w') as fp:
-            fp.write(self.ToStr(quoteKeys=quoteKeys))
+            fp.write(self.ToString(quoteKeys=quoteKeys))
 
     def ToKeyValues(self):
         raise NotImplementedError

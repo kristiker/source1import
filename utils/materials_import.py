@@ -1,8 +1,12 @@
+from enum import Enum, auto
+import math
 from pathlib import Path
 from shutil import copyfile
+from typing import Callable, Optional
 from PIL import Image, ImageOps
 
 import shared.base_utils2 as sh
+from shared.base_utils2 import IMPORT_MOD, DOTA2, STEAMVR, HLVR, SBOX
 from shared.keyvalue_simple import getKV_tailored as getKeyValues
 from shared.keyvalues1 import KV
 from shared.material_proxies import ProxiesToDynamicParams
@@ -10,14 +14,11 @@ from shared.material_proxies import ProxiesToDynamicParams
 import numpy as np
 from shared import PFM
 
-# generic, blend instead of vr_complex, vr_simple_2wayblend etc...
-GENERIC_SHADER = False
-COMPLEX_SH = not GENERIC_SHADER
-
 # Set this to True if you wish to overwrite your old vmat files.
-OVERWRITE_VMAT = True
-OVERWRITE_SKYBOX_VMATS = True
-OVERWRITE_SKYCUBES = True
+OVERWRITE_VMAT = False
+OVERWRITE_SKYBOX_VMATS = False
+OVERWRITE_MODIFIED = False
+OVERWRITE_SKYCUBES = False
 
 # True to let vtex handle the inverting of the normalmap.
 NORMALMAP_G_VTEX_INVERT = True
@@ -50,6 +51,83 @@ SKY_FACES = ('up', 'dn', 'lf', 'rt', 'bk', 'ft')
 HDRCOMPRESS_FIX_MUL = 4  # 1 to 16
 # Higher values increase vibrance and contrast
 HDRCOMPRESS_FIX_EXP = 1.6  # 1 to 2.2
+
+vmt, vmat = None, None
+
+class Failures(dict):
+    def add(self, err, file):
+        self.setdefault(err, list())
+        self[err].append(file)
+    def __len__(self):
+        return sum(len(filelist) for filelist in self.values())
+    
+    #def __bool__(self):
+    #    return len(self.data) > 0
+
+failureList = Failures()
+total=import_total=import_invalid=import_extra = 0
+
+def main():
+    print('\nSource 2 Material Converter!')
+
+    # update branch condition
+    globals().update((k,v) for (k, v) in sh.__dict__.items() if k in ("IMPORT_MOD", "DOTA2", "STEAMVR", "HLVR", "SBOX"))
+
+    # update translation table based on branch conditions
+    global vmt_to_vmat
+    vmt_to_vmat = vmt_to_vmat_pre()
+
+    for d in vmt_to_vmat.values():
+        for k, v in d.items():
+            if isinstance(v, tuple): v = v[0]
+            KNOWN[k] = v
+
+    global total, import_total, import_invalid
+    sh.importing = materials
+    for vmt_path in sh.collect(
+            materials,
+            IN_EXT, OUT_EXT,
+            existing=OVERWRITE_VMAT,
+            outNameRule=OutName,
+            # proxies vec3 special materials/lights/camera.vmt
+            # "models/player/**/*.vmt"
+            # "de_nuke/nukwater_movingplane.vmt"
+            # "models/weapons/v_models/rif_ak47/ak47.vmt"
+            # "test/test.vmt"
+            match=None):
+
+        total += 1
+        if ImportVMTtoVMAT(vmt_path):
+            import_total += 1
+        else:
+            sh.skip("invalid", vmt_path)
+            import_invalid += 1
+
+    print("\nSkybox materials...")
+
+    for skyfaces_json in sh.collect(
+            None, '.json', OUT_EXT, OVERWRITE_SKYBOX_VMATS,
+            outNameRule=OutName_Sky, searchPath=sh.EXPORT_CONTENT/legacy_skyfaces):
+        ImportSkyJSONtoVMAT(skyfaces_json)
+
+    if failureList:
+        print("\n\t<<<< THESE MATERIALS HAVE ERRORS >>>>")
+        for failure, files in failureList.items():
+            print(failure)
+            for file in files:
+                print('\t' + str(file))
+        print("\t^^^^ THESE MATERIALS HAVE ERRORS ^^^^")
+
+    try:
+        print(f"\nTotal imports:\t{import_total} / {total}\t| " + "{:.2f}".format((import_total/total) * 100) + f" % Imported")
+        print(f"Total skipped:\t{import_invalid} / {total}\t| " + "{:.2f}".format((import_invalid/total) * 100) + f" % Skipped")
+        print(f"Total errors :\t{len(failureList)} / {total}\t| " + "{:.2f}".format((len(failureList)/total) * 100) + f" % Had Errors")
+        print(f"Total extra :\t{import_extra}")
+
+    except Exception: pass
+    # csgo -> 183 / 15308 | 1.20 % Error rate -- 4842 / 15308 | 31.63 % Skip rate
+    # l4d2 -> 504 / 3675 | 13.71 % Error rate -- 374 / 3675 | 10.18 % Skip rate
+    print("\nFinished! Your materials are now ready.")
 
 class ValveMaterial:
     def __init__(self, shader, kv):
@@ -135,33 +213,68 @@ class VMAT(ValveMaterial):
         self._shader = n
         self._kv['shader'] = n
 
+class core(str, Enum):
+    """core shaders"""
+    def __call__(self):
+        if HLVR:
+            return "vr_" + self.name
+        return self.name
+    complex = auto()
+    simple = auto()
+    glass = auto()
+    black_unlit = auto()
+    static_overlay = auto()
+    projected_decals = auto()
+
 # keep everything lowercase !!!
+def main_ubershader():
+    if STEAMVR: return "vr_standard"
+    elif DOTA2: return "global_lit_simple"
+    else: return core.complex()
+
+def main_blendable():
+    if HLVR: return "vr_simple_2way_blend"
+    elif SBOX: return "blendable"
+    elif DOTA2: return "multiblend"
+    else: return main_ubershader()
+
+def main_water():
+    if SBOX: return "water"
+    elif DOTA2: return "water_dota"
+    else: return "simple_water"
+
+def decal_solution():
+    if STEAMVR:
+        return core.projected_decals()
+    return core.static_overlay()
+
 shaderDict = {
     "black":                "black",
     "sky":                  "sky",
-    "unlitgeneric":         "vr_complex",
-    "vertexlitgeneric":     "vr_complex",
-    "decalmodulate":        "vr_projected_decals",  # https://developer.valvesoftware.com/wiki/Decals#DecalModulate
-    "lightmappedgeneric":   "vr_complex",
-    "lightmappedreflective":"vr_complex",
-    "character":            "vr_complex",  # https://developer.valvesoftware.com/wiki/Character_(shader)
-    "customcharacter":      "vr_complex",
-    "teeth":                "vr_complex",
-    "water":                "simple_water",
+    "unlitgeneric":         main_ubershader,
+    "vertexlitgeneric":     main_ubershader,
+    "decalmodulate":        core.projected_decals,  # https://developer.valvesoftware.com/wiki/Decals#DecalModulate
+    "lightmappedgeneric":   main_ubershader,
+    "lightmappedreflective":main_ubershader,
+    "character":            main_ubershader,  # https://developer.valvesoftware.com/wiki/Character_(shader)
+    "customcharacter":      main_ubershader,
+    "teeth":                main_ubershader,
+    "water":                main_water,
     #"refract":              "refract",
-    "worldvertextransition":"vr_simple_2way_blend",
-    "lightmapped_4wayblend":"vr_simple_2way_blend",
-    "lightmappedtwotexture":"vr_complex",  # 2 multiblend $texture2 nocull scrolling, model, additive.
-    "unlittwotexture":      "vr_complex",  # 2 multiblend $texture2 nocull scrolling, model, additive.
+    "worldvertextransition":main_blendable,
+    "lightmapped_4wayblend":main_blendable,  # TODO: Form blendmap from luminance https://developer.valvesoftware.com/wiki/Lightmapped_4WayBlend#Controlling_Blendinghttps://developer.valvesoftware.com/wiki/Lightmapped_4WayBlend#Controlling_Blending
+    "multiblend":           main_blendable,
+    "lightmappedtwotexture":main_ubershader,  # 2 multiblend $texture2 nocull scrolling, model, additive.
+    "unlittwotexture":      main_ubershader,  # 2 multiblend $texture2 nocull scrolling, model, additive.
     "cable":                "cables",
     "splinerope":           "cables",
-    "shatteredglass":       "vr_glass",
+    "shatteredglass":       core.glass,
     "wireframe":            "tools_wireframe",
     "wireframe_dx9":        "error",
     #"spritecard":           "spritecard",  these are just vtexes with params defined in vpcf renderer - skip
     #"subrect":              "spritecard",  # should we just cut? $Pos "256 0" $Size "256 256" $decalscale 0.25 decals\blood1_subrect.vmt
     #"weapondecal": weapon sticker
-    "patch":                "vr_complex", # fallback if include doesn't have one
+    "patch":                main_ubershader, # fallback if include doesn't have one
     #grass
     #customweapon
     #decalbasetimeslightmapalphablendselfillum
@@ -178,36 +291,41 @@ shaderDict = {
 }
 
 def chooseShader():
-    d = {x:0 for x in list(shaderDict.values())}
+    get_shader = lambda v: v() if callable(v) else v
+    d = {get_shader(x):0 for x in list(shaderDict.values())}
 
     if vmt.shader not in shaderDict:
         if sh.DEBUG:
             failureList.add(f"{vmt.shader} unsupported shader", vmt.path)
-        return "vr_black_unlit"
+        return core.black_unlit
 
-    if GENERIC_SHADER:   d["generic"] += 1
-    else:               d[shaderDict[vmt.shader]] += 1
+    d[get_shader(shaderDict[vmt.shader])] += 1
 
-    if vmt.KeyValues['$beachfoam']: return "csgo_beachfoam"
+    if vmt.KeyValues['$beachfoam']:
+        return "csgo_beachfoam"
 
-    if vmt.KeyValues['$decal'] == 1: d["vr_projected_decals"] += 10
+    if vmt.shader == "decalmodulate":
+        if STEAMVR:
+            vmat.KeyValues["F_MODULATE_2X"] = 1
+            return "projected_decal_modulate"
+
+    if vmt.KeyValues['$decal'] == 1:
+        return decal_solution()
 
     if vmt.shader == "worldvertextransition":
-        if vmt.KeyValues['$basetexture2']: d["vr_simple_2way_blend"] += 10
+        if vmt.KeyValues['$basetexture2']: d[main_blendable()] += 10
 
     elif vmt.shader == "lightmappedgeneric":
-        if vmt.KeyValues['$newlayerblending'] == 1: d["vr_simple_2way_blend"] += 10
-        #if vmt.KeyValues['$decal'] == 1: sh["vr_projected_decals"] += 10
+        if vmt.KeyValues['$newlayerblending'] == 1: d[main_blendable()] += 10
 
-    elif vmt.shader == "":
-        pass
-    # TODO: vr_complex -> vr simple if no selfillum tintmask detailtexture specular
-    return max(d, key = d.get)
+    #if vmt.KeyValues['$decal'] == 1: sh[vr.projected_decals()] += 10
+
+    return get_shader(max(d, key = d.get))
 
 ignoreList = [ "dx9", "dx8", "dx7", "dx6", "proxies"]
 
-def default(texture_type) -> str:
-    return VMAT_DEFAULT_PATH.as_posix() + "/default" + texture_type + ".tga"
+def default(texture_type:str, extension:str = ".tga") -> str:
+    return VMAT_DEFAULT_PATH.as_posix() + "/default" + texture_type + extension
 
 def OutName(path: Path) -> Path:
     #if path.local.is_relative_to(materials/skybox/) and path.stem[-2:] in sky.skyboxFaces:
@@ -224,16 +342,29 @@ def fixVmtTextureDir(localPath, fileExt = TEXTURE_FILEEXT) -> str:
         return ""
     return (materials / localPath.lstrip('\\/')).with_suffix(fileExt).as_posix()
 
-# TODO: renameee, remap table etc...
 def formatNewTexturePath(vmtPath, textureType = TEXTURE_FILEEXT, noRename = False, forReal = True):
-
-    #vmtPath = sh.src(fixVmtTextureDir(vmtPath)) + "." + textureType.split(".", 1)[1] or ''
-
     #if USE_DEFAULT_FOR_MISSING_TEXTURE and not os.path.exists(vmtPath):
     #    return default(textureType)
 
-    #return vmtPath.local
-    return str(fixVmtTextureDir(vmtPath))
+    texturePath = sh.output(fixVmtTextureDir(vmtPath))
+    if not texturePath.is_file():
+        # it's an animated texture!
+        if (frame:=texturePath.with_stem(texturePath.stem + "000")).is_file():
+            frames = [frame]
+            for i in range(1, 1000):
+                frame = texturePath.with_stem(f"{texturePath.stem}{i:03}")
+                if not frame.is_file(): break
+                frames.append(frame)
+            grid_w, grid_h, texturePath = TextureFramesToSheet(frames)
+            vmat.KeyValues["g_nNumAnimationCells"] = len(frames)
+            #vmat.KeyValues["g_flAnimationTimePerFrame"] = 1 / fps
+            vmat.KeyValues["g_vAnimationGrid"] = f"[{grid_w} {grid_h}]"
+    else:
+        # animation sheet is already built
+        if (sheetdata:=texturePath.with_name(texturePath.stem + '.sheet.json')).is_file():
+            vmat.KeyValues.update(sh.GetJson(sheetdata))
+
+    return str(texturePath.local)
 
 def getTexture(vtf_path):
     "get vtf source"
@@ -258,11 +389,8 @@ def createMask(image_path, copySub = '_mask', channel = 'A', invert = False, que
 
     if not image_path.is_file():
         msg("Couldn't find image", image_path)
-        failureList.add(f"createMask not found", f'{vmt.path} - {image_path}')
-        #if vmtTexture in vmt_to_vmat['textures']:
-        #    failureList.add(f"{vmtTexture} not found", vmt.path) # FIXME ALL OF ME vmtTexture
-        #else:
-        print(f"~ ERROR: Couldn't find requested image ({image_path}). Please check.")
+        failureList.add(f"createMask not found", f'{vmt.path.local} - {image_path.local}')
+        print(f"~ ERROR: Couldn't find requested image ({image_path.local}).\nPlease make sure all textures have been pre-exported.")
         return default(copySub)
 
     image = Image.open(image_path).convert('RGBA')
@@ -277,7 +405,8 @@ def createMask(image_path, copySub = '_mask', channel = 'A', invert = False, que
 
     colors = imgChannel.getcolors()
     if len(colors) == 1:  # mask with single color
-        if copySub == "_rough" and colors[0][1] == 0:  # fix some very dumb .convert('RGBA') with 255 255 255 alpha
+        if (copySub == ("_gloss" if STEAMVR else "_rough")
+        and colors[0][1] == (255 if STEAMVR else 0)):  # fix some very dumb .convert('RGBA') with 255 255 255 alpha
             return default(copySub)  # TODO: should this apply to other types of masks as well?
         return fixVector(f"{{{colors[0][1]} {colors[0][1]} {colors[0][1]}}}", True)
 
@@ -405,6 +534,35 @@ def createSkyCubemap(json_collection: Path, maxFaceRes: int = 0):
 
     return sky_cubemap_path
 
+def TextureFramesToSheet(frames: list[Path]):
+    # find closest power of two number
+    grid_max_power = math.ceil(math.log2(len(frames)))
+    # keep the grid squarish
+    grid_rows = 2 ** math.ceil(grid_max_power/2)
+    grid_columns = 2 ** math.floor(grid_max_power/2)
+
+    sheet_image = None
+    for frame_no, frame in enumerate(frames):
+        frame_image = Image.open(frame)
+        if sheet_image is None:
+            sheet_width = frame_image.width*grid_rows
+            sheet_height = frame_image.height*grid_columns
+            sheet_image = Image.new('RGB', (sheet_width, sheet_height), color = (0, 0, 0))
+            sheet_path = sh.output(frame.with_stem(frame.stem[:-3]))
+        frame_position_in_sheet = (
+            (frame_no % grid_rows) * frame_image.width,
+            (frame_no // grid_rows) * frame_image.height
+        )
+        sheet_image.paste(frame_image, frame_position_in_sheet)
+
+    sheet_image.save(sheet_path)
+    print("+ Saved animated texture", sheet_path.local.as_posix())
+    sh.write(
+        path=sheet_path.with_name(sheet_path.stem + '.sheet.json'),
+        content=f'{{"g_nNumAnimationCells":{len(frames)},"g_vAnimationGrid":"[{grid_rows} {grid_columns}]"}}'
+    )
+    return grid_rows, grid_columns, sheet_path
+
 def flipNormalMap(localPath):
 
     image_path = sh.output(localPath)
@@ -477,7 +635,7 @@ def fix_envmap(vmtVal):
         vmat.KeyValues['F_SPECULAR_CUBE_MAP'] = 1
     else:
         vmat.KeyValues['F_SPECULAR_CUBE_MAP'] = 2
-        vmat.KeyValues['TextureCubeMap'] = "formatN"#TODO
+        vmat.KeyValues['TextureCubeMap'] = default('_cube', '.pfm')#TODO
     return 1  # presence()
 
 
@@ -497,8 +655,11 @@ def mapped_val(v: str, dMap: dict):
 def float_val(v: str):
     return "{:.6f}".format(float(v.strip(' \t"')))
 
+def uniform_vec2(v: str):
+    return "[{:.6f} {:.6f}]".format(float(v), float(v))
+
 def vmat_layered_param(vmatKey, layer = 'A', force = False):
-    if vmat.shader == "vr_simple_2way_blend" or force:
+    if vmat.shader in ("vr_simple_2way_blend", "blendable") or force:
         return vmatKey + layer
     return vmatKey
 
@@ -546,35 +707,36 @@ VMAT_DEFAULTVAL = 1
 VMAT_TRANSLFUNC = 2
 VMAT_EXTRALINES = 3
 
-IMPORT_MOD = "csgo"
-EXPORT_MOD = "hlvr"
-
-
-vmt_to_vmat = {
+# callable - to evaluate conditionals at runtime
+vmt_to_vmat_pre: Callable[[], dict[str, dict[str, Optional[tuple]]]] = lambda: {
 
 # http://counter-strike.net/workshop/workshopmaps#hammer
 'f_keys': {
 
-    '$translucent':     ('F_TRANSLUCENT',           '1'),  # "F_BLEND_MODE 0" for "vr_projected_decals"
+    '$translucent':     ('F_TRANSLUCENT',           '1'),  # "F_BLEND_MODE 0" for projected_decals
     '$alphatest':       ('F_ALPHA_TEST',            '1'),
-    '$phong':           ('F_SPECULAR',              '1'), # why did i do this
+    '$phong':           ('F_SPECULAR',              '1'),
     '$envmap':          ('F_SPECULAR',              '1', [fix_envmap]),  # in "environment maps/metal" | "env_cubemap" F_SPECULAR_CUBE_MAP 1 // In-game Cube Map
     '$envmapanisotropy':('F_SPECULAR_CUBE_MAP_ANISOTROPIC_WARP', '1'), # requires F_ANISOTROPIC_GLOSS 1
+    '$ssbump':          ('F_ENABLE_NORMAL_SELF_SHADOW', '1') if SBOX else None,
     '$selfillum':       ('F_SELF_ILLUM',            '1'),
     '$additive':        ('F_ADDITIVE_BLEND',        '1'),
     '$ignorez':         ('F_DISABLE_Z_BUFFERING',   '1'),
     '$nocull':          ('F_RENDER_BACKFACES',      '1'),  # F_NO_CULLING 1 # see this for certain sheeted texs -> F_USE_SHEETS 1
     '$decal':           ('F_OVERLAY',               '1'),
     '$flow_debug':      ('F_FLOW_DEBUG',            '0'),
-    '$detailblendmode': ('F_DETAIL_TEXTURE',        '1', [mapped_val, {'0':'1', '1':'2', '12':'0'} ]),  # https://developer.valvesoftware.com/wiki/$detail#Parameters_and_Effects
+    '$detailblendmode': ('F_DETAIL_TEXTURE',        '1', [mapped_val, {'0':'1', '1':'2', '7': '1', '12':'0'} ]),  # https://developer.valvesoftware.com/wiki/$detail#Parameters_and_Effects
     '$decalblendmode':  ('F_DETAIL_TEXTURE',        '1', [mapped_val, {'0':'1', '1':'2', '12':'0'} ]),  # materialsystem\stdshaders\BaseVSShader.h#L26
     '$sequence_blend_mode': ('F_FAST_SEQUENCE_BLEND_MODE', '1', [mapped_val, {'0':'1', '1':'2', '2':'3'}]),
     '$gradientmodulation':  ('F_GRADIENTMODULATION', '1'),
     '$selfillum_envmapmask_alpha': ('F_SELF_ILLUM', '1'),
     '$forceenvmap':     ('F_REFLECTION_TYPE', 1),  # Water reflection type
     '$addbumpmaps':     ('F_ADDBUMPMAPS',     1),
-    "$masks1": ('F_MASKS_1',    '1') if EXPORT_MOD == "dota" else None,  #
-    "$masks2": ('F_MASKS_2',    '1') if EXPORT_MOD == "dota" else None,  #
+    "$masks1":          ('F_MASKS_1',    '1') if DOTA2 else None,
+    "$masks2":          ('F_MASKS_2',    '1') if DOTA2 else None,
+    "$newlayerblending":('F_LAYER_BORDER_TINT', '2') if DOTA2 else \
+                        ('F_FANCY_BLENDING', '1') if STEAMVR else \
+                        None,
 
     #'$phong':           ('F_PHONG',                 '1'),
     #'$vertexcolor:      ('F_VERTEX_COLOR',          '1'),
@@ -599,27 +761,31 @@ vmt_to_vmat = {
 
     ## Layer blend mask
     '$blendmodulatetexture':\
-                        ('TextureMask',             '_mask',   [createMask, 'G', False], ('F_BLEND', 1)) if COMPLEX_SH else \
-                        ('TextureLayer1RevealMask', '_blend',  [createMask, 'G', False], ('F_BLEND', 1)),
+                        ('TextureMask',             '_mask',   [createMask, 'G', False], ('F_BLEND', 1)) if HLVR else \
+                        ('TextureLayer1RevealMask', '_blend',  [createMask, 'G', False], ('F_BLEND', 1)) if STEAMVR else \
+                        ('TextureBlendMaskB',      '_blend',  [createMask, 'G', False]) if SBOX else \
+                        None,
     ## Layer 1
-    '$basetexture2':    ('TextureColorB' if COMPLEX_SH else 'TextureLayer1Color',  '_color',  [formatNewTexturePath]),
+    '$basetexture2':    ('TextureColorB' if not STEAMVR else 'TextureLayer1Color',  '_color',  [formatNewTexturePath]),
     # There is also Texture2Color, F_TWOTEXTURE, Texture2Translucency, g_vTexCoord2
-    '$texture2':        ('TextureColorB' if COMPLEX_SH else 'TextureLayer1Color',   '_color',  [formatNewTexturePath]),  # UnlitTwoTexture
-    '$bumpmap2':        ('TextureNormalB' if COMPLEX_SH else 'TextureLayer1Normal', '_normal', [formatNewTexturePath], None if COMPLEX_SH else ('F_BLEND_NORMALS',  1)),
+    '$texture2':        ('TextureColorB' if not STEAMVR else 'TextureLayer1Color',   '_color',  [formatNewTexturePath]),  # UnlitTwoTexture
+    '$bumpmap2':        ('TextureNormalB' if not STEAMVR else 'TextureLayer1Normal', '_normal', [formatNewTexturePath], None if not STEAMVR else ('F_BLEND_NORMALS',  1)),
 
     ## Layer 2-3
-    '$basetexture3':    ('TextureLayer2Color',  '_color',  [formatNewTexturePath]),
-    '$basetexture4':    ('TextureLayer3Color',  '_color',  [formatNewTexturePath]),
+    '$basetexture3':    ('TextureColorC' if SBOX else 'TextureLayer2Color',  '_color',  [formatNewTexturePath]),
+    '$basetexture4':    ('TextureColorD' if SBOX else 'TextureLayer3Color',  '_color',  [formatNewTexturePath]),
 
     '$normalmap2':      ('TextureNormal2',      '_normal', [formatNewTexturePath],     ('F_SECONDARY_NORMAL', 1)),  # used with refract shader
     '$flowmap':         ('TextureFlow',         '',        [formatNewTexturePath],     ('F_FLOW_NORMALS', 1), ('F_FLOW_DEBUG', 1)),
     '$flow_noise_texture':('TextureNoise',      '_noise',  [formatNewTexturePath],     ('F_FLOW_NORMALS', 1), ('F_FLOW_DEBUG', 2)),
-    '$detail':          ('TextureDetail',       '_detail', [formatNewTexturePath],     ('F_DETAIL_TEXTURE', 1)),  # $detail2
+    '$detail':          ('TextureDetail',       '_detail', [formatNewTexturePath],     ('F_DETAIL_TEXTURE', 1)),
     '$decaltexture':    ('TextureDetail',       '_detail', [formatNewTexturePath],     ('F_DETAIL_TEXTURE', 1), ('F_SECONDARY_UV',  1), ('g_bUseSecondaryUvForDetailTexture',  1)),
+    '$detail2':         ('TextureDetail2',      '_detail', [formatNewTexturePath]),
 
     '$selfillummask':   ('TextureSelfIllumMask','_selfillummask', [formatNewTexturePath]),
     '$tintmasktexture': ('TextureTintMask',     '_mask',   [createMask, 'G', False],   ('F_TINT_MASK',  1)), #('TextureTintTexture',)
-    '$_vmat_metalmask': ('TextureMetalness',    '_metal',  [formatNewTexturePath],     ('F_METALNESS_TEXTURE',  1)),  # F_SPECULAR too
+    '$_vmat_metalmask': ('TextureMetalness',    '_metal',  [formatNewTexturePath],     ('F_METALNESS_TEXTURE',  1)) if not STEAMVR else \
+                        ('TextureReflectance',    '_refl',  [formatNewTexturePath]),   # F_SPECULAR too?
     '$_vmat_transmask': ('TextureTranslucency', '_trans',  [formatNewTexturePath]),
     '$_vmat_rimmask':   ('TextureRimMask',      '_rimmask',[formatNewTexturePath]),
 
@@ -632,19 +798,14 @@ vmt_to_vmat = {
     '$lightwarptexture': ('TextureDiffuseWarp', '_diffusewarp', [formatNewTexturePath], ('F_DIFFUSE_WARP', 1)),
     '$phongwarptexture': ('TextureSpecularWarp', '_specwarp', [formatNewTexturePath],   ('F_SPECULAR_WARP', 1)),
 
-    # Next script should take care of these, unless BASIC_PBR
-    '$envmapmask':  ('$envmapmask',         '_env_mask',   [formatNewTexturePath]) if not BASIC_PBR else \
-                    ('TextureRoughness',    '_rough',      [createMask, 'L', True]) if not GENERIC_SHADER else \
+    '$envmapmask':  ('TextureCubeMapSeparateMask', '_mask', ('F_MASK_CUBE_MAP_BY_SEPARATE_MASK', 1)) if DOTA2 else \
+                    ('TextureRoughness',    '_rough',      [createMask, 'L', True]) if not STEAMVR else \
                     ('TextureGlossiness',   '_gloss',      [formatNewTexturePath]),
 
-                    #if out dota2 ('TextureCubeMapSeparateMask', '_mask', ('F_MASK_CUBE_MAP_BY_SEPARATE_MASK' 1))
-
-    ('$phong', 1): {
-        '$phongmask':   ('$phongmask',          '_phong_mask', [formatNewTexturePath]) if not BASIC_PBR else \
-                        ('TextureRoughness',    '_rough',      [formatNewTexturePath]) if not GENERIC_SHADER else \
-                        ('TextureGlossiness',   '_gloss',      [formatNewTexturePath]),
-    },
-    '$phongmask': ('TextureRoughness',    '_rough',      [formatNewTexturePath]),
+    #('$phong', 1): {
+    '$phongmask':   ('TextureRoughness',    '_rough',      [formatNewTexturePath]) if not STEAMVR else \
+                    ('TextureGlossiness',   '_gloss',      [formatNewTexturePath]),
+    #},
 },
 
 'transform': {  # Center Scale Rotation Offset F_TEXTURETRANSFORMS
@@ -652,7 +813,7 @@ vmt_to_vmat = {
     '$detailtexturetransform':  ('g_vDetailTexCoord',),  #  g_vDetailTexCoordXform
     '$bumptransform':           ('g_vNormalTexCoord',),  # g_vLayer1NormalTexCoord for blends F_LAYERS
     '$blendmodulatetransform':  ('g_vBlendModulateTexCoord',),
-    '$bumptransform2':          ('g_vLayer2NormalTexCoord',),
+    '$bumptransform2':          ('g_vLayer2NormalTexCoord',), # g_vTexCoordScale2 in hlvr
     '$basetexturetransform2':   ('g_vLayer2TexCoord',),
     '$texture2transform':       ('g_vTexCoord2',),
     #'$blendmasktransform':      (''),
@@ -681,19 +842,26 @@ vmt_to_vmat = {
     '$gradientcolorstop1':  ('g_vGradientColorStop1', '[1.000 1.000 1.000 0.000]',  [fixVector, True]),
     '$gradientcolorstop2':  ('g_vGradientColorStop2', '[1.000 1.000 1.000 0.000]',  [fixVector, True]),
     '$uvscale':             ('g_flTexCoordScale', '', [float_val]),
+    # MultiBlend
+    '$scale':               None,
+    '$scale2':              ('g_vTexCoordScale2', '[1.000 1.000]', [uniform_vec2]),
+    '$scale3':              ('g_vTexCoordScale3', '[1.000 1.000]', [uniform_vec2]),
+    '$scale4':              ('g_vTexCoordScale4', '[1.000 1.000]', [uniform_vec2]),
     
     # s1 channels relative to each other "[0 0 0]" = "[1 1 1]" (lum preserving) -> s2 is color so it has a brightness factor within it
     # perhaps default to 0.5 0.5 0.5 and scale it with $phongboost, etc
     '$phongtint':           ('g_vSpecularColor',    '[1.000 1.000 1.000 0.000]',    [fixVector, True]),
 
+    '$frame':               ('g_flAnimationFrame',      '0.000',    [float_val], ('F_TEXTURE_ANIMATION', 1)),
     '$alpha':               ('g_flOpacityScale',        '1.000',    [float_val]),
     '$alphatestreference':  ('g_flAlphaTestReference',  '0.500',    [float_val], ('g_flAntiAliasedEdgeStrength', 1.0)),
     '$blendtintcoloroverbase':('g_flModelTintAmount',   '1.000',    [float_val]),  # $layertint1
     '$selfillumscale':      ('g_flSelfIllumScale',      '1.000',    [float_val]),
     '$phongexponent':       ('g_flSpecularExponent',    '32.000',   [float_val]),
-    '$phongboost':          ('g_flPhongBoost',          '1.000',    [float_val]),  #
+    '$phongboost':          ('g_flPhongBoost',          '1.000',    [float_val]),
     '$metalness':           ('g_flMetalness',           '0.000',    [float_val]),
     '$_metalness2':         ('g_flMetalnessB',          '0.000',    [float_val]),
+    '$ssbump':   ('g_flLightRangeForSelfShadowNormals', '1.000',    [float_val]) if SBOX else None, # tiny hack
     '$reflectamount':       ('g_flReflectionAmount',    '',         [float_val]),
     '$refractamount':       ('g_flRefractionAmount',    '',         [float_val]),
     #'$refractamount':       ('g_flRefractScale',        '0.200',    [float_val]),
@@ -721,37 +889,38 @@ vmt_to_vmat = {
     #'$diffuseexp':          ('g_flDiffuseExponent',     '2.000',    [float_var], 'g_vDiffuseWrapColor "[1.000000 1.000000 1.000000 0.000000]'),
 
     # shader.blend and shader.vr_standard(SteamVR) -- $NEWLAYERBLENDING
-    '$blendsoftness':       ('g_flLayer1BlendSoftness', '0.500',    [float_val]),
+    '$blendsoftness':       ('g_flLayer1BlendSoftness' if not SBOX else 'g_flBlendSoftnessB', 
+                                                        '0.500',    [float_val]),
     '$layerborderstrenth':  ('g_flLayer1BorderStrength','0.500',    [float_val]),
     '$layerborderoffset':   ('g_flLayer1BorderOffset',  '0.000',    [float_val]),
     '$layerbordersoftness': ('g_flLayer1BorderSoftness','0.500',    [float_val]),
     '$layerbordertint':     ('g_vLayer1BorderColor',    '[1.000000 1.000000 1.000000 0.000000]', [fixVector, True]),
 
     # Diferent names in source1import.exe why?
-    ('$newlayerblending', 1): {  # F_FANCY_BLENDING
-        '$layerbordertint':     ('g_vLayerBorderTint',      '[1.000000 1.000000 1.000000 0.000000]', [fixVector, True]),
-        '$blendsoftness':       ('g_flBlendSoftness',       '0.500',    [float_val]),
-        '$layerborderstrength': ('g_flLayerBorderStrength', '0.500',    [float_val]),
-        '$layerborderoffset':   ('g_flLayerBorderOffset',   '0.000',    [float_val]),
-        '$layerbordersoftness': ('g_flLayerBorderSoftness', '0.500',    [float_val]),
+    #('$newlayerblending', 1): {  # F_FANCY_BLENDING
+    #    '$layerbordertint':     ('g_vLayerBorderTint',      '[1.000000 1.000000 1.000000 0.000000]', [fixVector, True]),
+    #    '$blendsoftness':       ('g_flBlendSoftness',       '0.500',    [float_val]),
+    #    '$layerborderstrength': ('g_flLayerBorderStrength', '0.500',    [float_val]),
+    #    '$layerborderoffset':   ('g_flLayerBorderOffset',   '0.000',    [float_val]),
+    #    '$layerbordersoftness': ('g_flLayerBorderSoftness', '0.500',    [float_val]),
 #F_TEXTURETRANSFORMS TextureLayer1Detail g_vLayer1DetailScale $detailtint     
 # $bumpdetailscale1       $bumpdetailscale2       g_vLayer1DetailTintAndBlend     
 # $detail2        TextureLayer2Detail     $detailScale2   g_vLayer2DetailScale    
 # $detailtint2    g_vLayer2DetailTintAndBlend     F_DETAILTEXTURE 
 # $detailblendmode F_DETAILBLENDMODE 
 # F_SPECULAR F_SPECULAR_CUBE_MAP DecalColor DecalTranslucency       [1.000000 1.000000 1.000000 1.000000]
-    }
+    #}
 },
 
 'channeled_masks': {  # 1-X will extract and invert channel X // M_1-X to only invert on models
    #'$vmtKey':                      (extract_from,       extract_as,       channel to extract)
-    '$normalmapalphaenvmapmask':    ('$normalmap',    '$envmapmask',      '1-A'),
-    '$basealphaenvmapmask':         ('$basetexture',    '$envmapmask',      '1-A'),
-    '$envmapmaskintintmasktexture': ('$tintmasktexture','$envmapmask',      '1-R'),
-    '$basemapalphaphongmask':       ('$basetexture',    '$phongmask',       '1-A'),
-    '$basealphaphongmask':          ('$basetexture',    '$phongmask',       '1-A'),
-    '$normalmapalphaphongmask':     ('$normalmap',    '$phongmask',       '1-A'),
-    '$bumpmapalphaphongmask':       ('$normalmap',    '$phongmask',       '1-A'),
+    '$normalmapalphaenvmapmask':    ('$normalmap',    '$envmapmask',        'A' if STEAMVR else '1-A'),
+    '$basealphaenvmapmask':         ('$basetexture',    '$envmapmask',      'A' if STEAMVR else '1-A'),
+    '$envmapmaskintintmasktexture': ('$tintmasktexture','$envmapmask',      'R' if STEAMVR else '1-R'),
+    '$basemapalphaphongmask':       ('$basetexture',    '$phongmask',       'A' if STEAMVR else '1-A'),
+    '$basealphaphongmask':          ('$basetexture',    '$phongmask',       'A' if STEAMVR else '1-A'),
+    '$normalmapalphaphongmask':     ('$normalmap',    '$phongmask',         'A' if STEAMVR else '1-A'),
+    '$bumpmapalphaphongmask':       ('$normalmap',    '$phongmask',         'A' if STEAMVR else '1-A'),
     '$basemapluminancephongmask':   ('$basetexture',    '$phongmask',       'L'),
 
     '$blendtintbybasealpha':        ('$basetexture',    '$tintmasktexture', 'A'),
@@ -764,12 +933,12 @@ vmt_to_vmat = {
 
     '$rimmask':         ('$phongexponenttexture',       '$_vmat_rimmask',   'A'),
 
-    '$masks1':  ('self', ('$_vmat_rimmask', '$phongalbedomask', '$_vmat_metalmask', '$warpindex'), 'RGBA') if IMPORT_MOD == "csgo" else \
-                ('self', ('$rimmask', '$phongalbedomask', '$_vmat_metalmask', '$selfillum'), 'RGBA') if IMPORT_MOD == "dota" else \
-                None,
-    '$masks2':  ('self', ("$shadowsaturationmask", '$phongalbedomask', '$_vmat_metalmask', '$warpindex'), 'RGBA') if IMPORT_MOD == "csgo" else \
-                ('self', ('$detailmask', '$_vmat_metalmask', '$_vmat_metalmask', '$selfillum'), 'RGBA') if IMPORT_MOD == "dota" else \
-                None,
+    #'$masks1':  ('self', ('$_vmat_rimmask', '$phongalbedomask', '$_vmat_metalmask', '$warpindex'), 'RGBA') if IMPORT_MOD == "csgo" else \
+    #            ('self', ('$rimmask', '$phongalbedomask', '$_vmat_metalmask', '$selfillum'), 'RGBA') if IMPORT_MOD == "dota" else \
+    #            None,
+    #'$masks2':  ('self', ("$shadowsaturationmask", '$phongalbedomask', '$_vmat_metalmask', '$warpindex'), 'RGBA') if IMPORT_MOD == "csgo" else \
+    #            ('self', ('$detailmask', '$_vmat_metalmask', '$_vmat_metalmask', '$selfillum'), 'RGBA') if IMPORT_MOD == "dota" else \
+    #            None,
 },
 
 'dicts': {
@@ -791,11 +960,7 @@ vmt_to_vmat = {
 
 # no direct replacement, etc
 'others2': {
-    # ssbump dose not work?
-    #'$ssbump':               ('TextureBentNormal',    '_bentnormal.tga', 'F_ENABLE_NORMAL_SELF_SHADOW 1\n\tF_USE_BENT_NORMALS 1\n'),
-
     #'$iris': ('',    '',     ''),  # paste iris into basetexture
-
     # fRimMask = vMasks1Params.r;
     # fPhongAlbedoMask = vMasks1Params.g;
     # fMetalnessMask = vMasks1Params.b;
@@ -806,22 +971,15 @@ vmt_to_vmat = {
     #'$masks1':  ('',    '',     ''),
     #'$masks2':  ('',    '',     ''),
     #'$phong':   ('',    '',     ''),
-
     # $selfillumfresnelminmaxexp "[1.1 1.7 1.9]"
     #'$selfillum_envmapmask_alpha':     ('',    '',     ''),
-
-    # TODO: the fake source next to outside area on de_nuke;
-    # x = texturescrollrate * cos(texturescrollangle) ?????
-    # y = texturescrollrate * sin(texturescrollangle) ?????
-    #'TextureScroll':    (('texturescrollvar', 'texturescrollrate', 'texturescrollangle'), 'g_vTexCoordScrollSpeed', '[0.000 0.000]')
 }
 }
 
-KNOWN = {}  # for proxies; when $color is known as g_vTintColor, proxies yielding to $color can be translated
-for d in vmt_to_vmat.values():
-    for k, v in d.items():
-        if isinstance(v, tuple): v = v[0]
-        KNOWN[k] = v
+vmt_to_vmat = vmt_to_vmat_pre()
+
+KNOWN = {}
+"""for proxies; when $color is known as g_vTintColor, proxies yielding to $color can be translated"""
 
 def convertVmtToVmat():
     # For each key-value in the vmt file...
@@ -832,9 +990,9 @@ def convertVmtToVmat():
         vmtVal = str(vmtVal).strip().strip('"' + "'").strip(' \n\t"')
 
         # search through the dictionary above to find the appropriate replacement.
-        for keyType in vmt_to_vmat:
+        for keyType, translate in vmt_to_vmat.items():
 
-            vmatTranslation = vmt_to_vmat[keyType].get(vmtKey)
+            vmatTranslation = translate.get(vmtKey)
 
             if not vmatTranslation:
                 continue
@@ -885,7 +1043,7 @@ def convertVmtToVmat():
                             msg(outKey, returnValue)
                         except ValueError as errrrr:
                             print("Got ValueError:", errrrr, "on", f'{vmtKey}: {vmtVal} with {func_.__name__}')
-                            failureList.add(f'ValueError on {func_.__name__}', f'{vmt.path} @ "{vmtKey}": "{vmtVal}"')
+                            failureList.add(f'ValueError on {func_.__name__}', f'{vmt.path.local} @ "{vmtKey}": "{vmtVal}"')
                             outVal = vmatDefaultVal
 
             # no equivalent key-value for this key, only exists
@@ -899,9 +1057,9 @@ def convertVmtToVmat():
 
             # F_RENDER_BACKFACES 1 etc
             if keyType == 'f_keys':
-                if vmtKey == "$translucent" and vmat.shader in ("vr_projected_decals", "vr_static_overlay"):
+                if vmtKey == "$translucent" and vmat.shader in (core.projected_decals(), core.static_overlay()):
                     outKey = "F_BLEND_MODE"
-                    outVal = (0 if (vmat.shader == "vr_projected_decals") else 1)
+                    outVal = (0 if (vmat.shader == core.projected_decals()) else 1)
 
             elif(keyType == 'textures'):
                 # Layer A
@@ -911,8 +1069,12 @@ def convertVmtToVmat():
                 if vmtKey in ('$normalmap', '$bumpmap2', '$normalmap2'):
                     if vmtVal == 'dev/flat_normal': outVal = default(vmatDefaultVal)
 
-                    if not outVal == "materials/default/default_normal.tga":
-                        flipNormalMap(Path(outVal))
+                    # don't flip default normal
+                    if not outVal == default("_normal"):
+                        # don't flip ssbump
+                        if not vmt.KeyValues["$ssbump"]:
+                            flipNormalMap(Path(outVal))
+                        
 
             elif(keyType == 'transform'):  # here one key can add multiple keys
                 if not vmatReplacement:
@@ -991,35 +1153,16 @@ def convertVmtToVmat():
             # dont break some keys have more than 1 translation (e.g. $selfillum)
 
     if USE_SUGESTED_DEFAULT_ROUGHNESS:
-        ## if f_specular use this else use "[1.000000 1.000000 1.000000 0.000000]"
-        # 2way blend has specular force enabled so maxing the rough should minimize specularity TODO
+        # 2way blend has specular force enabled so maxing the rough should minimize specularity
         if not vmat.shader == "vr_simple_2way_blend":
-            vmat.KeyValues.setdefault("TextureRoughness", "materials/default/default_rough_s1import.tga")
+            vmat.KeyValues.setdefault("TextureRoughness", default("_rough_s1import"))
         else:
-            default_rough = "materials/default/default_rough_s1import.tga"
-            if vmat.KeyValues['F_SPECULAR'] == 1: # TODO: phong2 envmap2 and those sorts of stuff
-                default_rough = "[1.000000 1.000000 1.000000 0.000000]"
+            default_rough = default("_rough_s1import")
+            #if vmat.KeyValues['F_SPECULAR'] == 1:
+            #    default_rough = "[1.000000 1.000000 1.000000 0.000000]"
 
             vmat.KeyValues.setdefault("TextureRoughnessA", default_rough)
             vmat.KeyValues.setdefault("TextureRoughnessB", default_rough)
-        
-    if SIMPLE_SHADER_WHERE_POSSIBLE:
-        complex_shader_params = {
-            "F_MORPH_SUPPORTED",
-            "F_ALPHA_TEST",
-            "F_TRANSLUCENT",
-            "F_TINT_MASK",
-            "F_UNLIT",
-            "F_SPECULAR",
-            "F_SELF_ILLUM",
-            "F_DETAIL_TEXTURE",
-            "F_SECONDARY_UV",
-        }
-        if vmat.shader == "vr_complex":
-            if not any(key in complex_shader_params for key in vmat.KeyValues):
-                vmat.shader = "vr_simple"
-                if "TextureAmbientOcclusion" in vmat.KeyValues:
-                    vmat.KeyValues['F_AMBIENT_OCCLUSION_TEXTURE'] = 1
 
 def convertSpecials():
 
@@ -1042,20 +1185,38 @@ def convertSpecials():
         vmt.KeyValues['$translucent'] = 1
 
     # fix unlit shader ## what about generic?
-    if (vmt.shader == 'unlitgeneric') and (vmat.shader == "vr_complex"):
-        vmat.KeyValues["F_UNLIT"] = 1
+    if (vmt.shader == 'unlitgeneric'):
+        if (vmat.shader in (main_ubershader(), "generic")):
+            vmat.KeyValues["F_UNLIT"] = 1
 
-    # fix mod2x logic for "vr_projected_decals"
+    if STEAMVR:
+        # 2 in 2 out
+        if vmt.shader == 'worldvertextransition':
+            vmat.KeyValues['F_BLEND'] = 1
+        # 4 in 3 out, one is rip
+        if vmt.shader == 'lightmapped_4wayblend':
+            vmat.KeyValues['F_BLEND'] = 2 # 3 layers max in steamvr, not 4
+    elif SBOX:
+        if vmt.shader == 'worldvertextransition':
+            vmat.KeyValues['F_MULTIBLEND'] = 1  # 2 layers
+        if vmt.shader == 'lightmapped_4wayblend':
+            vmat.KeyValues['F_MULTIBLEND'] = 3 # 4 layers
+
+    # fix mod2x logic for projected_decals
     if vmt.shader == 'decalmodulate':
-        vmat.KeyValues['F_BLEND_MODE'] = 1  # 2 for vr_static_overlay
+        vmat.KeyValues['F_BLEND_MODE'] = 1 if (vmat.shader == core.projected_decals()) else 3
 
-    # fix lit logic for "vr_projected_decals"
+    # fix lit logic for projected_decals
     if vmt.shader in ('lightmappedgeneric', 'vertexlitgeneric'):
-        if vmat.shader == "vr_static_overlay":      vmat.KeyValues["F_LIT"] = 1
-        elif vmat.shader == "vr_projected_decals": vmat.KeyValues["F_SAMPLE_LIGHTMAP"] = 1  # what does this do
+        if vmat.shader == core.static_overlay():      vmat.KeyValues["F_LIT"] = 1
+        elif vmat.shader == core.projected_decals(): vmat.KeyValues["F_SAMPLE_LIGHTMAP"] = 1  # what does this do
     
-    if vmat.shader == "vr_projected_decals":
+    if vmat.shader == core.projected_decals():
         vmat.KeyValues['F_CUTOFF_ANGLE'] = 1
+
+    elif vmat.shader == main_ubershader():
+        if SBOX and vmt.KeyValues["$ssbump"]:
+            vmat.KeyValues['F_SPECULAR'] = 1 # self shadowing normals require specular to work
 
     # csgo viewmodels
     # if not mod == csgo: return
@@ -1091,6 +1252,8 @@ def collectSkybox(name:str, face: str, vmt: VMT):
 
     if (texture:= hdr_tex or hdr_compressed_tex or ldr_tex) is not None:
         face_collect_path = sh.output(legacy_skyfaces/name).with_suffix(".json")
+        if face_collect_path.is_file() and not OVERWRITE_SKYBOX_VMATS:
+            return sh.skip('already-collected', face_collect_path)
         Collect = sh.GetJson(face_collect_path, bCreate = True)
 
         # First vmt to have $hdr decides hdr-ness
@@ -1104,7 +1267,7 @@ def collectSkybox(name:str, face: str, vmt: VMT):
         face_path = sh.output(fixVmtTextureDir(texture, src_extension))
         if face_path.is_relative_to(sh.output(skyboxmaterials)):
             # Move annoying face files into a folder 'legacy_faces'
-            # Not deleting just incase they are needed somewhere separately, and to save time on future imports
+            # Not deleting just incase they are needed somewhere else, and to save time on future imports
             face_path_new = sh.output(legacy_skyfaces / face_path.name)
             if face_path.is_file():
                 face_path.parent.MakeDir()
@@ -1127,6 +1290,8 @@ def collectSkybox(name:str, face: str, vmt: VMT):
                 Collect[face] = path
             print(f"    + Collected face {face.upper()} for {name}_cube{src_extension}")
             sh.UpdateJson(face_collect_path, Collect)
+        else:
+            print("missing sky face:", face_path.local)
 
         return face_collect_path
 
@@ -1153,13 +1318,13 @@ def ImportSkyJSONtoVMAT(json_collection: Path):
         sky_cubemap_path = cubemap.local
 
     with open(vmat_path, 'w') as fp:
-        fp.write(
-            'Layer0\n{\n\tshader "sky.vfx"\n'
-            f'\tSkyTexture\t"{sky_cubemap_path.as_posix()}"\n'
-            '\tF_TEXTURE_FORMAT2 0\n}'
-        )
+        fp.write(KV('Layer0', {
+            'shader': 'sky.vfx',
+            'SkyTexture': sky_cubemap_path.as_posix(),
+            'F_TEXTURE_FORMAT2': 0,
+        }).ToString())
 
-    print("+ Saved", vmat_path.local)
+    print("+ Saved", vmat_path.local.as_posix())
 
     return vmat_path
 
@@ -1175,20 +1340,17 @@ def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False):
         validMaterial = True
 
     if vmt.shader == 'patch':
-
         if includePath := vmt.KeyValues["include"]:
             if includePath == r'materials\models\weapons\customization\paints\master.vmt':
                 return
-
             patchKeyValues = vmt.KeyValues.copy()
             vmt.KeyValues.clear()
-
             print("+ Retrieving material properties from include:", includePath, end=' ... ')
             try:
                 vmt.shader, vmt.KeyValues = getKeyValues(sh.src(includePath), ignoreList) # TODO: kv1read
             except FileNotFoundError:
                 print("Did not find.")
-                failureList.add("Include not found", f'{vmt.path} -- {includePath}' )
+                failureList.add("Include not found", f'{vmt.path.local} -- {includePath}' )
                 return
             if not any(wd in vmt.shader for wd in shaderDict):
                 vmt.KeyValues.clear()
@@ -1216,96 +1378,58 @@ def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False):
         vmat.shader = chooseShader()
         vmat.path = OutName(vmt.path)
 
-    vmat.path.parent.MakeDir()
+    if not OVERWRITE_MODIFIED and vmat.path.is_file():
+        with open(vmat.path, 'r') as fp:
+            # don't overwrite if material has been modified
+            if fp.readline() == "// THIS FILE IS AUTO-GENERATED\n":
+                return
+    else:
+        vmat.path.parent.MakeDir()
 
     convertSpecials()
     convertVmtToVmat()
 
     if proxies:= vmt.KeyValues["proxies"]:
-        vmat.KeyValues['DynamicParams'] = ProxiesToDynamicParams(proxies, KNOWN, vmt.KeyValues)
-        print(vmat.KeyValues['DynamicParams'])
+        kvalues, vmat.KeyValues['DynamicParams'] = ProxiesToDynamicParams(proxies, KNOWN, vmt.KeyValues)
+        vmat.KeyValues.update(kvalues)
 
+    if SIMPLE_SHADER_WHERE_POSSIBLE:
+        complex_shader_params = {
+            "F_MORPH_SUPPORTED",
+            "F_TEXTURE_ANIMATION",
+            "F_ALPHA_TEST",
+            "F_TRANSLUCENT",
+            "F_TINT_MASK",
+            "F_UNLIT",
+            "F_SELF_ILLUM",
+            "F_ENABLE_NORMAL_SELF_SHADOW",
+            "F_DETAIL_TEXTURE",
+            "F_SECONDARY_UV",
+        }
+        if vmat.shader == core.complex():
+            if not any(key in complex_shader_params for key in vmat.KeyValues) and "F_SPECULAR" in vmat.KeyValues:
+                vmat.shader = core.simple()
+                if "TextureAmbientOcclusion" in vmat.KeyValues:
+                    vmat.KeyValues['F_AMBIENT_OCCLUSION_TEXTURE'] = 1
+    
     if PRINT_LEGACY_IMPORT:
         vmat.KeyValues['legacy_import'] = vmt.KeyValues.as_value()
 
+    if DOTA2:
+        if vmat.KeyValues.get("F_UNLIT"):
+            del vmat.KeyValues['F_UNLIT']
+            vmat.KeyValues['F_FULLBRIGHT'] = 1
+
     msg(vmt.shader + " => " + vmat.shader, "\n")
-    sh.write(vmat.KeyValues.ToStr(), vmat.path) ####################
+    sh.write(path=vmat.path, content=vmat.KeyValues.ToString())
 
-    print("+ Saved", vmat.path if sh.DEBUG else vmat.path.local)
+    print("+ Saved", vmat.path if sh.DEBUG else vmat.path.local.as_posix())
 
-    if vmat.shader == "vr_projected_decals":
-        _ImportVMTtoExtraVMAT(vmt_path, shader="vr_static_overlay",
-            path=(vmat.path.parent / (vmat.path.stem + '-static' + vmat.path.suffix)))
+    #if vmat.shader == vr.projected_decals():
+    #    _ImportVMTtoExtraVMAT(vmt_path, shader=vr.static_overlay(),
+    #        path=(vmat.path.parent / (vmat.path.stem + '-static' + vmat.path.suffix)))
 
     return vmat.path
-
-vmt, vmat = None, None
-
-class Failures(dict):
-    def add(self, err, file):
-        self.setdefault(err, list())
-        self[err].append(file)
-    def __len__(self):
-        return sum(len(filelist) for filelist in self.values())
-    
-    #def __bool__(self):
-    #    return len(self.data) > 0
-
-failureList = Failures()
-
-total=import_total=import_invalid=import_extra = 0
-
-def main():
-    print('\nSource 2 Material Converter!')
-
-    global total, import_total, import_invalid
-    sh.importing = materials
-    for vmt_path in sh.collect(
-            materials,
-            IN_EXT, OUT_EXT,
-            existing=OVERWRITE_VMAT,
-            outNameRule=OutName,
-            # proxies vec3 special materials/lights/camera.vmt
-            # "models/player/**/*.vmt"
-            # "de_nuke/nukwater_movingplane.vmt"
-            # "models/weapons/v_models/rif_ak47/ak47.vmt"
-            # "test/test.vmt"
-            match=None):
-
-        total += 1
-        if ImportVMTtoVMAT(vmt_path):
-            import_total += 1
-        else:
-            #sh.status(f"- skipping [invalid]: {vmt_path.local}")
-            import_invalid += 1
-
-    print("\nSkybox materials...")
-
-    # Skip importing skies if searching a different folder
-    if sh.search_scope is None or legacy_skyfaces.is_relative_to(sh.search_scope):
-        for skyfaces_json in sh.collect(
-                None, '.json', OUT_EXT, OVERWRITE_SKYBOX_VMATS,
-                outNameRule=OutName_Sky, searchPath=sh.EXPORT_CONTENT/legacy_skyfaces):
-            ImportSkyJSONtoVMAT(skyfaces_json)
-
-    if failureList:
-        print("\n\t<<<< THESE MATERIALS HAVE ERRORS >>>>")
-        for failure, files in failureList.items():
-            print(failure)
-            for file in files:
-                print('\t' + str(file))
-        print("\t^^^^ THESE MATERIALS HAVE ERRORS ^^^^")
-
-    try:
-        print(f"\nTotal imports:\t{import_total} / {total}\t| " + "{:.2f}".format((import_total/total) * 100) + f" % Imported")
-        print(f"Total skipped:\t{import_invalid} / {total}\t| " + "{:.2f}".format((import_invalid/total) * 100) + f" % Skipped")
-        print(f"Total errors :\t{len(failureList)} / {total}\t| " + "{:.2f}".format((len(failureList)/total) * 100) + f" % Had Errors")
-        print(f"Total extra :\t{import_extra}")
-
-    except Exception: pass
-    # csgo -> 183 / 15308 | 1.20 % Error rate -- 4842 / 15308 | 31.63 % Skip rate
-    # l4d2 -> 504 / 3675 | 13.71 % Error rate -- 374 / 3675 | 10.18 % Skip rate
-    print("\nFinished! Your materials are now ready.")
 
 if __name__ == "__main__":
     sh.parse_argv()

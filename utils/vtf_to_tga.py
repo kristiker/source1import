@@ -179,6 +179,8 @@ def txt_import(txtFile):
 def main():
     print("Decompiling Textures!")
     for i, path in enumerate(PATHS_VTF2TGA):
+        if path is None:
+            continue
         path = Path(path)
         if not path.is_absolute():
             path = currentDir / path

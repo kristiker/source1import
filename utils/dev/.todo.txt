@@ -1,4 +1,3 @@
-finish ('$phong', 1) key structure
 
 D:\Games\steamapps\common\Half-Life Alyx\game\bin\win64>resourcecompiler.exe -game hlvr -r -i "D:\Games\steamapps\common\Half-Life Alyx\content\csgo_imported\materials\*"
 ----
@@ -17,12 +16,6 @@ D:\Games\steamapps\common\Half-Life Alyx\content\core\materials\dev\roomwalls_wh
 
 inverted roughness
 materials/models/props_lab/monitor02.vmat
-
----
-one materials detail is anothers normal (for some reason)
-they shouldnt share it as the detail cannot have inverted green
-split shared maps after all??
----
 
 [ W VmtToVmat ]: GetMappingDimensionsForVMT: can't open "materials/WALL_PAPER/HR_WP/HR_WALL_PAPER_D.vmt"
 

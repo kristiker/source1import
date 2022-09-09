@@ -1,6 +1,6 @@
 import shared.base_utils2 as sh
 import shared.datamodel as dmx
-from shared.keyvalues3 import resource, KV3Header, dict_to_kv3_text
+import shared.keyvalues3 as kv3
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -152,7 +152,7 @@ pcf_to_vpcf = {
             # 	 },
             # ]
             'sequence 0 model': lambda mdl_path: ('m_ModelList',
-                [{'m_model': resource(Path('models/' + mdl_path).with_suffix('.vmdl'))}]
+                [{'m_model': kv3.resource(Path('models/' + mdl_path).with_suffix('.vmdl'))}]
             ),
             'orient model z to normal': 'm_bOrientZ',
             'activity override': 'm_ActivityName',
@@ -1795,12 +1795,10 @@ def get_for_case_insensitive_key(oldkey, oldval, table):
 
 def guess_key_name(key, value):
     key_words = key.replace('_', ' ').split(' ')
-
     shorts = {'minimum':'min', 'maximum':'max', 'simulation':'sim', 'rotation':'rot', 'interpolation':'lerp'}
     typepreffix = {
         bool:'b', float:'fl', int:'n', Ref:'h'
     }
-
     guess = 'm_' + typepreffix.get(type(value), '')
     # TODO: list -> vec, ang, ''
     for kw in key_words[:3]:
@@ -1833,7 +1831,7 @@ def process_material(value: str):
 
     vmt_path = sh.IMPORT_GAME / "materials" / value # vmts are found in game (as most things)
     vmat_path = vmt_path.local.with_suffix('.vmat')
-    vpcf._base_t['m_Renderers']['m_hMaterial'] = resource(vmat_path)
+    vpcf._base_t['m_Renderers']['m_hMaterial'] = kv3.resource(vmat_path)
     try:
         vmt = VMT(KV.FromFile(vmt_path))
     except FileNotFoundError:
@@ -1866,7 +1864,7 @@ def process_material(value: str):
                     with open(vtex_path, 'w') as fp:
                         fp.write(VTEX_TEMPLATE.replace('<>', tex.as_posix(), 1))
                 vpcf_replacement_key = 'm_hTexture' if vmtkey in ('$basetexture', '$material') else 'm_hNormalTexture'
-                vpcf._base_t['m_Renderers'][vpcf_replacement_key] =  resource(vtex_path.local)
+                vpcf._base_t['m_Renderers'][vpcf_replacement_key] =  kv3.resource(vtex_path.local)
                 continue
             if vmtkey not in vmt_to_vpcf:
                 #un((vmtkey, vmtval), "VMT")
@@ -1888,12 +1886,15 @@ from materials_import import VMT
 from shared.keyvalues1 import KV
 def pcfkv_convert(key, value):
 
-    if not (vpcf_translation:= pcf_to_vpcf.get(key)):
+    vpcf_translation = pcf_to_vpcf.get(key)
+    if vpcf_translation is NotImplemented:
+        return  # it's just not yet implemented in s2
+    elif not vpcf_translation:
+        # may exist in dictionary but no translation
         if vpcf_translation is None:
+            # doesn't exist in dictionary, note it down
             un(key, '_generic')
         return guess_key_name(key, value)
-    elif vpcf_translation is NotImplemented:
-        return
 
     outKey, outVal = key, value
     if isinstance(vpcf_translation, str):  # simple translation
@@ -1904,7 +1905,7 @@ def pcfkv_convert(key, value):
                 return
             if key == 'snapshot':
                 vsnaps[vpcf.path.local] = value
-            return str(vpcf_translation), resource(Path(vpcf.path.local.parent / (value  + '.vpcf')))
+            return str(vpcf_translation), kv3.resource(Path(vpcf.path.local.parent / (value  + '.vpcf')))
 
         return vpcf_translation, value
     elif isinstance(vpcf_translation, tuple):
@@ -1983,7 +1984,7 @@ def pcfkv_convert(key, value):
                     if isinstance(value2, dmx.Element):
                         value2 = value2.name
                     else: input(f'Ref not an element {key2}: {value2}')
-                    value2 = resource(Path(vpcf.path.local.parent / (value2  + '.vpcf')))
+                    value2 = kv3.resource(Path(vpcf.path.local.parent / (value2  + '.vpcf')))
                 elif isinstance(subkey, (minof, maxof)):
                     bMin = isinstance(subkey, minof)
                     if str(subkey) in subKV:
@@ -2052,22 +2053,19 @@ def ImportParticleSnapshotFile(psf_path: Path) -> Path:
     vsnap_path.parent.MakeDir()
     return copyfile(psf_path, vsnap_path)
 
-class VPCF(dict):
-    header = KV3Header(format='vpcf26', format_ver='26288658-411e-4f14-b698-2e1e5d00dec6')
-
+class VPCF(kv3.KV3):
     def __init__(self, path, **kwargs):
-        self.path = path
+        super().__init__(**kwargs)
+        self.header = kv3.KV3Header(format='vpcf26', format_ver='26288658-411e-4f14-b698-2e1e5d00dec6')
         self['_class'] = 'CParticleSystemDefinition'
         self.update(kwargs)
-
+        
+        self.path = path
         self._base_t = dict(
             m_Renderers = dict(
                 #m_bFogParticles = True
             )
         )
-
-    def text(self):
-        return dict_to_kv3_text(self, self.header)
 
 vpcf = None
 
@@ -2083,6 +2081,7 @@ def ImportPSD(ParticleSystemDefinition: dmx.Element, out_root: Path, bOverwrite 
     imports.append(vpcf.path.local.as_posix())
 
     if not bOverwrite and vpcf.path.exists():
+        sh.skip('already-exist', vpcf.path)
         return vpcf.path
     
     process_material(ParticleSystemDefinition.get('material'))
@@ -2101,8 +2100,7 @@ def ImportPSD(ParticleSystemDefinition: dmx.Element, out_root: Path, bOverwrite 
         vpcf.setdefault('m_PreEmissionOperators', list())
         vpcf['m_PreEmissionOperators'].append(operator)
 
-    with open(vpcf.path, 'w') as fp:
-        fp.write(vpcf.text())
+    sh.write(vpcf.path, vpcf.ToString())
 
     print("+ Saved", vpcf.path.local.as_posix())
 

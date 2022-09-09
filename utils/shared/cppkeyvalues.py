@@ -2,7 +2,6 @@
 # A keyvalues.cpp python rewrite
 
 import collections
-from warnings import warn
 
 #from ctypes import *
 NULL = 0
@@ -305,13 +304,13 @@ class KVValue:#(KVCollection):
     def __repr__(self):
         return repr(self.data)
 
-    def ToStr(self, level = 0):
+    def ToString(self, level = 0):
         line_indent = '\t' * level
         s = ""
         if self.IsSub():
             s += "\n" + line_indent + '{\n'
             for item in self:
-                s += (item.ToStr(level+1))
+                s += (item.ToString(level+1))
             s += line_indent + "}\n"
         else:
             s = f'\t"{self.data}"\n'
@@ -619,10 +618,10 @@ class KeyValues:
     def __repr__(self):
         return f"{self.__class__.__name__}({self.keyName!r}, {self.value.__class__.__name__}({self.value!r}))"
 
-    def ToStr(self, level=0):
+    def ToString(self, level=0):
         line_indent = "\t" * level
 
-        return line_indent + f'"{self.keyName}"{self.value.ToStr(level)}'
+        return line_indent + f'"{self.keyName}"{self.value.ToString(level)}'
 
     def ToTuple(self) -> tuple:
         return self.keyName, self.value.ToBuiltin()
@@ -637,7 +636,7 @@ if __name__ == "__main__":
             kv2.LoadFromFile(file)
             newfile = file.parents[1] / "ndata" / file.name
             with newfile.open("w") as newfp:
-                newfp.write(kv2.ToStr())
+                newfp.write(kv2.ToString())
 
     for file in Path(r".\test\keyvalues\data").glob("*"):
         pass
@@ -656,7 +655,7 @@ if __name__ == "__main__":
         return _time_it
 
     def test_speed():
-        for _ in range(100): KeyValues().LoadFromFile(r"D:\Users\kristi\Desktop\WORK\test\materials\test_proxy.vmt")
+        for _ in range(100): KeyValues().LoadFromFile("test/materials/test_proxy.vmt")
     measure(test_speed)();sleep(1)
 
     class Test_KeyValues(unittest.TestCase):
@@ -665,7 +664,7 @@ if __name__ == "__main__":
             text_expected = '"value"\n{\n\t"key"\t"key"\n}\n'
             kv = KeyValues()
             kv.LoadFromBuffer("NULL_test", CUtlBuffer(text))
-            self.assertEqual(kv.ToStr(), text_expected)
+            self.assertEqual(kv.ToString(), text_expected)
 
     for i, file in enumerate(Path(r".\test\keyvalues\data").glob("*")):
         def test_filen(self):
@@ -674,7 +673,7 @@ if __name__ == "__main__":
                 kv = KeyValues()
                 kv.LoadFromFile(file.as_posix())
 
-                self.assertEqual(kv.ToStr(), expect)
+                self.assertEqual(kv.ToString(), expect)
         setattr(Test_KeyValues, f"{test_filen.__name__}{i}", test_filen)
 
     unittest.main()
