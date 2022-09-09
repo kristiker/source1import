@@ -1,5 +1,6 @@
 from pathlib import Path    
 from dataclasses import dataclass
+from uuid import UUID
 
 @dataclass(frozen=True)
 class KV3Header:
@@ -10,6 +11,16 @@ class KV3Header:
     _common = '<!-- kv3 encoding:%s:version{%s} format:%s:version{%s} -->'
     def __str__(self):
         return self._common % (self.encoding, self.encoding_ver, self.format, self.format_ver)
+
+@dataclass
+class KV3File(dict):
+    version: UUID = UUID('7412167c-06e9-4698-aff2-e63eb59037e7')
+
+    def __str__(self):
+        return dict_to_kv3_text(self, KV3Header(format="source1imported", format_ver=str(self.version)))
+    
+    def ToString(self):
+        return self.__str__()
 
 @dataclass(frozen=True)
 class resource:

@@ -1,10 +1,11 @@
 import shared.base_utils2 as sh
-from shared.base_utils2 import SBOX
+#from shared.base_utils2 import SBOX
 from pathlib import Path
 from shared.keyvalues1 import KV, VDFDict
-from shared.keyvalues3 import dict_to_kv3_text
+from shared.keyvalues3 import dict_to_kv3_text, KV3File
 import itertools
 
+SBOX = True
 OVERWRITE_ASSETS = False
 
 SOUNDSCAPES = True
@@ -66,9 +67,11 @@ def main():
             if surfprop_txt.name == SURFACEPROPERTIES_MANIFEST.name:
                 manifest_handle.read_manifest(surfprop_txt)
                 continue
-            manifest_handle.retrieve_surfaces(
-                ImportSurfaceProperties(surfprop_txt)
-            )
+
+            folderOrFile = ImportSurfaceProperties(surfprop_txt)
+            if not SBOX:
+                manifest_handle.retrieve_surfaces(folderOrFile) # file only
+        
         manifest_handle.after_all_converted()
 
     print("Looks like we are done!")
@@ -256,7 +259,7 @@ def ImportGameSounds(asset_path: Path):
             gamesound = '_' + gamesound
 
         # Valve
-        out_kv = dict(type='src1_3d')
+        out_kv = dict(type='src1_3d') # why 3d?
         
         # SBOX
         sound_file = out_sound_folder / f'{gamesound}.sound'
@@ -364,6 +367,13 @@ def ImportGameSounds(asset_path: Path):
         print("+ Saved", vsndevts_file.local)
         return vsndevts_file
 
+
+vsurf_base_params = {
+    'physics': ('density','elasticity','friction','dampening','thickness',),
+    'audiosounds':('bulletimpact','scraperough','scrapesmooth','impacthard','impactsoft','rolling','break','strain',),
+    'audioparams': ('audioreflectivity','audiohardnessfactor','audioroughnessfactor','scrapeRoughThreshold','impactHardThreshold',),
+}
+
 class CaseInsensitiveKey(str):
     def __hash__(self): return hash(self.lower())
     def __eq__(self, other: str): return self.lower() == other.lower()
@@ -372,14 +382,27 @@ class CaseInsensitiveDict(dict):
     def __getitem__(self, key): return super().__getitem__(CaseInsensitiveKey(key))
 
 def ImportSurfaceProperties(asset_path: Path):
-    "scripts/surfaceproperties*.txt -> (n)[surfaces/*/name.surface]"
+    """
+    VALVE: scripts/surfaceproperties*.txt -> surfaceproperties/surfaceproperties*.vsurf
+    SBOX: scripts/surfaceproperties*.txt -> (n)[surfaces/*/name.surface]
+    """
     
+    vsurf_file: Path = sh.EXPORT_CONTENT / "surfaceproperties" / asset_path.local.relative_to(scripts).with_suffix('.vsurf')
     surface_folder = sh.EXPORT_CONTENT / surfaces / asset_path.stem.removeprefix('surfaceproperties').lstrip("_")
-    surface_folder.MakeDir()
+    
+    if not SBOX:
+        if vsurf_file.is_file() and not OVERWRITE_ASSETS:
+            return sh.skip('already-exist', vsurf_file)
+        vsurf_file.parent.MakeDir()
+    else:
+        surface_folder.MakeDir()
 
     surface_collection = KV.CollectionFromFile(asset_path)
+    vsurf = dict(SurfacePropertiesList = [])
 
     for surface, properties in {**surface_collection}.items():
+        new_surface = dict(surfacePropertyName = surface)
+        unsupported_params = {}
         surface_file = surface_folder / f'{surface}.surface'
         if not OVERWRITE_ASSETS and surface_file.exists():
             sh.status(f"Skipping {surface_file.local} [already-exist]")
@@ -409,6 +432,16 @@ def ImportSurfaceProperties(asset_path: Path):
             CaseInsensitiveKey("description"): "",
         })
         for key, value in properties.items():
+            # Valve
+            context = next((ctx for ctx, group in vsurf_base_params.items() if key in group), None)
+            if context is not None:
+                new_surface.setdefault(context, {})[key] = value
+            elif key in ('base'):
+                new_surface[key] = value
+            else:
+                unsupported_params[key] = value
+
+            # SBOX
             key = {'stepleft':'footleft','stepright':'footright','base':'basesurface'}.get(key, key)
             if key in surface_data: # needs to be a counterpart
                 if key == "basesurface":
@@ -417,10 +450,67 @@ def ImportSurfaceProperties(asset_path: Path):
             elif key in surface_data["Sounds"]:
                 surface_data["Sounds"][key] = value
 
-        sh.write(dict_to_kv3_text(dict(data=surface_data)), surface_file)
-        print("+ Saved", surface_file.local)
+        if SBOX:
+            sh.write(dict_to_kv3_text(dict(data=surface_data)), surface_file)
+            print("+ Saved", surface_file.local)
+        else:
+            # Add default base
+            if 'base' not in new_surface:
+                if surface not in ('default', 'player'):
+                    new_surface['base'] = 'default'
 
-    return surface_folder
+            # Add unsupported parameters last
+            if unsupported_params:
+                new_surface['legacy_import'] = unsupported_params
+
+            vsurf['SurfacePropertiesList'].append(new_surface)
+
+    if SBOX:
+        return surface_folder
+    else:
+        sh.write(vsurf_file, dict_to_kv3_text(vsurf))
+        print("+ Saved", vsurf_file.local)
+
+        return vsurf_file, vsurf['SurfacePropertiesList']
+
+class VsurfManifestHandler:
+    """
+    * source only reads files listed in manifest
+    * source2 only reads a single `surfaceproperties.vsurf` file.
+    -
+    --> write surfaces to main file as per rules of manifest
+    """
+    def __init__(self):
+        self.manifest_files = []
+        self.all_surfaces: dict[Path, list] = {}
+
+    def read_manifest(self, manifest_file: Path):
+        self.manifest_files.extend(KV.FromFile(manifest_file).get_all_for('file'))
+
+    def retrieve_surfaces(self, rv: tuple[Path, list]):
+        if rv is not None:
+            self.all_surfaces.__setitem__(*rv)
+
+    def after_all_converted(self):
+        # Only include surfaces from files that are on manifest.
+        # Last file has override priority
+        if not (self.manifest_files and self.all_surfaces):
+            return
+        vsurf_path = next(iter(self.all_surfaces)).with_stem('surfaceproperties')
+        vsurf = KV3File(SurfacePropertiesList = [])
+        for file in self.manifest_files[::-1]:
+            file = vsurf_path.parents[1] / 'surfaceproperties' / Path(file).with_suffix('.vsurf').name
+            for surfaceproperty in self.all_surfaces.get(file, ()):
+                if not surfaceproperty:
+                    break
+                # ignore if this surface is already defined
+                if not any(
+                    surfaceproperty2['surfacePropertyName'].lower() == surfaceproperty['surfacePropertyName'].lower()
+                        for surfaceproperty2 in vsurf['SurfacePropertiesList']):
+                    vsurf['SurfacePropertiesList'].append(surfaceproperty)
+
+        sh.write(vsurf_path, vsurf.ToString())
+        print("+ Saved", vsurf_path.local)
 
 if __name__ == '__main__':
     sh.parse_argv()
