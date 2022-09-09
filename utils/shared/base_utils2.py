@@ -375,7 +375,6 @@ def collect(root, inExt, outExt, existing:bool = False, outNameRule = None, sear
     else:
         print("ERROR while searching: Does not exist:", searchPath)
 
-
 def source2namefixup(path: Path):
     return path.parent / path.name.lower().replace(' ', '_')
 

@@ -1,5 +1,5 @@
 import shared.base_utils2 as sh
-from shared.keyvalues3 import KV3
+from shared.keyvalues3 import KV3File
 
 SHOULD_OVERWRITE = False
 SAMPBOX = False
@@ -7,11 +7,11 @@ SAMPBOX = False
 def ImportMDLtoVMDL(mdl_path, move_s1_assets = False):
     vmdl_path = mdl_path.with_suffix('.vmdl')
     with open(vmdl_path, 'w') as fp:
-        fp.write(
-            KV3(
-                m_sMDLFilename = ("../"*SAMPBOX) + mdl_path.local.as_posix()
-            ).ToString()
+        vmdl = KV3File(
+            m_sMDLFilename = ("../"*SAMPBOX) + mdl_path.local.as_posix()
         )
+
+        fp.write(vmdl.ToString())
     print('+ Generated', vmdl_path.local)
     return vmdl_path
 

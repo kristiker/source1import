@@ -232,7 +232,7 @@ class SampleApp(Tk):
             ("SHOULD_OVERWRITE", "Overwrite Existing Sessions"),
         )
         add_tab("scripts", self.Scripts, "Import various script files", "scripts_import").add_overwrite_toggles(
-            ("OVERWRITE_SCRIPTS", "Overwrite Existing Scripts"),
+            ("OVERWRITE_ASSETS", "Overwrite Existing Scripts"),
         ).add_toggles(
             ("SOUNDSCAPES", "Soundscapes"),
             ("GAMESOUNDS", "Game Sounds"),

@@ -1,5 +1,6 @@
 from pathlib import Path    
 from dataclasses import dataclass
+from uuid import UUID
 
 @dataclass(frozen=True)
 class KV3Header:
@@ -17,10 +18,10 @@ class resource:
     def __str__(self):
         return f'resource:"{self.path.as_posix().lower()}"'
 
-class KV3(dict):
+class KV3File(dict):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.header = KV3Header()
+        self.header = KV3Header(format="source1imported")
 
     def __str__(self):
         kv3 = str(self.header) + '\n'
@@ -85,7 +86,7 @@ if __name__ == '__main__':
                 '\n\tb = \n\t{\n\t\t"(2,)" = 3\n\t}'+\
                 '\n\tc = ["listed_text1", "listed_text2"]\n}'
             self.assertEqual(
-                KV3(
+                KV3File(
                     a='asd asd',
                     b={(2,):3}, 
                     c=["listed_text1", "listed_text2"]
