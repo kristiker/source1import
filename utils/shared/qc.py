@@ -8,12 +8,13 @@ qcgrammar = Grammar(
     """
     qcfile = _? ((cmd / token / group_base) _*)*
 
+    # to distinguish top level from other stuff
     cmd = ~"\\$[_$a-zA-Z][\w$/.]*"
+    group_base = group ""
+
+    group = "{" _* ((_2complex4grammar / token / group) _*)* "}"
 
     token = (variable / quoted / number)
-
-    group_base = group
-    group = "{" _* ((_2complex4grammar / token / group) _*)* "}"
 
     variable = ~"[_$a-zA-Z][\w$/.]*"
     quoted = ~r'"[^"]*"'
@@ -127,7 +128,17 @@ class QC:
         #options: _options
     
     class keyvalues:
-        ...#options: dict[str, object]
+        options: dict[str, object]
+        def handle_options(self, options_node: Node):
+            trav = QCBuilder.traverse(options_node, "token", "group")
+            for key, val in zip(trav, trav):
+                if key.expr_name != "token":
+                    raise OptionParseError("Expected token as key, got group")
+                if val.expr_name == "group":
+                    ...    
+                self.__dict__[key.text] = val.text
+
+class OptionParseError(Exception): pass
 
 class QCBuilder(NodeVisitor):
     grammar = qcgrammar
@@ -146,6 +157,8 @@ class QCBuilder(NodeVisitor):
         # inefficient but works
         max = len(self.command_to_build.__annotations__)
         for i, (member, type) in enumerate(self.command_to_build.__annotations__.items(), 1):
+            if member == "options":
+                return
             print(self.command_to_build, member, type)
             if not hasattr(self.command_to_build, member):
                 #print("set to",  type(arg), i, max)
@@ -156,6 +169,26 @@ class QCBuilder(NodeVisitor):
                 if i < max:
                     return
         # ran out of members to fill
+        self.qc.append(self.command_to_build)
+        self.command_to_build = None
+    
+    @staticmethod
+    def traverse(node: Node, *tag: str):
+        if node.expr_name in tag:
+            yield node
+        for child in node.children:
+            yield from QCBuilder.traverse(child, *tag)
+
+    def push_argument_group(self, base_group_node: Node):
+        
+        if self.command_to_build is None:
+            return "?"
+
+        if "options" in self.command_to_build.__annotations__:
+            print(base_group_node.children[0])
+            self.command_to_build.handle_options(base_group_node.children[0].children[2])
+
+        # options is the last member
         self.qc.append(self.command_to_build)
         self.command_to_build = None
 
@@ -176,13 +209,10 @@ class QCBuilder(NodeVisitor):
     def visit_token(self, node, _):
         if self.command_to_build is not None:
             self.push_argument(node.text)
-
-    def visit_group(self, node, visited_children):
-        print("Visited group with nodes", [n.text for n in visited_children])
-        return node
     
-    def visit_group_base(self, node, _):
-        print("Visited group_base", node)
+    def visit_group_base(self, node, visited_children):
+        print("Visited group_base", [n.text for n in visited_children])
+        self.push_argument_group(node)
         return node
     #def visit_comment(self, node, visited_children):
     #    print("comment:", node.text[2:].strip())
