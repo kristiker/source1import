@@ -103,7 +103,7 @@ class ModelDoc:
         align_origin_x_type: str = "None"
         align_origin_y_type: str = "None"
         align_origin_z_type: str = "None"
-        filename: resourcepath = "models/citizen.fbx"
+        filename: resourcepath = ""
         import_scale: float = 1.0
         faceMergeAngle: float = 10.0
         maxHullVertices: int = 0
