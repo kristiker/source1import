@@ -1,5 +1,5 @@
 
-from typing import Optional, Sequence, Type
+from typing import Optional, Sequence, Type, Union
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor
 from pathlib import Path
@@ -97,6 +97,10 @@ class QC:
         roty_fixup: float
         rotz_fixup: float
     
+    class hierarchy:
+        child_name: str
+        parent_name: str
+
     class bodygroup:
         name: str
         options: list[str]
@@ -115,6 +119,9 @@ class QC:
         name: str
         mesh_filename: str
     
+    class animation:
+        name: str
+
     class sequence:
         name: str
         mesh_filename: str
@@ -160,7 +167,7 @@ class QCBuilder(NodeVisitor):
 
     def push_command(self, command_cls: Type):
         # argless command (e.g. $staticprop)
-        if not hasattr(command_cls, "__annotations__"):
+        if not hasattr(command_cls, "__annotations__") and not hasattr(command_cls, "handle_options"):
             self.qc.append(command_cls())
             return
         self.command_to_build = command_cls()
@@ -171,7 +178,8 @@ class QCBuilder(NodeVisitor):
         for i, (member, type) in enumerate(self.command_to_build.__annotations__.items(), 1):
             if member == "options":
                 return
-            print(self.command_to_build, member, type)
+            #print(self.command_to_build, member, type)
+
             if not hasattr(self.command_to_build, member):
                 #print("set to",  type(arg), i, max)
                 if type == str:
@@ -180,6 +188,9 @@ class QCBuilder(NodeVisitor):
                 # didn't run out yet
                 if i < max:
                     return
+        
+        if hasattr(self.command_to_build, "handle_options"):
+            return
         # ran out of members to fill
         self.qc.append(self.command_to_build)
         self.command_to_build = None
@@ -198,7 +209,6 @@ class QCBuilder(NodeVisitor):
             return "?"
 
         if hasattr(self.command_to_build, "handle_options"):
-            #print(base_group_node.children[0].children[2])
             self.command_to_build.handle_options(base_group_node.children[0].children[2])
         
         # just a list of tokens
@@ -221,7 +231,6 @@ class QCBuilder(NodeVisitor):
     
     def visit_cmd(self, node, visited_children):
         token_name = node.text
-        print("Visited token", token_name)
 
         if (cls:=getattr(QC, token_name[1:], None)) is not None:
             self.push_command(cls)
@@ -230,11 +239,13 @@ class QCBuilder(NodeVisitor):
         return node
     
     def visit_token(self, node, _):
-        if self.command_to_build is not None:
-            self.push_argument(node.text)
+        if self.command_to_build is None:
+            return
+        if not hasattr(self.command_to_build, "__annotations__"):
+            return
+        self.push_argument(node.text)
     
     def visit_group_base(self, node, visited_children):
-        print("Visited group_base", [n.text for n in visited_children])
         self.push_argument_group(node)
         return node
     #def visit_comment(self, node, visited_children):
