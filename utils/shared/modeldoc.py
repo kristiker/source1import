@@ -13,7 +13,7 @@ class _BaseNode(dict):
     children: list["_BaseNode"] = field(default_factory=list)
 
     def __post_init__(self):
-        self._class = self.__class__.__name__
+        self._class = self.__class__.__name__.replace("_", " ")
         super().update(**self.__dict__)
 
     def add_nodes(self, *nodes: "_BaseNode"):
@@ -125,6 +125,29 @@ class ModelDoc:
         game_class: str = ""
         game_keys: dict = field(default_factory=dict)
 
+
+    @dataclass
+    class Bone(_Node):
+        origin: list[float] = field(default_factory=lambda: [0, 0, 0])
+        angles: list[float] = field(default_factory=lambda: [0, 0, 0])
+        do_not_discard: bool = True
+
+    @dataclass
+    class Bounds_Hull(_Node):
+        """
+        If this node is present, set the model hull bounds explicitly.  Normally the model hull bounds is derived from the physics hull bounds at model load time.
+        """
+        mins: list[float] = field(default_factory=lambda: [ -1.0, -1.0, 0.0 ])
+        maxs: list[float] = field(default_factory=lambda: [ 1.0, 1.0, 1.0 ])
+
+    @dataclass
+    class Bounds_View(_Node):
+        """
+        If this node is present, set the model view bounds explicitly.  Normally the model view bounds is derived from the render mesh bounds at model load time.
+        """
+        mins: list[float] = field(default_factory=lambda: [ -1.0, -1.0, 0.0 ])
+        maxs: list[float] = field(default_factory=lambda: [ 1.0, 1.0, 1.0 ])
+
     def get_container(node_type: Type[_Node]):
         for basecontainer in mdBaseLists:
             if node_type in basecontainer._childtypes:
@@ -147,8 +170,14 @@ class ModelDoc:
     class AnimationList(_BaseNode):
         default_root_bone_name: str = ""
     
+    @containerof(Bone)
+    class Skeleton(_BaseNode): pass
+    
     @containerof(PhysicsHullFile)
     class PhysicsShapeList(_BaseNode): pass
 
     @containerof(GenericGameData)
     class GameDataList(_BaseNode): pass
+
+    @containerof(Bounds_Hull, Bounds_View)
+    class ModelDataList(_BaseNode): pass

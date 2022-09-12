@@ -125,6 +125,34 @@ def ImportQCtoVMDL(qc_path: Path):
         elif isinstance(command, QC.declaresequence):
             sequences_declared.append(command.name)
         
+        elif isinstance(command, QC.definebone):
+            command: QC.definebone
+            bone = ModelDoc.Bone(
+                name = command.name,
+                origin=[command.posx, command.posy, command.posz],
+                angles=[command.rotx, command.roty, command.rotz],
+            )
+            vmdl.add_to_appropriate_list(bone)
+        
+        # https://developer.valvesoftware.com/wiki/$bbox
+        elif isinstance(command, (QC.bbox, QC.cbox)):
+            command: Union[QC.bbox, QC.cbox]
+            if isinstance(command, QC.bbox):
+                hull_type = ModelDoc.Bounds_Hull
+            else:
+                hull_type = ModelDoc.Bounds_View
+                # If the coordinates of the this clipping bounding box are all zero, $bbox is used instead.
+                if not any(param != 0 for param in command.__dict__.values()):
+                    # Don't even bother
+                    continue
+
+            vmdl.add_to_appropriate_list(hull_type(
+                name = command.__class__.__name__,
+                mins = [command.minx, command.miny, command.minz],
+                maxs = [command.maxx, command.maxy, command.maxz],
+            ))
+
+
         # https://developer.valvesoftware.com/wiki/$keyvalues
         elif isinstance(command, QC.keyvalues):
             for key, value in command.__dict__.items():
