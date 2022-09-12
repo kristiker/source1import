@@ -100,15 +100,6 @@ class QC:
     class bodygroup:
         name: str
         options: list[str]
-        def handle_options(self, options_node: Node):
-            trav = QCBuilder.traverse_options(options_node)
-            ls = []
-            for option in trav:
-                if option.expr_name != "token":
-                    raise OptionParseError("Expected token, got group")
-                ls.append(option.text.strip('"'))
-
-            setattr(self, "options", ls)
 
     class body:
         name: str
@@ -116,6 +107,10 @@ class QC:
         reverse: Optional[bool] = False
         scale: Optional[int] = 1
     
+    class lod:
+        threshold: int
+        options: list[str]
+
     class model:
         name: str
         mesh_filename: str
@@ -205,6 +200,17 @@ class QCBuilder(NodeVisitor):
         if hasattr(self.command_to_build, "handle_options"):
             #print(base_group_node.children[0].children[2])
             self.command_to_build.handle_options(base_group_node.children[0].children[2])
+        
+        # just a list of tokens
+        elif self.command_to_build.__annotations__.get("options") == list[str]:
+            trav = QCBuilder.traverse_options(base_group_node.children[0].children[2])
+            ls = []
+            for option in trav:
+                if option.expr_name != "token":
+                    raise OptionParseError("Expected token, got group")
+                ls.append(option.text.strip('"'))
+
+            setattr(self.command_to_build, "options", ls)
 
         # options is the last member
         self.qc.append(self.command_to_build)

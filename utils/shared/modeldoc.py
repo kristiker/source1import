@@ -121,6 +121,11 @@ class ModelDoc:
         meshes: list[namelink] = field(default_factory=list) # list of names of meshes
 
     @dataclass
+    class LODGroup(_Node):
+        switch_threshold: float = 0.0
+        meshes: list[namelink] = field(default_factory=list) # list of names of meshes
+
+    @dataclass
     class GenericGameData(_Node):
         game_class: str = ""
         game_keys: dict = field(default_factory=dict)
@@ -161,6 +166,9 @@ class ModelDoc:
 
     @containerof(BodyGroup)
     class BodyGroupList(_BaseNode): pass
+
+    @containerof(LODGroup)
+    class LODGroupList(_BaseNode): pass
 
     @containerof(RenderMeshFile)
     class RenderMeshList(_BaseNode): pass

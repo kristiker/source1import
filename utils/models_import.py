@@ -48,6 +48,7 @@ def ImportQCtoVMDL(qc_path: Path):
 
     global_surfaceprop = "default"
     sequences_declared: list[str] = []
+    lod0 = None
 
     # These first
     for command in qc_commands:
@@ -84,6 +85,7 @@ def ImportQCtoVMDL(qc_path: Path):
             bodygroup = ModelDoc.BodyGroup(name=command.name)
             
             # TODO: this is probably not right
+            # if smd add as RenderMeshFile?
             # ['studio', 'mybody', 'studio', 'myhead', 'studio', 'b.smd','blank']
             optionsiter = iter(command.options)
             while string:=next(optionsiter, False):
@@ -95,6 +97,41 @@ def ImportQCtoVMDL(qc_path: Path):
                     bodygroup.add_nodes(ModelDoc.BodyGroupChoice(name="blank"))
 
             vmdl.add_to_appropriate_list(bodygroup)
+        
+        # https://developer.valvesoftware.com/wiki/$lod
+        elif isinstance(command, QC.lod):
+            command: QC.lod
+            
+            replacemodel = {}
+
+            optionsiter = iter(command.options)
+            while string:=next(optionsiter, False):
+                if string == "replacemodel":
+                    replacemodel.__setitem__(next(optionsiter), next(optionsiter))
+                elif string == "removemodel":
+                    replacemodel.__setitem__(next(optionsiter), None)
+                elif string in ("replacematerial", "removemesh", "nofacial", "bonetreecollapse", "replacebone"):
+                    ...
+            # first LOD!
+            if ModelDoc.LODGroupList not in vmdl.base_lists:
+                lod0 = ModelDoc.LODGroup()
+                ... # Form it based on the $body stuff
+                vmdl.add_to_appropriate_list(lod0)
+            
+            # add stuff to lod0 that lodn is supposed to replace
+            for lod0_mesh in replacemodel.keys():
+                if lod0_mesh in lod0.meshes:
+                    continue
+                lod0.meshes.append(lod0_mesh)
+
+            lod_n = ModelDoc.LODGroup(switch_threshold=command.threshold)
+            for lod_n_mesh in replacemodel.values():
+                if lod_n_mesh is None:
+                    continue
+                lod_n.meshes.append(lod_n_mesh)
+            
+            vmdl.add_to_appropriate_list(lod_n)
+
         
         # https://developer.valvesoftware.com/wiki/$collisionmodel
         elif isinstance(command, QC.collisionmodel):
@@ -120,7 +157,7 @@ def ImportQCtoVMDL(qc_path: Path):
         # grab $animation, $sequence, $attachment and $collisiontext from this model
         elif isinstance(command, QC.includemodel):
             command: QC.includemodel
-            vmdl.root.base_model = (models / command.filename).with_suffix('.vmdl')
+            vmdl.root.base_model = (models / command.filename).with_suffix('.vmdl').as_posix()
         
         elif isinstance(command, QC.declaresequence):
             sequences_declared.append(command.name)
