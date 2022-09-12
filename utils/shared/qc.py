@@ -130,21 +130,30 @@ class QC:
     class keyvalues:
         options: dict[str, object]
         def handle_options(self, options_node: Node):
-            trav = QCBuilder.traverse(options_node, "token", "group")
-            for key, val in zip(trav, trav):
-                if key.expr_name != "token":
-                    raise OptionParseError("Expected token as key, got group")
-                if val.expr_name == "group":
-                    ...    
-                self.__dict__[key.text] = val.text
+            trav = QCBuilder.traverse_options(options_node)
+            def nested(trav):
+                d = {}
+                for key, val in zip(trav, trav):
+                    if key.expr_name != "token":
+                        raise OptionParseError("Expected token as key, got group")
+                    if val.expr_name == "group":
+                        d[key.text] = nested(QCBuilder.traverse_options(val.children[2]))
+                        continue
+                    d[key.text.strip('"')] = val.text.strip('"')
+                return d
+
+            self.__dict__.update(nested(trav))
 
 class OptionParseError(Exception): pass
 
 class QCBuilder(NodeVisitor):
     grammar = qcgrammar
-    qc = list()
-    command_to_build = None
-    bInGroup = False
+
+    def __init__(self):
+        super().__init__()
+        self.qc = list()
+        self.command_to_build = None
+        self.bInGroup = False
 
     def push_command(self, command_cls: Type):
         # argless command (e.g. $staticprop)
@@ -173,11 +182,12 @@ class QCBuilder(NodeVisitor):
         self.command_to_build = None
     
     @staticmethod
-    def traverse(node: Node, *tag: str):
-        if node.expr_name in tag:
+    def traverse_options(node: Node):
+        if node.expr_name in ("token", "group"):
             yield node
-        for child in node.children:
-            yield from QCBuilder.traverse(child, *tag)
+            return
+        for child in node:
+            yield from QCBuilder.traverse_options(child)
 
     def push_argument_group(self, base_group_node: Node):
         
@@ -185,7 +195,7 @@ class QCBuilder(NodeVisitor):
             return "?"
 
         if "options" in self.command_to_build.__annotations__:
-            print(base_group_node.children[0])
+            #print(base_group_node.children[0].children[2])
             self.command_to_build.handle_options(base_group_node.children[0].children[2])
 
         # options is the last member
@@ -193,7 +203,6 @@ class QCBuilder(NodeVisitor):
         self.command_to_build = None
 
     def visit_qcfile(self, node: Node, visited_children: Sequence[Node]):
-        #print(node)
         return self.qc
     
     def visit_cmd(self, node, visited_children):
