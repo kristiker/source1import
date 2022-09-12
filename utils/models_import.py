@@ -1,8 +1,8 @@
-from typing import Union
+from typing import Type, Union
 import shared.base_utils2 as sh
 from pathlib import Path
 from shared.keyvalues3 import KV3File, KV3Header
-from shared.modeldoc import ModelDoc
+from shared.modeldoc import ModelDoc, _BaseNode, _Node
 from shared.qc import QC, QCBuilder
 
 SHOULD_OVERWRITE = False
@@ -157,7 +157,7 @@ def ImportQCtoVMDL(qc_path: Path):
         # grab $animation, $sequence, $attachment and $collisiontext from this model
         elif isinstance(command, QC.includemodel):
             command: QC.includemodel
-            vmdl.root.base_model = (models / command.filename).with_suffix('.vmdl').as_posix()
+            vmdl.root.base_model_name = (models / command.filename).with_suffix('.vmdl').as_posix()
         
         elif isinstance(command, QC.declaresequence):
             sequences_declared.append(command.name)
@@ -217,19 +217,19 @@ def ImportQCtoVMDL(qc_path: Path):
     print('+ Saved', out_vmdl_path.local)
 
 
+from dataclasses import asdict
 class ModelDocVMDL(KV3File):
     def __init__(self):
-        super().__init__(
-            rootNode = ModelDoc.RootNode(),
-        )
         self.header = KV3Header(format='source1imported_sbox', format_ver='3cec427c-1b0e-4d48-a90a-0436f33a6041')
-        self.base_lists = {}
+        self.root = ModelDoc.RootNode()
 
-    @property
-    def root(self) -> ModelDoc.RootNode:
-        return self["rootNode"]
+        self.base_lists: dict[Type[_BaseNode], _BaseNode] = {}
 
-    def add_to_appropriate_list(self, node):
+    def __str__(self):
+        self["rootNode"] = asdict(self.root)
+        return super().__str__()
+
+    def add_to_appropriate_list(self, node: _Node):
         """
         Adds bodygroup to bodygrouplist, animfile to animationlist, etc. Only makes one list.
         """

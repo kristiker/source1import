@@ -2,19 +2,13 @@ from dataclasses import dataclass, field
 from typing import Type
 
 @dataclass
-class _BaseNode(dict):
-    """dot.notation access to dictionary attributes"""
-    __getattr__ = dict.get
-    __setattr__ = dict.__setitem__
-    __delattr__ = dict.__delitem__
-    
+class _BaseNode:
     _class: str = __name__
     note: str = ""
-    children: list["_BaseNode"] = field(default_factory=list)
+    children: list["_Node"] = field(default_factory=list)
 
     def __post_init__(self):
         self._class = self.__class__.__name__.replace("_", " ")
-        super().update(**self.__dict__)
 
     def add_nodes(self, *nodes: "_BaseNode"):
         for node in nodes:
@@ -23,6 +17,27 @@ class _BaseNode(dict):
     def with_nodes(self, *nodes: "_BaseNode"):
         self.add_nodes(*nodes)
         return self
+    
+    def find_by_class_bfs(self, cls: Type["_BaseNode"]) -> "_BaseNode":
+        """Breadth first search node by class."""
+        for child in self.children:
+            if isinstance(child, cls):
+                return child
+        for child in self.children:
+            result = child.find_by_class_bfs(cls)
+            if result is not None:
+                return result
+
+    def find_by_name_dfs(self, name: str, depth=-1) -> "_BaseNode":
+        """Depth first search node by name."""
+        for child in self.children:
+            if child.name == name:
+                return child
+            if depth == 0:
+                break
+            result = child.find_by_name_dfs(name, depth-1)
+            if result is not None:
+                return result
 
 @dataclass
 class _Node(_BaseNode):
@@ -50,7 +65,7 @@ class ModelDoc:
         model_archetype: str = ""
         primary_associated_entity: str = ""
         anim_graph_name: str = ""
-        #base_model_name = ""
+        base_model_name: str = ""
 
     class Folder(_Node):
         pass
