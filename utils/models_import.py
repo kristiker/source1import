@@ -1,8 +1,9 @@
+from typing import Union
 import shared.base_utils2 as sh
 from pathlib import Path
 from shared.keyvalues3 import KV3File, KV3Header
 from shared.modeldoc import ModelDoc
-from shared.qcparse import QCParse
+from shared.qc import QC, QCBuilder
 
 SHOULD_OVERWRITE = False
 SAMPBOX = False
@@ -43,22 +44,22 @@ def ImportQCtoVMDL(qc_path: Path):
     
     active_folder = qc_path.parent
 
-    qc_commands = QCParse.parse(qc_path)
+    qc_commands: list[Union["QC.command", str]] = QCBuilder().parse(qc_path.open().read())
 
     global_surfaceprop = "default"
     # These first
     for command in qc_commands:
-        if isinstance(command, QCParse.surfaceprop):
+        if isinstance(command, QC.surfaceprop):
             global_surfaceprop = command.name
 
     for command in qc_commands:
-        if command is QCParse.staticprop:
+        if command is QC.staticprop:
             vmdl.root.model_archetype = "static_prop_model"
             vmdl.root.primary_associated_entity = "prop_static"
         
         # https://developer.valvesoftware.com/wiki/$body
-        elif isinstance(command, QCParse.body):
-            command: QCParse.body
+        elif isinstance(command, QC.body):
+            command: QC.body
             rendermeshfile = ModelDoc.RenderMeshFile(
                 name = command.name,
                 filename = f"models/{command.mesh_filename}"
@@ -66,8 +67,8 @@ def ImportQCtoVMDL(qc_path: Path):
             vmdl.add_to_appropriate_list(rendermeshfile)
         
         # https://developer.valvesoftware.com/wiki/$sequence
-        elif isinstance(command, QCParse.sequence):
-            command: QCParse.sequence
+        elif isinstance(command, QC.sequence):
+            command: QC.sequence
             animfile = ModelDoc.AnimFile(
                 name = command.name,
                 source_filename = f"models/{command.mesh_filename}"
@@ -75,8 +76,8 @@ def ImportQCtoVMDL(qc_path: Path):
             vmdl.add_to_appropriate_list(animfile)
 
         # https://developer.valvesoftware.com/wiki/$bodygroup
-        elif isinstance(command, QCParse.bodygroup):
-            command: QCParse.bodygroup
+        elif isinstance(command, QC.bodygroup):
+            command: QC.bodygroup
             bodygroup = ModelDoc.BodyGroup(name=command.name)
             
             # ['{', 'studio', 'mybody', 'studio', 'myhead', 'blank', '}']
@@ -92,8 +93,8 @@ def ImportQCtoVMDL(qc_path: Path):
             vmdl.add_to_appropriate_list(bodygroup)
         
         # https://developer.valvesoftware.com/wiki/$collisionmodel
-        elif isinstance(command, QCParse.collisionmodel):
-            command: QCParse.collisionmodel
+        elif isinstance(command, QC.collisionmodel):
+            command: QC.collisionmodel
             physicsmeshfile = ModelDoc.PhysicsHullFile(
                 filename=f"models/{command.mesh_filename}",
                 surface_prop=global_surfaceprop
