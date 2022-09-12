@@ -100,8 +100,21 @@ def ImportQCtoVMDL(qc_path: Path):
                 surface_prop=global_surfaceprop
             )
 
+        # https://developer.valvesoftware.com/wiki/$collisionjoints
+        elif isinstance(command, QC.collisionjoints):
+            command: QC.collisionjoints
+            physicsmeshfile = ModelDoc.PhysicsHullFile(
+                filename=f"models/{command.mesh_filename}",
+                surface_prop=global_surfaceprop
+            )
 
             vmdl.add_to_appropriate_list(physicsmeshfile)
+        
+        # https://developer.valvesoftware.com/wiki/$includemodel
+        # grab $animation, $sequence, $attachment and $collisiontext from this model
+        elif isinstance(command, QC.includemodel):
+            command: QC.includemodel
+            vmdl.root.base_model = (models / command.filename).with_suffix('.vmdl')
 
     sh.write(out_vmdl_path, vmdl.ToString())
     print('+ Saved', out_vmdl_path.local)
