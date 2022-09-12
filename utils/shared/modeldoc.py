@@ -120,6 +120,11 @@ class ModelDoc:
     class BodyGroupChoice(_Node):
         meshes: list[namelink] = field(default_factory=list) # list of names of meshes
 
+    @dataclass
+    class GenericGameData(_Node):
+        game_class: str = ""
+        game_keys: dict = field(default_factory=dict)
+
     def get_container(node_type: Type[_Node]):
         for basecontainer in mdBaseLists:
             if node_type in basecontainer._childtypes:
@@ -144,3 +149,6 @@ class ModelDoc:
     
     @containerof(PhysicsHullFile)
     class PhysicsShapeList(_BaseNode): pass
+
+    @containerof(GenericGameData)
+    class GameDataList(_BaseNode): pass

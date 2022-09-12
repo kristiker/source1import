@@ -121,6 +121,14 @@ def ImportQCtoVMDL(qc_path: Path):
         elif isinstance(command, QC.declaresequence):
             sequences_declared.append(command.name)
         
+        # https://developer.valvesoftware.com/wiki/$keyvalues
+        elif isinstance(command, QC.keyvalues):
+            for key, value in command.__dict__.items():
+                # https://developer.valvesoftware.com/wiki/Prop_data
+                if key == "prop_data":
+                    prop_data = ModelDoc.GenericGameData(game_class="prop_data")
+                    prop_data.game_keys.update(value)
+                    vmdl.add_to_appropriate_list(prop_data)
 
     if len(sequences_declared):
         vmdl_prefab = ModelDocVMDL()
