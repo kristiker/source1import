@@ -81,14 +81,14 @@ def ImportQCtoVMDL(qc_path: Path):
             bodygroup = ModelDoc.BodyGroup(name=command.name)
             
             # ['{', 'studio', 'mybody', 'studio', 'myhead', 'blank', '}']
-            optionsiter = iter(command.options)
-            while string:=next(optionsiter, False):
-                if string == "studio":
-                    choice = ModelDoc.BodyGroupChoice()
-                    choice.meshes.append(next(optionsiter))
-                    bodygroup.add_nodes(choice)
-                elif string == "blank":
-                    bodygroup.add_nodes(ModelDoc.BodyGroupChoice())
+            #optionsiter = iter(command.options)
+            #while string:=next(optionsiter, False):
+            #    if string == "studio":
+            #        choice = ModelDoc.BodyGroupChoice()
+            #        choice.meshes.append(next(optionsiter))
+            #        bodygroup.add_nodes(choice)
+            #    elif string == "blank":
+            #        bodygroup.add_nodes(ModelDoc.BodyGroupChoice())
 
             vmdl.add_to_appropriate_list(bodygroup)
         
