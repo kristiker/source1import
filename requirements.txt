@@ -1,3 +1,4 @@
 Pillow
 numpy
 vdf
+parsimonious==0.10.0
