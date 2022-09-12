@@ -49,6 +49,7 @@ def ImportQCtoVMDL(qc_path: Path):
     global_surfaceprop = "default"
     sequences_declared: list[str] = []
     lod0 = None
+    skeleton = ModelDoc.Skeleton()
 
     # These first
     for command in qc_commands:
@@ -164,12 +165,29 @@ def ImportQCtoVMDL(qc_path: Path):
         
         elif isinstance(command, QC.definebone):
             command: QC.definebone
+            # bone already defined, ignore
+            if skeleton.find_by_name_dfs(command.name):
+                continue
             bone = ModelDoc.Bone(
                 name = command.name,
                 origin=[command.posx, command.posy, command.posz],
                 angles=[command.rotx, command.roty, command.rotz],
             )
-            vmdl.add_to_appropriate_list(bone)
+            # unparented bone
+            if not command.parent:
+               skeleton.children.append(bone)
+            else:
+                # parented to a bone that can't have been declared yet
+                if not len(skeleton.children):
+                    continue
+                # parented to a bone that can't be found on the tree yet
+                found = skeleton.find_by_name_dfs(command.parent)
+                if not found:
+                    print("not found", skeleton.children[0].__dict__)
+                    continue
+                #bone.name += "my_dearest_child_"
+                found.add_nodes(bone)
+                
         
         # https://developer.valvesoftware.com/wiki/$bbox
         elif isinstance(command, (QC.bbox, QC.cbox)):
@@ -212,7 +230,9 @@ def ImportQCtoVMDL(qc_path: Path):
         sh.write(out_vmdl_prefab_path, vmdl_prefab.ToString())
         print('+ Saved prefab', out_vmdl_prefab_path.local)
 
-
+    if len(skeleton.children):
+        vmdl.root.add_nodes(skeleton)
+        
     sh.write(out_vmdl_path, vmdl.ToString())
     print('+ Saved', out_vmdl_path.local)
 
