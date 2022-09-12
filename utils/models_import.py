@@ -54,6 +54,7 @@ def ImportQCtoVMDL(qc_path: Path):
         if isinstance(command, QC.surfaceprop):
             global_surfaceprop = command.name
 
+
     for command in qc_commands:
         if command is QC.staticprop:
             vmdl.root.model_archetype = "static_prop_model"
@@ -82,15 +83,16 @@ def ImportQCtoVMDL(qc_path: Path):
             command: QC.bodygroup
             bodygroup = ModelDoc.BodyGroup(name=command.name)
             
-            # ['{', 'studio', 'mybody', 'studio', 'myhead', 'blank', '}']
-            #optionsiter = iter(command.options)
-            #while string:=next(optionsiter, False):
-            #    if string == "studio":
-            #        choice = ModelDoc.BodyGroupChoice()
-            #        choice.meshes.append(next(optionsiter))
-            #        bodygroup.add_nodes(choice)
-            #    elif string == "blank":
-            #        bodygroup.add_nodes(ModelDoc.BodyGroupChoice())
+            # TODO: this is probably not right
+            # ['studio', 'mybody', 'studio', 'myhead', 'studio', 'b.smd','blank']
+            optionsiter = iter(command.options)
+            while string:=next(optionsiter, False):
+                if string == "studio":
+                    choice = ModelDoc.BodyGroupChoice()
+                    choice.meshes.append(next(optionsiter))
+                    bodygroup.add_nodes(choice)
+                elif string == "blank":
+                    bodygroup.add_nodes(ModelDoc.BodyGroupChoice(name="blank"))
 
             vmdl.add_to_appropriate_list(bodygroup)
         
@@ -102,6 +104,8 @@ def ImportQCtoVMDL(qc_path: Path):
                 surface_prop=global_surfaceprop
             )
 
+            vmdl.add_to_appropriate_list(physicsmeshfile)
+        
         # https://developer.valvesoftware.com/wiki/$collisionjoints
         elif isinstance(command, QC.collisionjoints):
             command: QC.collisionjoints

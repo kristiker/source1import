@@ -99,7 +99,16 @@ class QC:
     
     class bodygroup:
         name: str
-        #options: _options
+        options: list[str]
+        def handle_options(self, options_node: Node):
+            trav = QCBuilder.traverse_options(options_node)
+            ls = []
+            for option in trav:
+                if option.expr_name != "token":
+                    raise OptionParseError("Expected token, got group")
+                ls.append(option.text.strip('"'))
+
+            setattr(self, "options", ls)
 
     class body:
         name: str
@@ -128,7 +137,6 @@ class QC:
         #options: _options
     
     class keyvalues:
-        options: dict[str, object]
         def handle_options(self, options_node: Node):
             trav = QCBuilder.traverse_options(options_node)
             def nested(trav):
@@ -194,7 +202,7 @@ class QCBuilder(NodeVisitor):
         if self.command_to_build is None:
             return "?"
 
-        if "options" in self.command_to_build.__annotations__:
+        if hasattr(self.command_to_build, "handle_options"):
             #print(base_group_node.children[0].children[2])
             self.command_to_build.handle_options(base_group_node.children[0].children[2])
 
