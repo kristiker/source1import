@@ -47,6 +47,8 @@ def ImportQCtoVMDL(qc_path: Path):
     qc_commands: list[Union["QC.command", str]] = QCBuilder().parse(qc_path.open().read())
 
     global_surfaceprop = "default"
+    sequences_declared: list[str] = []
+
     # These first
     for command in qc_commands:
         if isinstance(command, QC.surfaceprop):
@@ -115,6 +117,24 @@ def ImportQCtoVMDL(qc_path: Path):
         elif isinstance(command, QC.includemodel):
             command: QC.includemodel
             vmdl.root.base_model = (models / command.filename).with_suffix('.vmdl')
+        
+        elif isinstance(command, QC.declaresequence):
+            sequences_declared.append(command.name)
+        
+
+    if len(sequences_declared):
+        vmdl_prefab = ModelDocVMDL()
+        out_vmdl_prefab_path = out_vmdl_path.with_name("declared_sequences.vmdl_prefab")
+
+        for sequence in sequences_declared:
+            animfile = ModelDoc.AnimFile(
+                name = sequence,
+            )
+            vmdl_prefab.add_to_appropriate_list(animfile)
+
+        sh.write(out_vmdl_prefab_path, vmdl_prefab.ToString())
+        print('+ Saved prefab', out_vmdl_prefab_path.local)
+
 
     sh.write(out_vmdl_path, vmdl.ToString())
     print('+ Saved', out_vmdl_path.local)
