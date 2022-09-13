@@ -208,9 +208,13 @@ class QCBuilder(NodeVisitor):
             #print(self.command_to_build, member, type)
 
             if not hasattr(self.command_to_build, member):
-                #print("set to",  type(arg), i, max)
                 if type == str:
                     arg = arg.strip('"')
+                
+                if type in (int, float):
+                    # fix for 7.006ff000, passes ff000 as token
+                    if not all(c in "0123456789.-" for c in arg):
+                        return
                 setattr(self.command_to_build, member, type(arg))
                 # didn't run out yet
                 if i < max:
