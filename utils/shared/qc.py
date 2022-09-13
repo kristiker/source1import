@@ -48,6 +48,9 @@ qcgrammar = Grammar(
 )
 
 class QC:
+    class include:
+        filename: str
+
     class includemodel:
         filename: str
     

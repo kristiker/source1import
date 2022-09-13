@@ -176,6 +176,10 @@ class ModelDoc:
         mins: list[float] = field(default_factory=lambda: [ -1.0, -1.0, 0.0 ])
         maxs: list[float] = field(default_factory=lambda: [ 1.0, 1.0, 1.0 ])
 
+    @dataclass
+    class Prefab(_Node):
+        target_file: resourcepath = ""
+
     def get_container(node_type: Type[_Node]):
         for basecontainer in mdBaseLists:
             if node_type in basecontainer._childtypes:
@@ -215,3 +219,6 @@ class ModelDoc:
 
     @containerof(Bounds_Hull, Bounds_View)
     class ModelDataList(_BaseNode): pass
+
+    @containerof(Prefab)
+    class PrefabList(_BaseNode): pass

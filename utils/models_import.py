@@ -55,8 +55,8 @@ def main():
         qci_files = sh.collect(models, '.qci', '.vmdl', SHOULD_OVERWRITE, searchPath=sh.output(models))
         qc_files = sh.collect(models, '.qc', '.vmdl', SHOULD_OVERWRITE, searchPath=sh.output(models))
         
-        #for qci in qci_files:
-        #    ImportQCItoVMDL(qci)
+        for qci in qci_files:
+            ImportQCtoVMDL(qci)
         
         for qc in qc_files:
             ImportQCtoVMDL(qc)
@@ -116,6 +116,11 @@ def ImportQCtoVMDL(qc_path: Path):
             dir_stack.append(active_folder)
             active_folder = active_folder / command.path
         
+        elif isinstance(command, QC.include):
+            prefab_path = (active_folder / command.filename).with_suffix('.vmdl_prefab')
+            prefab = ModelDoc.Prefab(target_file=prefab_path.as_posix())
+            vmdl.add_to_appropriate_list(prefab)
+
         elif isinstance(command, QC.modelname):
             model_name = command.filename
 
@@ -295,10 +300,17 @@ def ImportQCtoVMDL(qc_path: Path):
                     prop_data.game_keys.update(value)
                     vmdl.add_to_appropriate_list(prop_data)
 
-    if not model_name:
+    bIsIncludeFile = False
+    if qc_path.suffix == ".qci":
+        bIsIncludeFile = True
+    
+    if not model_name and not bIsIncludeFile:
         raise QCParseError("No model name found in QC file %s" % qc_path.local)
     
-    out_vmdl_path = sh.EXPORT_CONTENT / (models / model_name.lower()).with_suffix('.vmdl')
+    if not bIsIncludeFile:
+        out_vmdl_path = sh.EXPORT_CONTENT / (models / model_name.lower()).with_suffix('.vmdl')
+    else:
+        out_vmdl_path = sh.output(qc_path, '.vmdl_prefab')
     out_vmdl_path.parent.MakeDir()
 
     if len(sequences_declared):
