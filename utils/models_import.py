@@ -52,8 +52,8 @@ def main():
 
     if IMPORT_QC:
         print('- Generating VMDL from QC!')
-        qci_files = sh.collect(models, '.qci', '.vmdl', SHOULD_OVERWRITE, searchPath=sh.output(models))
-        qc_files = sh.collect(models, '.qc', '.vmdl', SHOULD_OVERWRITE, searchPath=sh.output(models))
+        qci_files = sh.collect(models, '.qci', '.vmdl', True, searchPath=sh.output(models))
+        qc_files = sh.collect(models, '.qc', '.vmdl', True, searchPath=sh.output(models))
         
         for qci in qci_files:
             ImportQCtoVMDL(qci)
@@ -309,10 +309,15 @@ def ImportQCtoVMDL(qc_path: Path):
     if not model_name and not bIsIncludeFile:
         raise QCParseError("No model name found in QC file %s" % qc_path.local)
     
-    if not bIsIncludeFile:
-        out_vmdl_path = sh.EXPORT_CONTENT / (models / model_name.lower()).with_suffix('.vmdl')
-    else:
+    if bIsIncludeFile:
         out_vmdl_path = sh.output(qc_path, '.vmdl_prefab')
+    else:
+        out_vmdl_path = sh.EXPORT_CONTENT / (models / model_name.lower()).with_suffix('.vmdl')
+    
+    if not SHOULD_OVERWRITE and out_vmdl_path.exists():
+        sh.skip("already-exist", out_vmdl_path)
+        return
+
     out_vmdl_path.parent.MakeDir()
 
     if len(sequences_declared):
