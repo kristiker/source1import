@@ -2,8 +2,39 @@ from typing import Type, Union
 import shared.base_utils2 as sh
 from pathlib import Path
 from shared.keyvalues3 import KV3File, KV3Header
-from shared.modeldoc import ModelDoc, _BaseNode, _Node
-from shared.qc import QC, QCBuilder
+
+"""
+Import Source Engine models to Source 2
+
+* Generates simple VMDL files linking the MDL.
+    * This method has the highest compatibility and is fastest.
+    * The model won't be editable until its decompiled from vmdl_c via ModelDoc.
+    * Some complex models might crash the compiler i.e. L4D characters and cs animstates.
+    * Some less important parameters like $keyvalues are ignored.
+    * The format for `models/example.vmdl` is:
+        <!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:generic:version{7412167c-06e9-4698-aff2-e63eb59037e7} -->
+        {
+            m_sMDLFilename = "models/example.mdl"
+        }
+
+* Generates (poorly) translated VMDL files based on QC.
+    * VMDL is the equivalent of QC but the formats differ a lot.
+
+In contrast with the other scripts, models_import will search for files to
+convert at *output* (e.g. Source2 content), and src1 input is ignored.
+Reason is that Source 2 can *right away* accept both MDL and SMD files
+as CONTENT, and it's more efficient for the user to move
+those to Source 2 CONTENT than for the script to copy stuff around.
+
+So: move your Source1 GAME `models` to Source2 CONTENT `models`.
+If you're converting QC files (aka `modelsrc`), you can put those in S2 `models` as well,
+or anywhere inside it (like `models/legacy_qc/`) since QC files don't need to have
+the same name the mdl. Source2 will happily read Source1 SMD, DMX, and MDL+PHY+VVD files as long as
+they are placed somewhere inside Source2 CONTENT `models`.
+"""
+
+IMPORT_MDL = True
+IMPORT_QC = False
 
 SHOULD_OVERWRITE = False
 SAMPBOX = False
@@ -11,20 +42,25 @@ SAMPBOX = False
 models = Path('models')
 
 def main():
-    print('Source 2 VMDL Generator/QC Converter!')
+    print('Source 2 VMDL Generator!')
+    if IMPORT_MDL:
+        print('- Generating VMDL from MDL!')
+        mdl_files = sh.collect(models, '.mdl', '.vmdl', SHOULD_OVERWRITE, searchPath=sh.output(models))
 
-    qci_files = sh.collect(models, '.qci', '.vmdl', SHOULD_OVERWRITE)
-    qc_files = sh.collect(models, '.qc', '.vmdl', SHOULD_OVERWRITE)
+        for mdl in mdl_files:
+            ImportMDLtoVMDL(mdl)
 
-    #for qci in qci_files:
-    #    ImportQCtoVMDL(qci)
-    
-    for qc in qc_files:
-        ImportQCtoVMDL(qc)
-    mdl_files = sh.collect(models, '.mdl', '.vmdl', SHOULD_OVERWRITE, searchPath=sh.output(models))
-
-    for mdl in mdl_files:
-        ImportMDLtoVMDL(mdl)
+    if IMPORT_QC:
+        print('- Generating VMDL from QC!')
+        qci_files = sh.collect(models, '.qci', '.vmdl', SHOULD_OVERWRITE, searchPath=sh.output(models))
+        qc_files = sh.collect(models, '.qc', '.vmdl', SHOULD_OVERWRITE, searchPath=sh.output(models))
+        
+        #for qci in qci_files:
+        #    ImportQCItoVMDL(qci)
+        
+        for qc in qc_files:
+            print(qc)
+            ImportQCtoVMDL(qc)
 
     print("Looks like we are done!")
 
@@ -37,6 +73,9 @@ def ImportMDLtoVMDL(mdl_path: Path):
     sh.write(vmdl_path, vmdl.ToString())
     print('+ Generated', vmdl_path.local)
     return vmdl_path
+
+from shared.qc import QC, QCBuilder, QCParseError
+from shared.modeldoc import ModelDoc, _BaseNode, _Node
 
 def ImportQCtoVMDL(qc_path: Path):
     out_vmdl_path = sh.output(qc_path, '.vmdl')
@@ -263,5 +302,6 @@ class ModelDocVMDL(KV3File):
         container.add_nodes(node)
 
 if __name__ == "__main__":
+    # TODO: Don't ask for src1?
     sh.parse_argv()
     main()
