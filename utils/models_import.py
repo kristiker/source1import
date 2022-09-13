@@ -92,6 +92,8 @@ def ImportQCtoVMDL(qc_path: Path):
     lod0 = None
     skeleton = ModelDoc.Skeleton()
 
+    bone_name_fixup = lambda name: name.replace('.', '_')
+
     # These first
     for command in qc_commands:
         if isinstance(command, QC.surfaceprop):
@@ -211,7 +213,7 @@ def ImportQCtoVMDL(qc_path: Path):
             command: QC.attachment
             attachment = ModelDoc.Attachment(
                 name = command.name,
-                parent_bone = command.parent_bone,
+                parent_bone = bone_name_fixup(command.parent_bone),
                 relative_origin = [command.x, command.y, command.z],
                 # TODO: rotation
             )
@@ -249,10 +251,12 @@ def ImportQCtoVMDL(qc_path: Path):
         elif isinstance(command, QC.definebone):
             command: QC.definebone
             # bone already defined, ignore
-            if skeleton.find_by_name_dfs(command.name):
+            bone_name = bone_name_fixup(command.name)
+            parent_bone_name = bone_name_fixup(command.parent)
+            if skeleton.find_by_name_dfs(bone_name):
                 continue
             bone = ModelDoc.Bone(
-                name = command.name,
+                name = bone_name,
                 origin=[command.posx, command.posy, command.posz],
                 angles=[command.rotx, command.roty, command.rotz],
             )
@@ -264,13 +268,10 @@ def ImportQCtoVMDL(qc_path: Path):
                 if not len(skeleton.children):
                     continue
                 # parented to a bone that can't be found on the tree yet
-                found = skeleton.find_by_name_dfs(command.parent)
+                found = skeleton.find_by_name_dfs(parent_bone_name)
                 if not found:
-                    print("not found", skeleton.children[0].__dict__)
                     continue
-                #bone.name += "my_dearest_child_"
                 found.add_nodes(bone)
-                
         
         # https://developer.valvesoftware.com/wiki/$bbox
         elif isinstance(command, (QC.bbox, QC.cbox)):
