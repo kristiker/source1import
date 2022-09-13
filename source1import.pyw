@@ -362,7 +362,7 @@ class SampleApp(Tk):
         def stop():
             self.is_running = False
             self.gobutton_update()
-        if not any(method.get() for method in (self.Textures,self.Materials,self.Models,self.Particles,self.Scenes,self.Scripts,self.Sessions)):
+        if not any(method.get() for method in (self.Textures,self.Materials,self.Models,self.Particles,self.Maps,self.Scenes,self.Scripts,self.Sessions)):
             messagebox.showinfo(title=self.APP_TITLE, message="No import function was selected")
             return stop()
         for tab in self.tabs.values():

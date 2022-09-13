@@ -19,16 +19,19 @@ OVERWRITE_MAPS = False
 
 maps = Path("maps")
 
+def out_vmap_name(in_vmf: Path):
+    return sh.EXPORT_CONTENT / maps / "source1imported" / "entities" / in_vmf.local.relative_to(maps).with_suffix(".vmap")
+
 def main():
-    print("Importing maps (entities only)!")
-    for vmf_path in sh.collect(maps, ".vmf", ".vmap", OVERWRITE_MAPS):
+    print("Importing maps (entities only)!", OVERWRITE_MAPS)
+    for vmf_path in sh.collect(maps, ".vmf", ".vmap", OVERWRITE_MAPS, out_vmap_name):
         ImportVMFToVMAP(vmf_path)
 
     print("Looks like we are done!")
 
 def ImportVMFToVMAP(vmf_path):
 
-    vmap_path = sh.output(vmf_path, ".vmap")
+    vmap_path = out_vmap_name(vmf_path)
     vmap_path.parent.MakeDir()
 
     sh.status(f'- Reading {vmf_path.local}')
@@ -68,7 +71,7 @@ class base_vmf(str, Enum):
     cordons = "cordons"
 
 def create_fresh_vmap() -> dmx.DataModel:
-    boilerplate = dmx.load("utils/shared/empty.vmap.txt")
+    boilerplate = dmx.load(Path(__file__).parent / "shared/empty.vmap.txt")
     boilerplate.prefix_attributes.type = "$prefix_element$"
     return boilerplate
 

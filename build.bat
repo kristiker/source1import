@@ -8,6 +8,7 @@ python -m PyInstaller ^
     --icon=utils/shared/icon.ico ^
     --add-binary=utils\shared\bin\vtf2tga;utils\shared\bin\vtf2tga ^
     --hidden-import utils.elements_import ^
+    --hidden-import utils.maps_import ^
     --hidden-import utils.materials_import ^
     --hidden-import utils.models_import ^
     --hidden-import utils.particles_import ^

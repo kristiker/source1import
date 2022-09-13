@@ -20,7 +20,7 @@ Import Source Engine models to Source 2
 * Generates (poorly) translated VMDL files based on QC.
     * VMDL is the equivalent of QC but the formats differ a lot.
 
-In contrast with the other scripts, models_import will search for files to
+In contrast to the other scripts, models_import will search for files to
 convert at *output* (e.g. Source2 content), and src1 input is ignored.
 Reason is that Source 2 can *right away* accept both MDL and SMD files
 as CONTENT, and it's more efficient for the user to move
@@ -111,7 +111,7 @@ def ImportQCtoVMDL(qc_path: Path):
         elif command is QC.popd:
             try:
                 active_folder = dir_stack.pop()
-            except IndexError():
+            except IndexError:
                 pass
         
         elif isinstance(command, QC.pushd):
