@@ -12,11 +12,11 @@ qcgrammar = Grammar(
     cmd = ~"\\$[_$a-zA-Z][\w$/.]*"
     group_base = group ""
 
-    group = "{" _* ((_2complex4grammar / token / group) _*)* "}"
+    group = "{" _* ((_2complex4grammar / token / group) _*)* ("}" / ~"\Z")
 
     token = (variable / quoted / number)
 
-    variable = ~"[_$a-zA-Z][\w$/.]*"
+    variable = ~r"[_$a-zA-Z][\S]*"
     quoted = ~r'"[^"]*"'
     number = (int? frac) / int
     int = "-"? ((digit1to9 digits) / digit)
@@ -40,8 +40,10 @@ qcgrammar = Grammar(
     _ = __*
     __ = ~r"\s+" / comment / multiline_comment
     comment = ~"//[^\\r\\n]*"
-    multiline_comment = ~"/\\*[^*]*\\*+(?:[^/*][^*]*\\*+)*/"
-
+    # This is dumber than the usual stuff, eating everything till it finds */ or EOF
+    multiline_comment = ~"\\/\\*(.*?|\\s)*(\\*\\/|\\Z)"
+    #multiline_comment = ~"/\\*[^*]*\\*+(?:[^/*][^*]*\\*+)*/"
+    
     """
 )
 
