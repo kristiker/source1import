@@ -72,6 +72,17 @@ class QC:
         y: float
         z: float
     
+    class attachment:
+        name: str
+        parent_bone: str
+        x: float
+        y: float
+        z: float
+        # TODO:
+        # absolute: "OptionalTrueIfTokenPresent"
+        # rigid: "OptionalTrueIfTokenPresent"
+        # rotate: "OptionalKeyReadNextValues[3]"
+    
     class cdmaterials:
         folder: str
     

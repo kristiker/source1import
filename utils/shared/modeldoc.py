@@ -141,6 +141,14 @@ class ModelDoc:
         meshes: list[namelink] = field(default_factory=list) # list of names of meshes
 
     @dataclass
+    class Attachment(_Node):
+        parent_bone: namelink = ""
+        relative_origin: list[float] = field(default_factory=lambda: [0, 0, 0])
+        relative_angles: list[float] = field(default_factory=lambda: [0, 0, 0])
+        weight: float = 1.0
+        ignore_rotation: bool = False
+
+    @dataclass
     class GenericGameData(_Node):
         game_class: str = ""
         game_keys: dict = field(default_factory=dict)
@@ -198,6 +206,9 @@ class ModelDoc:
     
     @containerof(PhysicsHullFile)
     class PhysicsShapeList(_BaseNode): pass
+
+    @containerof(Attachment)
+    class AttachmentList(_BaseNode): pass
 
     @containerof(GenericGameData)
     class GameDataList(_BaseNode): pass

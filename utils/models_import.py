@@ -59,7 +59,6 @@ def main():
         #    ImportQCItoVMDL(qci)
         
         for qc in qc_files:
-            print(qc)
             ImportQCtoVMDL(qc)
 
     print("Looks like we are done!")
@@ -189,7 +188,17 @@ def ImportQCtoVMDL(qc_path: Path):
             
             vmdl.add_to_appropriate_list(lod_n)
 
-        
+        # https://developer.valvesoftware.com/wiki/$attachment
+        elif isinstance(command, QC.attachment):
+            command: QC.attachment
+            attachment = ModelDoc.Attachment(
+                name = command.name,
+                parent_bone = command.parent_bone,
+                relative_origin = [command.x, command.y, command.z],
+                # TODO: rotation
+            )
+            vmdl.add_to_appropriate_list(attachment)
+
         # https://developer.valvesoftware.com/wiki/$collisionmodel
         elif isinstance(command, QC.collisionmodel):
             command: QC.collisionmodel
