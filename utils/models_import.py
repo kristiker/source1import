@@ -78,13 +78,15 @@ from shared.qc import QC, QCBuilder, QCParseError
 from shared.modeldoc import ModelDoc, _BaseNode, _Node
 
 def ImportQCtoVMDL(qc_path: Path):
-    out_vmdl_path = sh.output(qc_path, '.vmdl')
     vmdl = ModelDocVMDL()
     
-    active_folder = qc_path.parent
+    active_folder: Path = qc_path.local.parent
+    dir_stack: list[Path] = []
+    fixup_filepath = lambda path: (active_folder / path).as_posix()
 
     qc_commands: list[Union["QC.command", str]] = QCBuilder().parse(qc_path.open().read())
 
+    model_name = ""
     global_surfaceprop = "default"
     sequences_declared: list[str] = []
     lod0 = None
@@ -97,16 +99,31 @@ def ImportQCtoVMDL(qc_path: Path):
 
 
     for command in qc_commands:
+
         if command is QC.staticprop:
             vmdl.root.model_archetype = "static_prop_model"
             vmdl.root.primary_associated_entity = "prop_static"
         
+        elif command is QC.popd:
+            try:
+                active_folder = dir_stack.pop()
+            except IndexError():
+                pass
+        
+        elif isinstance(command, QC.pushd):
+            dir_stack.append(active_folder)
+            active_folder = active_folder / command.path
+        
+        elif isinstance(command, QC.modelname):
+            model_name = command.filename
+
         # https://developer.valvesoftware.com/wiki/$body
         elif isinstance(command, QC.body):
             command: QC.body
             rendermeshfile = ModelDoc.RenderMeshFile(
                 name = command.name,
-                filename = f"models/{command.mesh_filename}"
+                filename = fixup_filepath(command.mesh_filename),
+                import_scale=command.scale,
             )
             vmdl.add_to_appropriate_list(rendermeshfile)
         
@@ -115,7 +132,7 @@ def ImportQCtoVMDL(qc_path: Path):
             command: QC.sequence
             animfile = ModelDoc.AnimFile(
                 name = command.name,
-                source_filename = f"models/{command.mesh_filename}"
+                source_filename = fixup_filepath(command.mesh_filename),
             )
             vmdl.add_to_appropriate_list(animfile)
 
@@ -177,7 +194,7 @@ def ImportQCtoVMDL(qc_path: Path):
         elif isinstance(command, QC.collisionmodel):
             command: QC.collisionmodel
             physicsmeshfile = ModelDoc.PhysicsHullFile(
-                filename=f"models/{command.mesh_filename}",
+                filename=fixup_filepath(command.mesh_filename),
                 surface_prop=global_surfaceprop
             )
 
@@ -187,7 +204,7 @@ def ImportQCtoVMDL(qc_path: Path):
         elif isinstance(command, QC.collisionjoints):
             command: QC.collisionjoints
             physicsmeshfile = ModelDoc.PhysicsHullFile(
-                filename=f"models/{command.mesh_filename}",
+                filename=fixup_filepath(command.mesh_filename),
                 surface_prop=global_surfaceprop
             )
 
@@ -255,6 +272,12 @@ def ImportQCtoVMDL(qc_path: Path):
                     prop_data = ModelDoc.GenericGameData(game_class="prop_data")
                     prop_data.game_keys.update(value)
                     vmdl.add_to_appropriate_list(prop_data)
+
+    if not model_name:
+        raise QCParseError("No model name found in QC file %s" % qc_path.local)
+    
+    out_vmdl_path = sh.EXPORT_CONTENT / (models / model_name.lower()).with_suffix('.vmdl')
+    out_vmdl_path.parent.MakeDir()
 
     if len(sequences_declared):
         vmdl_prefab = ModelDocVMDL()

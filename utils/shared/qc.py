@@ -54,6 +54,11 @@ class QC:
     class modelname:
         filename: str
 
+    class pushd:
+        path: str
+    
+    class popd(): pass
+
     class staticprop(): pass
 
     class surfaceprop:
@@ -156,6 +161,7 @@ class QC:
 
             self.__dict__.update(nested(trav))
 
+class QCParseError(Exception): pass
 class OptionParseError(Exception): pass
 
 class QCBuilder(NodeVisitor):
