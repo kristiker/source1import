@@ -214,7 +214,7 @@ def parse_out_path(source2_mod: Path):
 
     # if not forcing a branch, try to guess it from the path
     if not args_known.branch:
-        pp = {"sbox":eS2Game.sbox, "steamtours": eS2Game.steamvr, "hlvr": eS2Game.hlvr, "dota": eS2Game.dota2}
+        pp = {"sbox":eS2Game.sbox, "s&box":eS2Game.sbox, "steamtours": eS2Game.steamvr, "hlvr": eS2Game.hlvr, "dota": eS2Game.dota2}
         for p in EXPORT_GAME.parts:
             for k, v in pp.items():
                 if k in p:
