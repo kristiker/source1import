@@ -2,3 +2,4 @@ Pillow
 numpy
 vdf
 dataclassy==0.10.4
+parsimonious==0.10.0
