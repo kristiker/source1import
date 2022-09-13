@@ -288,20 +288,92 @@ class QCBuilder(NodeVisitor):
     def generic_visit(self, *args):
         return args[0]
 
-def parse(path: Path):
-    with open(path) as fp:
-        contents = fp.read()
+if __name__ == "__main__":
+    testqc = \
+"""
+$modelname	"props\myfirstmodel .mdl"
+$body	mybody	"myfirstmodel-ref.smd" 0 2
+$body	myhead "myfirstmodel-refhead.smd"
 
+$bodygroup sights {
+	studio mybody
+	studio myhead
+	blank
+}
 
-    qc = QCBuilder()
-    a = qc.parse(contents)
-    print("_____")
-    for cmd in a:
-        if isinstance(cmd, str):
-            print(cmd)
-            continue
-        print(cmd.__class__.__name__, cmd.__dict__)
+$staticprop
+$surfaceprop	combine_metal
+$cdmaterials	"models\props"
 
+$sequence idle	"myfirstmodel-ref.smd" { }
 
+$collisionmodel	"myfirstmodel-phys.smd" {
+	$concave
+}
 
+$keyvalues
+{
+	"prop_data"
+	{
+		"base" "Metal.LargeHealth"
+		"allowstatic" "1"
+		"dmg.bullets" "0"
+		"dmg.fire" "0"
+		"dmg.club" ".35"
+	//	"dmg.explosive" "1" 
+		"multiplayer_break"	"both"
+		"BlockLOS"	"1"
+	}
 
+}
+
+$collisionjoints "joints1"
+
+$collisiontext
+{
+	"break"
+	{
+	"model" "props_unique\SubwayCarExterior01_SideDoor01_Damaged_01"
+	"health" "10"
+//	"fademindist" "10000"
+//	"fademaxdist" "10000"
+	}
+
+// it doesn't close
+
+/* neither does this comment
+
+$collisionjoints "joints2"//lastcomment """
+
+    import unittest
+    class TestQC(unittest.TestCase):
+        def test_parses_without_fail(self):
+            qc = QCBuilder()
+            qc.parse(testqc)
+        
+        def test_commands(self):
+            qc = QCBuilder()
+            commands = qc.parse(testqc)
+            dicts = {
+                "modelname": {'filename': 'props\\myfirstmodel .mdl'},
+                "body": {'name': 'mybody', 'mesh_filename': 'myfirstmodel-ref.smd'},
+                "bodygroup": {'name': 'sights', 'options': ['studio', 'mybody', 'studio', 'myhead', 'blank']},
+                "staticprop": {},
+                "surfaceprop": {'name': 'combine_metal'},
+                "cdmaterials": {'folder': 'models\\props'},
+                "sequence": {'name': 'idle', 'mesh_filename': 'myfirstmodel-ref.smd'},
+                "collisionmodel": {'mesh_filename': 'myfirstmodel-phys.smd'},
+                "keyvalues": {'"prop_data"': {'base': 'Metal.LargeHealth', 'allowstatic': '1', 'dmg.bullets': '0', 'dmg.fire': '0', 'dmg.club': '.35', 'multiplayer_break': 'both', 'BlockLOS': '1'}},
+                "collisionjoints": {'mesh_filename': 'joints1'},
+                "$collisiontext:unimplemented": None,
+            }
+            names = [cmd.__class__.__name__ if not isinstance(cmd, str) else cmd for cmd in commands]
+            for name in dicts:
+                self.assertTrue(name in names, msg=f"Expected to have {name} in command list {names}")
+            
+            for cmd in commands:
+                if isinstance(cmd, str):
+                    continue
+                self.assertEqual(cmd.__dict__, dicts[cmd.__class__.__name__])
+
+    unittest.main()
