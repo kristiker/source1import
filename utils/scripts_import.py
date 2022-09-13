@@ -171,10 +171,6 @@ class SoundscapeImporter:
 
         with open(asset_path) as old, open(out_manifest, 'w') as out:
             contents = old.read().replace('.vsc', '.txt').replace('soundscaples_manifest', 'soundscapes_manifest')
-            if False:  # importing to an hla addon fix
-                ls = contents.split('{', 1)
-                ls[1] = '\n\t"file"\t"scripts/test123.txt"' + ls[1]
-                contents = '{'.join(ls)
             out.write(contents)
 
         print("+ Saved manifest file", out_manifest.local)

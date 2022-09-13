@@ -81,7 +81,7 @@ def ImportQCtoVMDL(qc_path: Path):
     
     active_folder: Path = qc_path.local.parent
     dir_stack: list[Path] = []
-    fixup_filepath = lambda path: (active_folder / path).as_posix()
+    fixup_filepath = lambda path: (active_folder / path).resolve().as_posix()
 
     qc_commands: list[Union["QC.command", str]] = QCBuilder().parse(qc_path.open().read())
 
@@ -343,7 +343,10 @@ def ImportQCtoVMDL(qc_path: Path):
 from dataclasses import asdict
 class ModelDocVMDL(KV3File):
     def __init__(self):
-        self.header = KV3Header(format='source1imported_sbox', format_ver='3cec427c-1b0e-4d48-a90a-0436f33a6041')
+        self.header = KV3Header(
+            format='source1imported',
+            format_ver='3cec427c-1b0e-4d48-a90a-0436f33a6041' if sh.SBOX else 'fb63b6ca-f435-4aa0-a2c7-c66ddc651dca'
+        )
         self.root = ModelDoc.RootNode()
 
         self.base_lists: dict[Type[_BaseNode], _BaseNode] = {}
