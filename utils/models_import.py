@@ -295,6 +295,7 @@ def ImportQCtoVMDL(qc_path: Path):
         # https://developer.valvesoftware.com/wiki/$keyvalues
         elif isinstance(command, QC.keyvalues):
             for key, value in command.__dict__.items():
+                key = key.lower().strip('"')
                 # https://developer.valvesoftware.com/wiki/Prop_data
                 if key == "prop_data":
                     prop_data = ModelDoc.GenericGameData(game_class="prop_data")
