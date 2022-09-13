@@ -64,6 +64,11 @@ class QC:
     class surfaceprop:
         name: str
     
+    class origin:
+        x: float
+        y: float
+        z: float
+    
     class contents:
         name: str
 

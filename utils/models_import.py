@@ -87,6 +87,7 @@ def ImportQCtoVMDL(qc_path: Path):
 
     model_name = ""
     global_surfaceprop = "default"
+    origin = (0, 0, 0)
     sequences_declared: list[str] = []
     lod0 = None
     skeleton = ModelDoc.Skeleton()
@@ -95,6 +96,8 @@ def ImportQCtoVMDL(qc_path: Path):
     for command in qc_commands:
         if isinstance(command, QC.surfaceprop):
             global_surfaceprop = command.name
+        elif isinstance(command, QC.origin):
+            origin = command.x, command.y, command.z
 
 
     for command in qc_commands:
@@ -126,6 +129,16 @@ def ImportQCtoVMDL(qc_path: Path):
             )
             vmdl.add_to_appropriate_list(rendermeshfile)
         
+        # https://developer.valvesoftware.com/wiki/$model_(QC)
+        elif isinstance(command, QC.model):
+            command: QC.model
+            rendermeshfile = ModelDoc.RenderMeshFile(
+                name = command.name,
+                filename = fixup_filepath(command.mesh_filename),
+            )
+            vmdl.add_to_appropriate_list(rendermeshfile)
+            ... # Options
+
         # https://developer.valvesoftware.com/wiki/$sequence
         elif isinstance(command, QC.sequence):
             command: QC.sequence
