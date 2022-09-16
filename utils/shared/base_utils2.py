@@ -264,10 +264,10 @@ def parse_out_path(source2_mod: Path):
 
 def parse_argv():
     if not args_known.src1gameinfodir:
-        argv_error(f"Missing required argument: -e")
+        argv_error(f"Missing required argument: -i | --src1gameinfodir")
     parse_in_path()
     if not args_known.game:
-        argv_error(f"Missing required argument: -e")
+        argv_error(f"Missing required argument: -e | --game")
     parse_out_path(Path(args_known.game))
 
 importing = Path()
