@@ -8,8 +8,11 @@ import sys
 import json
 from traceback import format_tb
 
-sys.excepthook = \
-    lambda type, value, traceback: messagebox.showwarning("source1import init fail", f"{Tk().withdraw()}{''.join(format_tb(traceback)[1:])}\n\n{type.__name__}:{value}")
+def initialization_fail(type, value, traceback):
+    Tk().withdraw()
+    messagebox.showwarning("source1import init fail", f"{''.join(format_tb(traceback)[1:])}\n\n{type.__name__}:{value}")
+
+sys.excepthook = initialization_fail
 
 sys.path.insert(0, sys.path[0] + '\\utils')
 
@@ -19,6 +22,8 @@ bghighlight = "#414141"
 bg1 = "#363636"
 bg2 = "#262627"
 fg1 = "#b6b6b7"
+
+APP_VER = "0.3.7"
 
 class ScriptError(Exception):...
 
@@ -42,10 +47,10 @@ class TabContext:
             )
         return self
     
-    def add_spinbox(self, var_name, description):
+    def add_spinbox(self, var_name, description, min=0, max=12):
         self.further_options[var_name] = IntVar(master=self.frame)
         Spinbox(self.frame,bg=bg2,fg=fg1,
-            textvariable=self.further_options[var_name], from_=0, to=12, width=3, wrap=True).grid(
+            textvariable=self.further_options[var_name], from_=min, to=max, width=3, wrap=True).grid(
             sticky="w", padx=0,
             in_=self.frame
         )
@@ -96,7 +101,7 @@ class SampleApp(Tk):
 
         global bg1, bg2, fg1
 
-        self.APP_TITLE = "Source 1 Asset Importer"
+        self.APP_TITLE = f"Source 1 Asset Importer (v{APP_VER})"
 
         self.is_running = False
         self.allChecked = IntVar()
@@ -203,6 +208,11 @@ class SampleApp(Tk):
 
         add_tab("textures", self.Textures, "Decompile VTF to sources", "vtf_to_tga").add_overwrite_toggles(
             ("OVERWRITE", "Overwrite Existing TGAs"),
+        ).add_toggles(
+            ("IGNORE_WORLD_CUBEMAPS", "Ignore buildcubemap files"),
+            ("MULTITHREAD", "Multithreaded"),
+        ).add_spinbox(
+            "MAX_THREADS", "Threads", 1, 30
         )
         add_tab("materials", self.Materials, "Import VMT materials", "materials_import").add_overwrite_toggles(
             ("OVERWRITE_VMAT", "Overwrite Existing VMATs"),
@@ -210,8 +220,9 @@ class SampleApp(Tk):
             ("OVERWRITE_SKYCUBES", "Overwrite Sky Images"),
             ("OVERWRITE_MODIFIED", "Overwrite Materials that have been modified"),
         ).add_toggles(
-            ("NORMALMAP_G_VTEX_INVERT", "Invert Normal Via Settings File"),
             ("SIMPLE_SHADER_WHERE_POSSIBLE", "Use Simple Shader if possible"),
+            #("USE_SUGESTED_DEFAULT_ROUGHNESS", "Default Roughness 210 instead of 128"),
+            ("NORMALMAP_G_VTEX_INVERT", "Invert Normal Via Settings File"),
             ("PRINT_LEGACY_IMPORT", "Print old material inside new"),
         )
         add_tab("models", self.Models, "Generate VMDL models", "models_import").add_overwrite_toggles(
@@ -224,7 +235,7 @@ class SampleApp(Tk):
         add_tab("particles", self.Particles, "Import particles", "particles_import").add_overwrite_toggles(
             ("OVERWRITE_PARTICLES", "Overwrite Existing Particles"),
         ).add_spinbox(
-            "BEHAVIOR_VERSION", "Behavior Version"
+            "BEHAVIOR_VERSION", "Behavior Version", 0, 12
         )
         add_tab("maps", self.Maps, "Import VMF Entities (only entities)", "maps_import").add_overwrite_toggles(
             ("OVERWRITE_MAPS", "Overwrite Existing Map Files"),

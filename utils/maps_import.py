@@ -49,9 +49,9 @@ def ImportVMFToVMAP(vmf_path):
         main_to_root(vmap, key, value)
 
     for vmfEntityKeyValues in vmf.get_all_for("entity"):
-        t_ent = CMapWorld.CMapEntity.FromVMFEntity(vmfEntityKeyValues)
+        translated_entity = CMapWorld.CMapEntity.FromVMFEntity(vmfEntityKeyValues)
         vmap["world"]["children"].append(
-            t_ent.get_element(vmap)
+            translated_entity.get_element(vmap)
         )
 
     out_vmap.write(vmap_path, "keyvalues2", 4)
@@ -139,7 +139,7 @@ class _BaseNode(_CustomElement):
             #else:
             #    print("Unknown editor object", k, type(v))
         t.__dict__.update(baseDict)
-        if hasattr(t, "entity_properties"):
+        if isinstance(t, _BaseEnt):
             t.entity_properties.__dict__.update(editorDict)
         return t
 

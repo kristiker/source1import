@@ -48,25 +48,20 @@ def OutputList(path: Path, with_suffix = False):
         for ext in OUT_EXT_LIST:
             yield Path(outPath).with_suffix(ext)
 
-# if there is one, force skybox vtfs to run on the 2nd row executable __very specific__ 
-FORCE_SKYBOX_2ND_VTF2TGA = True
+# force skybox vtfs to decompile with csgo's vtf2tga
+# csgo branch outputs pfm files
+FORCE_SKYBOX_DECOMPILE_CSGO = True
 
 # Add your vtf2tga.exe here. Accepts full (C:/) and relative paths (./). Priority is top to bottom
 PATHS_VTF2TGA = [
     r"./shared/bin/vtf2tga/2013/vtf2tga.exe",
     r"./shared/bin/vtf2tga/csgo/vtf2tga.exe", # FORCE_SKYBOX_2ND_VTF2TGA
-    r"C:\Program Files (x86)\Steam\steamapps\common\Team Fortress 2\bin\vtf2tga.exe",
-    #r"C:\Program Files (x86)\Steam\steamapps\common\Source SDK Base 2013 Multiplayer\bin\vtf2tga.exe",
-    #r"D:\Games\steamapps\common\Team Fortress 2\bin\vtf2tga.exe",
-    #r"./shared/bin/vtf2tga/tf2/vtf2tga.exe",
-    #r"./shared/bin/vtf2tga/hl2/vtf2tga.exe",
 ]
 tags = []
 
 erroredFileList = []
 totalFiles = 0
-MAX_THREADS = min(multiprocessing.cpu_count() + 2, 10)
-semaphore = multiprocessing.BoundedSemaphore(value=MAX_THREADS)
+MAX_THREADS = min(multiprocessing.cpu_count() + 2, 15)
 
 def ImportVTFtoTGA(vtfFile, force_2nd = False):
     semaphore.acquire()
@@ -85,7 +80,8 @@ def ImportVTFtoTGA(vtfFile, force_2nd = False):
         
         # VTF2TGA reported success...
         if result.returncode == 0:
-
+            
+            lock.acquire()
             bCreated = False
             for outPath in OutputList(vtfFile, True):
                 if not outPath.is_file(): continue
@@ -118,7 +114,7 @@ def ImportVTFtoTGA(vtfFile, force_2nd = False):
                                 outImages.append(nextPath)
                             else: break
 
-
+                lock.release()
 
                 # shitty workaround to vtf2tga not being able to output properly
                 for path in outImages:
@@ -128,6 +124,7 @@ def ImportVTFtoTGA(vtfFile, force_2nd = False):
 
             if not bCreated:
                 print(f"[{tag}] uhm...?", vtfFile.local)
+                lock.release()
 
             break # Output file created. Onto the next VTF.
 
@@ -178,6 +175,7 @@ def txt_import(txtFile):
  
 def main():
     print("Decompiling Textures!")
+
     for i, path in enumerate(PATHS_VTF2TGA):
         if path is None:
             continue
@@ -192,18 +190,21 @@ def main():
         else:
             print("~ Invalid vtf2tga path:", path)
             PATHS_VTF2TGA [i] = None
+
     if not any(PATHS_VTF2TGA):
         print(f"Cannot continue without a valid vtf2tga.exe. Please open {currentDir.name} and verify your paths.")
         quit(-1)
+    
     THREADS: list[threading.Thread] = []
+    global semaphore; semaphore = multiprocessing.BoundedSemaphore(value=MAX_THREADS)
+    global lock; lock = multiprocessing.Lock()
+    
     sh.importing = Path("materials")
+    
     vtfFileList = sh.collect(sh.importing, IN_EXT, OUT_EXT_LIST, existing = OVERWRITE, outNameRule = OutputList)
     txtFileList = sh.collect(sh.importing, VTEX_PARAMS_EXT, VTEX_PARAMS_EXT, existing = True)
 
     for vtfFile in vtfFileList:
-        if threading.active_count() > (multiprocessing.cpu_count()) *15:
-            print("Chief, there's a prob with your multithread code")
-        
         if IGNORE_WORLD_CUBEMAPS:
             s_vtfFile = str(vtfFile.name)
             numbers = sum(c.isdigit() for c in s_vtfFile)
@@ -214,15 +215,15 @@ def main():
                 continue
 
         force_2nd = False
-        if(FORCE_SKYBOX_2ND_VTF2TGA and (len(PATHS_VTF2TGA) > 1) and ('skybox' in str(vtfFile))):
-            force_2nd = True # 2nd exe outputs pfm files. use that for hdr skybox files
+        if(FORCE_SKYBOX_DECOMPILE_CSGO and (len(PATHS_VTF2TGA) > 1) and ('skybox' in str(vtfFile))):
+            force_2nd = True
 
         if MULTITHREAD:
             semaphore.acquire()
 
-            THREADS.append(threading.Thread(target=ImportVTFtoTGA,  args=(vtfFile, force_2nd)))
-            startThread = THREADS[-1]
-            startThread.start()
+            thread = threading.Thread(target=ImportVTFtoTGA,  args=(vtfFile, force_2nd))
+            THREADS.append(thread)
+            thread.start()
             semaphore.release()
         else:
             ImportVTFtoTGA(vtfFile, force_2nd)
@@ -231,8 +232,8 @@ def main():
         unfinished_thread.join() # wait for the final threads to finish
 
     for txtFile in txtFileList:
-        print(f"Found vtex compile param file {txtFile}")
-        #txt_import() blah blah
+        print(f"TODO: Found vtex compile param file {txtFile}")
+        #txt_import()
 
     for unfinished_thread in THREADS:
         unfinished_thread.join() # wait for the final threads to finish

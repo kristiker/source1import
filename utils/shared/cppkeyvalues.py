@@ -40,9 +40,9 @@ class CKeyValuesErrorStack():
         for i in range(self.maxErrorIndex):
             if ( i < MAX_ERROR_STACK and self.errorStack[i] != INVALID_KEY_SYMBOL ):
                 if ( i < self.errorIndex ):
-                    pv += "%s, "#, KeyValuesSystem()->GetStringForSymbol(m_errorStack[i]) )
+                    pv += "%s, "
                 else:
-                    pv += "(*%s*), "#, KeyValuesSystem()->GetStringForSymbol(m_errorStack[i]) )
+                    pv += "(*%s*), "
         pv += "\n"
         print(pv, end='')
         self.EncounteredErrors = True
@@ -76,31 +76,8 @@ class CUtlBuffer(collections.UserString):
             return string # null, empty string
         if nMaxChars == 0:
             nMaxChars = 2147483647
-        # skippp
+
         return string.split('"')[1][:nMaxChars]
-
-        # just in case 1
-        string.EatWhiteSpace()
-        # Does the next bytes of the buffer match a pattern?
-        # if ( !PeekStringMatch( 0, pConv->GetDelimiter() -> '"', pConv->GetDelimiterLength() -> 1) )
-        if not string[0] == '"':
-            return string
-
-        #SeekGet( SEEK_CURRENT, pConv->GetDelimiterLength() ); start reading after the quote
-        string = string[1:]
-
-        nRead = 0
-        while string.IsValid():
-            if string[0] == '"':
-                break
-
-            c = getcharinternalwitffafsa()
-            if nRead < nMaxChars:
-                string[nRead] = c
-                nRead += 1
-
-        if nRead >= nMaxChars:
-            nRead = nMaxChars - 1
 
     def lcut(self, n): self.data = self.data[n:]
     def rcut(self, n): self.data = self.data[:n]
