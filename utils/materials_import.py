@@ -2,7 +2,7 @@ from enum import Enum, auto
 import math
 from pathlib import Path
 from shutil import copyfile
-from typing import Callable, Optional
+from typing import Any, Callable
 from PIL import Image, ImageOps
 
 import shared.base_utils2 as sh
@@ -23,14 +23,13 @@ OVERWRITE_SKYCUBES = False
 # True to let vtex handle the inverting of the normalmap.
 NORMALMAP_G_VTEX_INVERT = True
 
-BASIC_PBR = True
 MISSING_TEXTURE_SET_DEFAULT = True # valve uses dev/white
 USE_SUGESTED_DEFAULT_ROUGHNESS = True
 SIMPLE_SHADER_WHERE_POSSIBLE = True
 PRINT_LEGACY_IMPORT = False  # Print vmt inside vmat as reference. Increases file size.
 
 sh.DEBUG = False
-msg = sh.msg
+
 # File format of the textures. Needs to be lowercase
 # source 2 supports all kinds: tga jpeg png gif psd exr tiff pfm...
 TEXTURE_FILEEXT = ".tga"
@@ -52,15 +51,13 @@ HDRCOMPRESS_FIX_MUL = 4  # 1 to 16
 # Higher values increase vibrance and contrast
 HDRCOMPRESS_FIX_EXP = 1.6  # 1 to 2.2
 
-vmt, vmat = None, None
-
 class Failures(dict):
     def add(self, err, file):
         self.setdefault(err, list())
         self[err].append(file)
     def __len__(self):
         return sum(len(filelist) for filelist in self.values())
-    
+
     #def __bool__(self):
     #    return len(self.data) > 0
 
@@ -382,13 +379,13 @@ def createMask(image_path, copySub = '_mask', channel = 'A', invert = False, que
     newMaskPath = image_path.parent /\
         f"{image_path.stem}_{channel[:3].lower()}{'-1' if invert else ''}{copySub + image_path.suffix}"
 
-    msg(f"createMask{image_path.local.relative_to(materials).as_posix(), copySub, channel, invert, queue} -> {newMaskPath.local}")
+    sh.msg(f"createMask{image_path.local.relative_to(materials).as_posix(), copySub, channel, invert, queue} -> {newMaskPath.local}")
 
     if newMaskPath.exists(): #and not DEBUG:
         return newMaskPath.local.as_posix()
 
     if not image_path.is_file():
-        msg("Couldn't find image", image_path)
+        sh.msg("Couldn't find image", image_path)
         failureList.add(f"createMask not found", f'{vmt.path.local} - {image_path.local}')
         print(f"~ ERROR: Couldn't find requested image ({image_path.local}).\nPlease make sure all textures have been pre-exported.")
         return default(copySub)
@@ -431,9 +428,9 @@ def createSkyCubemap(json_collection: Path, maxFaceRes: int = 0):
 
     cube_name = None
     faceP = sh.GetJson(json_collection)
-    
+
     if len(faceP) < 2:  # sky_l4d_rural02_ldr and co.
-        return 
+        return
     # read friendly json -> code friendly data
     faceList, faceParams = {}, {}
 
@@ -468,7 +465,7 @@ def createSkyCubemap(json_collection: Path, maxFaceRes: int = 0):
     sky_cubemap_path =  sh.output( skyboxmaterials / (cube_name + '_cube' + img_ext))
 
     # BlendCubeMapFaceCorners, BlendCubeMapFaceEdges
-    
+
     if not OVERWRITE_SKYCUBES and sky_cubemap_path.is_file():
         return sky_cubemap_path
 
@@ -511,7 +508,7 @@ def createSkyCubemap(json_collection: Path, maxFaceRes: int = 0):
                 faceImage = faceImage.rotate(faceRotate)
 
             SkyCubemapImage.paste(faceImage, pasteCoord)
-        else: 
+        else:
             if faceRotate:
                 faceImage = np.rot90(faceImage, -1)
 
@@ -701,17 +698,64 @@ def is_convertible_to_float(value):
     except ValueError: return False
     else: return True
 
+class vmat_translation:
+    def __init__(self,
+            one: str,
+            two: str | int | float = None,
+            three: list[Callable, Any] = None,
+            *extralines: tuple[str, str]
+        ):
+        if isinstance(one, tuple):
+            raise ValueError("unpack your arguments")
 
-VMAT_REPLACEMENT = 0
-VMAT_DEFAULTVAL = 1
-VMAT_TRANSLFUNC = 2
-VMAT_EXTRALINES = 3
+        self._innertuple = (one, two, three, *extralines)
+
+        self.replacement = one
+        self.defaultval = two
+
+        _build_extralines = lambda iterable:\
+            list() if iterable is None else list(xtra for xtra in iterable if isinstance(xtra, tuple) and len(xtra) == 2)
+
+        if isinstance(three, list) and len(three) and callable(three[0]):
+            self.translfunc = three
+            self.extralines = _build_extralines(extralines)
+        else:
+            self.translfunc = None
+            self.extralines = _build_extralines(three, *extralines)
+
+    "texture context"
+    @property
+    def texture_suffix(self): return self.defaultval
+    @property
+    def default_texture(self): return default(self.defaultval)
+
+    "channeled_masks context"
+    @property
+    def extract_from(self): return self._innertuple[0]
+    @property
+    def extract_as(self): return self._innertuple[1]
+    @property
+    def channel_to_extract(self): return self._innertuple[2]
+
+    def translate(self, vmtKey: str, vmtVal: str) -> str | None:
+        func_ = self.translfunc[0]
+        args_ = []
+        args_.insert(0, vmtVal)
+        args_.extend(self.translfunc[1:])
+        if func_ in (formatNewTexturePath, createMask):
+            args_.insert(1, self.texture_suffix)
+
+        sh.msg(vmtKey, "->\t" + func_.__name__, args_, end=" -> ")
+        try:
+            return func_(*args_)
+        except ValueError as errrrr:
+            print("Got ValueError:", errrrr, "on", f'{vmtKey}: {vmtVal} with {func_.__name__}')
+            failureList.add(f'ValueError on {func_.__name__}', f'{vmt.path.local} @ "{vmtKey}": "{vmtVal}"')
 
 # callable - to evaluate conditionals at runtime
-vmt_to_vmat_pre: Callable[[], dict[str, dict[str, Optional[tuple]]]] = lambda: {
+vmt_to_vmat_pre: Callable[[], dict[ str, dict[str, tuple | None] ]] = lambda: {
 
-# http://counter-strike.net/workshop/workshopmaps#hammer
-'f_keys': {
+'features': {
 
     '$translucent':     ('F_TRANSLUCENT',           '1'),  # "F_BLEND_MODE 0" for projected_decals
     '$alphatest':       ('F_ALPHA_TEST',            '1'),
@@ -836,7 +880,7 @@ vmt_to_vmat_pre: Callable[[], dict[str, dict[str, Optional[tuple]]]] = lambda: {
     '$layertint2':          ('g_vLayer2Tint',       '[1.000 1.000 1.000 0.000]',    [fixVector, True]),
     '$reflecttint':         ('g_vReflectionTint',   '[1.000 1.000 1.000 0.000]',    [fixVector, True]),
     '$refracttint':         ('g_vRefractionTint',   '[1.000 1.000 1.000 0.000]',    [fixVector, True]),
-    '$fogcolor':            ('g_vWaterFogColor',    '[1.000 1.000 1.000 0.000]',    [fixVector, True]),    
+    '$fogcolor':            ('g_vWaterFogColor',    '[1.000 1.000 1.000 0.000]',    [fixVector, True]),
 
     '$gradientcolorstop0':  ('g_vGradientColorStop0', '[1.000 1.000 1.000 0.000]',  [fixVector, True]),
     '$gradientcolorstop1':  ('g_vGradientColorStop1', '[1.000 1.000 1.000 0.000]',  [fixVector, True]),
@@ -847,7 +891,7 @@ vmt_to_vmat_pre: Callable[[], dict[str, dict[str, Optional[tuple]]]] = lambda: {
     '$scale2':              ('g_vTexCoordScale2', '[1.000 1.000]', [uniform_vec2]),
     '$scale3':              ('g_vTexCoordScale3', '[1.000 1.000]', [uniform_vec2]),
     '$scale4':              ('g_vTexCoordScale4', '[1.000 1.000]', [uniform_vec2]),
-    
+
     # s1 channels relative to each other "[0 0 0]" = "[1 1 1]" (lum preserving) -> s2 is color so it has a brightness factor within it
     # perhaps default to 0.5 0.5 0.5 and scale it with $phongboost, etc
     '$phongtint':           ('g_vSpecularColor',    '[1.000 1.000 1.000 0.000]',    [fixVector, True]),
@@ -872,7 +916,7 @@ vmt_to_vmat_pre: Callable[[], dict[str, dict[str, Optional[tuple]]]] = lambda: {
     '$flow_normaluvscale':  ('g_flNormalUvScale',       '',         [float_val]),
     '$flow_timeintervalinseconds': ('g_flNormalFlowTimeIntervalInSeconds', '', [float_val]),
     '$flow_uvscrolldistance':      ('g_flNormalFlowUvScrollDistance', '', [float_val]),
-    
+
     '$forcefresnel':('g_flReflectance', '', [float_val]), # requires F_FRESNEL
     '$fogend':      ('g_flWaterDepth',  '', [float_val]),
     '$fogstart':    ('g_flWaterStart',  '', [float_val]),
@@ -889,7 +933,7 @@ vmt_to_vmat_pre: Callable[[], dict[str, dict[str, Optional[tuple]]]] = lambda: {
     #'$diffuseexp':          ('g_flDiffuseExponent',     '2.000',    [float_var], 'g_vDiffuseWrapColor "[1.000000 1.000000 1.000000 0.000000]'),
 
     # shader.blend and shader.vr_standard(SteamVR) -- $NEWLAYERBLENDING
-    '$blendsoftness':       ('g_flLayer1BlendSoftness' if not SBOX else 'g_flBlendSoftnessB', 
+    '$blendsoftness':       ('g_flLayer1BlendSoftness' if not SBOX else 'g_flBlendSoftnessB',
                                                         '0.500',    [float_val]),
     '$layerborderstrenth':  ('g_flLayer1BorderStrength','0.500',    [float_val]),
     '$layerborderoffset':   ('g_flLayer1BorderOffset',  '0.000',    [float_val]),
@@ -903,11 +947,11 @@ vmt_to_vmat_pre: Callable[[], dict[str, dict[str, Optional[tuple]]]] = lambda: {
     #    '$layerborderstrength': ('g_flLayerBorderStrength', '0.500',    [float_val]),
     #    '$layerborderoffset':   ('g_flLayerBorderOffset',   '0.000',    [float_val]),
     #    '$layerbordersoftness': ('g_flLayerBorderSoftness', '0.500',    [float_val]),
-#F_TEXTURETRANSFORMS TextureLayer1Detail g_vLayer1DetailScale $detailtint     
-# $bumpdetailscale1       $bumpdetailscale2       g_vLayer1DetailTintAndBlend     
-# $detail2        TextureLayer2Detail     $detailScale2   g_vLayer2DetailScale    
-# $detailtint2    g_vLayer2DetailTintAndBlend     F_DETAILTEXTURE 
-# $detailblendmode F_DETAILBLENDMODE 
+#F_TEXTURETRANSFORMS TextureLayer1Detail g_vLayer1DetailScale $detailtint
+# $bumpdetailscale1       $bumpdetailscale2       g_vLayer1DetailTintAndBlend
+# $detail2        TextureLayer2Detail     $detailScale2   g_vLayer2DetailScale
+# $detailtint2    g_vLayer2DetailTintAndBlend     F_DETAILTEXTURE
+# $detailblendmode F_DETAILBLENDMODE
 # F_SPECULAR F_SPECULAR_CUBE_MAP DecalColor DecalTranslucency       [1.000000 1.000000 1.000000 1.000000]
     #}
 },
@@ -997,66 +1041,34 @@ def convertVmtToVmat():
             if not vmatTranslation:
                 continue
 
-            vmatReplacement = None
-            vmatDefaultVal = None
-            vmatTranslFunc = None
-            outAddLines = []
+            vmatTranslation = vmat_translation(*vmatTranslation)
 
-            try:
-                vmatReplacement = vmatTranslation [ VMAT_REPLACEMENT ]
-                vmatDefaultVal  = vmatTranslation [ VMAT_DEFAULTVAL  ]
-                vmatTranslFunc  = vmatTranslation [ VMAT_TRANSLFUNC  ]
-                outAddLines     = list( vmatTranslation [ VMAT_EXTRALINES : ] )
-            except IndexError:
-                pass
-            if ( vmatReplacement and vmatDefaultVal ):
+            if ( vmatTranslation.replacement and vmatTranslation.defaultval ):
 
-                outKey = vmatReplacement
+                outKey = vmatTranslation.replacement
+                outVal = vmatTranslation.defaultval
 
                 if (keyType == 'textures'):
-                    outVal = default(vmatDefaultVal)
-                else:
-                    outVal = vmatDefaultVal
+                    outVal = default(vmatTranslation.texture_suffix)
 
                 if vmtVal:
                     outVal = vmtVal
 
-                if vmatTranslFunc:
-                    if not hasattr(vmatTranslFunc[0], '__call__'):
-                        outAddLines = list( vmatTranslation [ VMAT_TRANSLFUNC : ] )
-                    else:
-                        func_ = vmatTranslFunc[0]
-                        args_ = []
-                        args_.insert(0, vmtVal)
-                        args_.extend(vmatTranslFunc[1:])
+                if vmatTranslation.translfunc is not None:
+                    if ((rv:=vmatTranslation.translate(vmtKey, vmtVal)) is not None):
+                        outVal = rv
+                        sh.msg(outKey, outVal)
 
-                        if func_ in (formatNewTexturePath, createMask):
-                            #print("Adding arg to", func_, end = ' ->')
-                            args_.insert(1, vmatDefaultVal)
-                            #print(vmatTranslFunc)
-
-                        msg(vmtKey, "->\t" + func_.__name__, args_, end=" -> ")
-                        try:
-                            returnValue= func_(*args_)
-                            if (returnValue is not None):
-                                outVal = returnValue
-                            msg(outKey, returnValue)
-                        except ValueError as errrrr:
-                            print("Got ValueError:", errrrr, "on", f'{vmtKey}: {vmtVal} with {func_.__name__}')
-                            failureList.add(f'ValueError on {func_.__name__}', f'{vmt.path.local} @ "{vmtKey}": "{vmtVal}"')
-                            outVal = vmatDefaultVal
-
-            # no equivalent key-value for this key, only exists
-            # add comment or ignore completely
-            elif (outAddLines):
-                for key, value in outAddLines:
+            # it only has fixed extra lines
+            elif (vmatTranslation.extralines):
+                for key, value in vmatTranslation.extralines:
                     vmat.KeyValues[key] = value
                 continue
+            # transform is special
             elif keyType not in ('transform'):
                 continue
 
-            # F_RENDER_BACKFACES 1 etc
-            if keyType == 'f_keys':
+            if keyType == 'features':
                 if vmtKey == "$translucent" and vmat.shader in (core.projected_decals(), core.static_overlay()):
                     outKey = "F_BLEND_MODE"
                     outVal = (0 if (vmat.shader == core.projected_decals()) else 1)
@@ -1064,63 +1076,63 @@ def convertVmtToVmat():
             elif(keyType == 'textures'):
                 # Layer A
                 if vmtKey in ('$basetexture', '$hdrbasetexture', '$hdrcompressedtexture', '$normalmap'):
-                    outKey = vmat_layered_param(vmatReplacement)
+                    outKey = vmat_layered_param(vmatTranslation.replacement)
 
                 if vmtKey in ('$normalmap', '$bumpmap2', '$normalmap2'):
-                    if vmtVal == 'dev/flat_normal': outVal = default(vmatDefaultVal)
+                    if vmtVal == 'dev/flat_normal':
+                        outVal = vmatTranslation.default_texture
 
                     # don't flip default normal
-                    if not outVal == default("_normal"):
+                    if outVal != default("_normal"):
                         # don't flip ssbump
                         if not vmt.KeyValues["$ssbump"]:
                             flipNormalMap(Path(outVal))
-                        
 
             elif(keyType == 'transform'):  # here one key can add multiple keys
-                if not vmatReplacement:
+                if not vmatTranslation.replacement:
                     continue
                 transform = TexTransform(vmtVal)
-                # doesnt seem like there is rotation
+                # no rotation in source 2
                 #if(matrixList[MATRIX_ROTATE] != '0.000'):
                 #    if(matrixList[MATRIX_ROTATIONCENTER] != '[0.500 0.500]')
 
                 if transform.rotate:
-                    msg("HERE IT IS:", transform.rotate)
+                    sh.msg("HERE IT IS:", transform.rotate)
 
                 # scale 5 5 -> g_vTexCoordScale "[5.000 5.000]"
                 if(transform.scale != (1.000, 1.000)):
-                    outKey = vmatReplacement + 'Scale'
+                    outKey = vmatTranslation.replacement + 'Scale'
                     outVal = fixVector(transform.scale, False)
                     vmat.KeyValues[outKey] = outVal
 
                 # translate .5 2 -> g_vTexCoordOffset "[0.500 2.000]"
                 if(transform.translate != (0.000, 0.000)):
-                    outKey = vmatReplacement + 'Offset'
+                    outKey = vmatTranslation.replacement + 'Offset'
                     outVal = fixVector(transform.translate, False)
                     vmat.KeyValues[outKey] = outVal
 
                 continue ## Skip default content write
 
-            # should use reverse of the basetexture alpha channel as a self iluminating mask
-            # ... why reversE???
-
             elif(keyType == 'channeled_masks'):
-                outVmtTexture = vmt_to_vmat['channeled_masks'][vmtKey][1]  # extract as
+                outVmtTexture = vmatTranslation.extract_as
+                sourceTexture = vmatTranslation.extract_from
+                sourceChannel = vmatTranslation.channel_to_extract
 
-                if not vmt_to_vmat['textures'].get(outVmtTexture): break
+                newTexture = vmt_to_vmat['textures'].get(outVmtTexture)
+                if not newTexture:
+                    break
 
-                sourceTexture   = vmt_to_vmat['channeled_masks'][vmtKey][0]  # extract from
-                sourceChannel   = vmt_to_vmat['channeled_masks'][vmtKey][2]  # channel to extract
+                newTexture = vmat_translation(*newTexture)
 
-                outKey          = vmt_to_vmat['textures'][outVmtTexture][VMAT_REPLACEMENT]
-                outAddLines     = list(vmt_to_vmat['textures'][outVmtTexture][ VMAT_EXTRALINES : ] )
-                sourceSubString = vmt_to_vmat['textures'][outVmtTexture][VMAT_DEFAULTVAL]
+                outKey = newTexture.replacement
+                sourceSubString = newTexture.texture_suffix
+                vmatTranslation.extralines = newTexture.extralines
 
                 if vmt.KeyValues[outVmtTexture]:
                     print("~", vmtKey, "conflicts with", outVmtTexture + ". Aborting mask extration (using original).")
                     continue
 
-                shouldInvert    = False
+                shouldInvert = False
                 if ('1-' in sourceChannel):
                     if 'M_1-' in sourceChannel:
                         if vmt.KeyValues['$model']:
@@ -1140,12 +1152,8 @@ def convertVmtToVmat():
                 vmat.KeyValues.setdefault('SystemAttributes', {})[outKey] = outVal
                 continue
 
-            try:
-                if outAddLines[0] == None:
-                    outAddLines = []
-            except IndexError: pass
-
-            for additional_key, value in outAddLines:
+            # Finally, add to vmat
+            for additional_key, value in vmatTranslation.extralines:
                 vmat.KeyValues[additional_key] = value
 
             vmat.KeyValues[outKey] = outVal
@@ -1172,7 +1180,7 @@ def convertSpecials():
 
         bHasPhongMask = False
         for key, val in vmt_to_vmat['channeled_masks'].items():
-            if val[1] == '$phongmask' and vmt.KeyValues[key]:
+            if vmat_translation(*val).extract_as == '$phongmask' and vmt.KeyValues[key]:
                 bHasPhongMask = True
                 break
         if vmt.path.local.is_relative_to(materials/"models/weapons/shared/scope"):
@@ -1210,7 +1218,7 @@ def convertSpecials():
     if vmt.shader in ('lightmappedgeneric', 'vertexlitgeneric'):
         if vmat.shader == core.static_overlay():      vmat.KeyValues["F_LIT"] = 1
         elif vmat.shader == core.projected_decals(): vmat.KeyValues["F_SAMPLE_LIGHTMAP"] = 1  # what does this do
-    
+
     if vmat.shader == core.projected_decals():
         vmat.KeyValues['F_CUTOFF_ANGLE'] = 1
 
@@ -1280,9 +1288,9 @@ def collectSkybox(name:str, face: str, vmt: VMT):
             Collect[face] = {}  # Dict won't be used if it won't have anything other than path
 
             faceTransform = TexTransform(vmt.KeyValues.get('$basetexturetransform'))
-            if(faceTransform.rotate != 0):  # Hillarious. 
+            if(faceTransform.rotate != 0):
                 Collect[face]['rotate'] = faceTransform.rotate
-                msg("Collecting", face, "transformation: rotate", Collect[face]['rotate'], 'degrees')
+                sh.msg("Collecting", face, "transformation: rotate", Collect[face]['rotate'], 'degrees')
 
             if Collect[face]:
                 Collect[face]['path'] = path
@@ -1411,7 +1419,7 @@ def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False):
                 vmat.shader = core.simple()
                 if "TextureAmbientOcclusion" in vmat.KeyValues:
                     vmat.KeyValues['F_AMBIENT_OCCLUSION_TEXTURE'] = 1
-    
+
     if PRINT_LEGACY_IMPORT:
         vmat.KeyValues['legacy_import'] = vmt.KeyValues.as_value()
 
@@ -1420,7 +1428,7 @@ def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False):
             del vmat.KeyValues['F_UNLIT']
             vmat.KeyValues['F_FULLBRIGHT'] = 1
 
-    msg(vmt.shader + " => " + vmat.shader, "\n")
+    sh.msg(vmt.shader + " => " + vmat.shader, "\n")
     sh.write(path=vmat.path, content=vmat.KeyValues.ToString())
 
     print("+ Saved", vmat.path if sh.DEBUG else vmat.path.local.as_posix())

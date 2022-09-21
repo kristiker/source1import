@@ -26,7 +26,7 @@ python materials_import.py -i "C:/.../Half-Life Alyx/game/ep2" -e hlvr  "materia
 * **-e** *\<dir/modname\>*  Path to source2 mod/addon. \<*modname*\> (e.g. `-e portal2_imported`) instead of an absolute path will only work if the input folder **-i** is placed inside a source2 /game/ environment which also contains \<*modname*\>.  
 * **[filter]** Optionally a path at the end can be added as a filter.
 ### Requirements:
-* [Python](https://www.python.org/downloads/) >= 3.9  
+* [Python](https://www.python.org/downloads/) >= 3.10  
 * `pip install -r requirements.txt`
 ## Results
 ### [CS:GO Taser - Streamable](https://streamable.com/eders9)
