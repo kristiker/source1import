@@ -79,9 +79,14 @@ from shared.modeldoc import ModelDoc, _BaseNode, _Node
 def ImportQCtoVMDL(qc_path: Path):
     vmdl = ModelDocVMDL()
     
+    # local paths
     active_folder: Path = qc_path.local.parent
     dir_stack: list[Path] = []
-    fixup_filepath = lambda path: (active_folder / path).resolve().as_posix()
+    
+    def fixup_filepath(path):
+        # resolve it on a full path so that it doesn't resolve to CWD
+        path = (sh.EXPORT_CONTENT / active_folder / path).resolve()
+        return path.local.as_posix()
 
     qc_commands: list[Union["QC.command", str]] = QCBuilder().parse(qc_path.open().read())
 

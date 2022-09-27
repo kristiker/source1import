@@ -93,6 +93,10 @@ class QC:
     
     class cdmaterials:
         folder: str
+
+    class texturegroup:
+        name: str
+        options: list["{list[atleast1_material, _]}"] # list of skins
     
     class cbox:
         minx: float
@@ -194,7 +198,8 @@ class QCBuilder(NodeVisitor):
 
     def push_command(self, command_cls: Type):
         # argless command (e.g. $staticprop)
-        if not hasattr(command_cls, "__annotations__") and not hasattr(command_cls, "handle_options"):
+        
+        if not command_cls.__annotations__ and not hasattr(command_cls, "handle_options"):
             self.qc.append(command_cls())
             return
         self.command_to_build = command_cls()
@@ -249,7 +254,7 @@ class QCBuilder(NodeVisitor):
             for option in trav:
                 if option.expr_name != "token":
                     raise OptionParseError("Expected token, got group")
-                ls.append(option.text.strip('"'))
+                ls.append(option.text.lower().strip('"'))
 
             setattr(self.command_to_build, "options", ls)
 
@@ -261,7 +266,7 @@ class QCBuilder(NodeVisitor):
         return self.qc
     
     def visit_cmd(self, node, visited_children):
-        token_name = node.text
+        token_name = node.text.lower()
 
         if (cls:=getattr(QC, token_name[1:], None)) is not None:
             self.push_command(cls)
@@ -274,7 +279,7 @@ class QCBuilder(NodeVisitor):
             return
         if not hasattr(self.command_to_build, "__annotations__"):
             return
-        self.push_argument(node.text)
+        self.push_argument(node.text.lower())
     
     def visit_group_base(self, node, visited_children):
         self.push_argument_group(node)
@@ -303,9 +308,9 @@ $bodygroup sights {
 
 $staticprop
 $surfaceprop	combine_metal
-$cdmaterials	"models\props"
+$CDmaterials	"models\props"
 
-$sequence idle	"myfirstmodel-ref.smd" { }
+$sequencE idle	"myfirstmodel-ref.smd" { }
 
 $collisionmodel	"myfirstmodel-phys.smd" {
 	$concave
