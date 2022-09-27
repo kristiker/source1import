@@ -296,8 +296,11 @@ elif __name__ == '__main__':
         def test_export_exist(self):
             self.assertTrue(EXPORT_CONTENT.is_dir())
             self.assertTrue(EXPORT_GAME.is_dir())
+    
+    import sys;sys.argv = sys.argv[:1]
+    
     unittest.main()
-    raise SystemExit
+    raise SystemExit(0)
 
 @add_method(Path)
 def without_spaces(self, repl = '_') -> Path:

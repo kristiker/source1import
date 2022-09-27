@@ -72,6 +72,7 @@ if __name__ == '__main__':
     import unittest
     class Test_KV3(unittest.TestCase):
         default_header = '<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:generic:version{7412167c-06e9-4698-aff2-e63eb59037e7} -->'
+        default_s1import_context_header = '<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:source1imported:version{7412167c-06e9-4698-aff2-e63eb59037e7} -->'
         def test_default_header(self):
             self.assertEqual(str(KV3Header()), self.default_header)
 
@@ -81,7 +82,7 @@ if __name__ == '__main__':
             self.assertEqual(str(header), headertext)
 
         def test_kv(self):
-            expect_text = f'{self.default_header}\n{{'+\
+            expect_text = f'{self.default_s1import_context_header}\n{{'+\
                 '\n\ta = "asd asd"'+\
                 '\n\tb = \n\t{\n\t\t"(2,)" = 3\n\t}'+\
                 '\n\tc = ["listed_text1", "listed_text2"]\n}'

@@ -631,9 +631,9 @@ if __name__ == "__main__":
                 print(f"Total execution time: {end_ if end_ > 0 else 0} ms")
         return _time_it
 
-    def test_speed():
-        for _ in range(100): KeyValues().LoadFromFile("test/materials/test_proxy.vmt")
-    measure(test_speed)();sleep(1)
+    #def test_speed():
+    #    for _ in range(100): KeyValues().LoadFromFile("test/materials/test_proxy.vmt")
+    #measure(test_speed)();sleep(1)
 
     class Test_KeyValues(unittest.TestCase):
         def test_1(self):
