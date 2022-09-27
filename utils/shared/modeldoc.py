@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Type
+from typing import Literal, Type
 
 @dataclass
 class _BaseNode:
@@ -161,6 +161,11 @@ class ModelDoc:
         do_not_discard: bool = True
 
     @dataclass
+    class DefaultMaterialGroup(_Node):
+        remaps: list[dict[Literal["from"] | Literal["to"], resourcepath]] = field(default_factory=list)
+        use_global_default: bool = False
+        global_default_material: resourcepath = ""
+    @dataclass
     class Bounds_Hull(_Node):
         """
         If this node is present, set the model hull bounds explicitly.  Normally the model hull bounds is derived from the physics hull bounds at model load time.
@@ -208,6 +213,9 @@ class ModelDoc:
     @containerof(Bone)
     class Skeleton(_BaseNode): pass
     
+    @containerof(DefaultMaterialGroup)
+    class MaterialGroupList(_BaseNode): pass
+
     @containerof(PhysicsHullFile)
     class PhysicsShapeList(_BaseNode): pass
 

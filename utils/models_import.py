@@ -1,6 +1,7 @@
 from typing import Type, Union
 import shared.base_utils2 as sh
 from pathlib import Path
+from srctools import smd
 from shared.keyvalues3 import KV3File, KV3Header
 
 """
@@ -33,8 +34,12 @@ the same name the mdl. Source2 will happily read Source1 SMD, DMX, and MDL+PHY+V
 they are placed somewhere inside Source2 CONTENT `models`.
 """
 
+# mdl import
 IMPORT_MDL = True
+
+# qc import
 IMPORT_QC = False
+IGNORE_SINGLEBODY_BODYGROUPS = True
 
 SHOULD_OVERWRITE = False
 SAMPBOX = False
@@ -88,7 +93,29 @@ def ImportQCtoVMDL(qc_path: Path):
         path = (sh.EXPORT_CONTENT / active_folder / path).resolve()
         return path.local.as_posix()
 
-    qc_commands: list[Union["QC.command", str]] = QCBuilder().parse(qc_path.open().read())
+    material_names: set[str] = set()
+
+    def add_rendermesh(name: str, reference_mesh_file: str):
+        body = QC.body()
+        body.name = name
+        body.mesh_filename = reference_mesh_file
+        return add_rendermesh_from_body(body)
+        
+    def add_rendermesh_from_body(body: QC.body):
+        smd_file = sh.EXPORT_CONTENT / fixup_filepath(body.mesh_filename)
+        if smd_file.is_file():
+            with open(smd_file, "rb") as fp:
+                ref = smd.Mesh.parse_smd(fp)
+                for tri in ref.triangles:
+                    material_names.add(tri.mat)
+        rendermeshfile = ModelDoc.RenderMeshFile(
+            name = body.name,
+            filename = fixup_filepath(body.mesh_filename),
+            import_scale = body.scale,
+        )
+        return vmdl.add_to_appropriate_list(rendermeshfile)
+
+    qc_commands: list["QC.command" | str] = QCBuilder().parse(qc_path.open().read())
 
     model_name = ""
     global_surfaceprop = "default"
@@ -106,24 +133,21 @@ def ImportQCtoVMDL(qc_path: Path):
         elif isinstance(command, QC.origin):
             origin = command.x, command.y, command.z
 
-
     for command in qc_commands:
-
-        if command is QC.staticprop:
-            vmdl.root.model_archetype = "static_prop_model"
-            vmdl.root.primary_associated_entity = "prop_static"
+        match command:
+            case QC.staticprop():
+                vmdl.root.model_archetype = "static_prop_model"
+                vmdl.root.primary_associated_entity = "prop_static"
+            case QC.popd():
+                try:
+                    active_folder = dir_stack.pop()
+                except IndexError:
+                    pass
+            case QC.pushd():
+                dir_stack.append(active_folder)
+                active_folder = active_folder / command.path
         
-        elif command is QC.popd:
-            try:
-                active_folder = dir_stack.pop()
-            except IndexError:
-                pass
-        
-        elif isinstance(command, QC.pushd):
-            dir_stack.append(active_folder)
-            active_folder = active_folder / command.path
-        
-        elif isinstance(command, QC.include):
+        if isinstance(command, QC.include):
             prefab_path = (active_folder / command.filename).with_suffix('.vmdl_prefab')
             prefab = ModelDoc.Prefab(target_file=prefab_path.as_posix())
             vmdl.add_to_appropriate_list(prefab)
@@ -134,21 +158,12 @@ def ImportQCtoVMDL(qc_path: Path):
         # https://developer.valvesoftware.com/wiki/$body
         elif isinstance(command, QC.body):
             command: QC.body
-            rendermeshfile = ModelDoc.RenderMeshFile(
-                name = command.name,
-                filename = fixup_filepath(command.mesh_filename),
-                import_scale=command.scale,
-            )
-            vmdl.add_to_appropriate_list(rendermeshfile)
-        
+            add_rendermesh_from_body(command)
+
         # https://developer.valvesoftware.com/wiki/$model_(QC)
         elif isinstance(command, QC.model):
             command: QC.model
-            rendermeshfile = ModelDoc.RenderMeshFile(
-                name = command.name,
-                filename = fixup_filepath(command.mesh_filename),
-            )
-            vmdl.add_to_appropriate_list(rendermeshfile)
+            add_rendermesh(command.name, command.mesh_filename)
             ... # Options
 
         # https://developer.valvesoftware.com/wiki/$sequence
@@ -165,20 +180,42 @@ def ImportQCtoVMDL(qc_path: Path):
             command: QC.bodygroup
             bodygroup = ModelDoc.BodyGroup(name=command.name)
             
-            # TODO: this is probably not right
-            # if smd add as RenderMeshFile?
             # ['studio', 'mybody', 'studio', 'myhead', 'studio', 'b.smd','blank']
             optionsiter = iter(command.options)
             while string:=next(optionsiter, False):
                 if string == "studio":
+                    qc_choice = next(optionsiter)
+                    if qc_choice.endswith(".smd"):
+                        choice_name = Path(qc_choice).stem
+                        add_rendermesh(choice_name, qc_choice)
+                    else:
+                        choice_name = qc_choice
                     choice = ModelDoc.BodyGroupChoice()
-                    choice.meshes.append(next(optionsiter))
+                    choice.meshes.append(choice_name)
                     bodygroup.add_nodes(choice)
                 elif string == "blank":
                     bodygroup.add_nodes(ModelDoc.BodyGroupChoice(name="blank"))
 
+            if IGNORE_SINGLEBODY_BODYGROUPS and len(bodygroup.children) == 1:
+                # name the body after this bodygroup
+                vmdl.base_lists[ModelDoc.RenderMeshList].children[-1].name = bodygroup.name
+                continue
+
             vmdl.add_to_appropriate_list(bodygroup)
         
+        # https://developer.valvesoftware.com/wiki/$cdmaterials
+        elif isinstance(command, QC.cdmaterials):
+            command: QC.cdmaterials
+            defaultmaterialgroup = ModelDoc.DefaultMaterialGroup()
+            for material in material_names:
+                defaultmaterialgroup.remaps.append(
+                    {
+                        "from": material,
+                        "to": (Path("materials/" + command.folder) / material ).as_posix(),
+                    }
+                )
+            vmdl.add_to_appropriate_list(defaultmaterialgroup)
+
         # https://developer.valvesoftware.com/wiki/$lod
         elif isinstance(command, QC.lod):
             command: QC.lod

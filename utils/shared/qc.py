@@ -1,8 +1,7 @@
 
-from typing import Optional, Sequence, Type, Union
+from typing import Optional, Sequence, Type
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor
-from pathlib import Path
 
 qcgrammar = Grammar(
     """
