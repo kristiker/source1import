@@ -106,6 +106,7 @@ class ModelDoc:
         framerate: int = -1.0
         take: int = 0
         reverse: bool = False
+        anim_hold_list: list[dict[Literal["frame"] | Literal["frame_count"], int]] = field(default_factory=list)
 
     @dataclass
     class PhysicsHullFile(_Node):

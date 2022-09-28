@@ -1,6 +1,7 @@
-from typing import Type, Union
+from typing import Literal, Type, Union
 import shared.base_utils2 as sh
 from pathlib import Path
+from itertools import tee
 from srctools import smd
 from shared.keyvalues3 import KV3File, KV3Header
 
@@ -176,10 +177,104 @@ def ImportQCtoVMDL(qc_path: Path):
         # https://developer.valvesoftware.com/wiki/$sequence
         elif isinstance(command, QC.sequence):
             command: QC.sequence
-            animfile = ModelDoc.AnimFile(
-                name = command.name,
-                source_filename = fixup_filepath(command.mesh_filename),
-            )
+            animfile = ModelDoc.AnimFile(name = command.name)
+            mode = 1
+            # mode 1: new skeletal anim with simple options
+            if command.options[0].endswith('.smd') or command.options[0].endswith('.dmx'):
+                animfile.source_filename = fixup_filepath(command.options[0])
+            else:
+                mode = 2
+                # TODO: more than 1 anims
+                animfile.source_filename = fixup_filepath(command.options[0])
+            
+            optionsiter = iter(command.options[1:])
+
+            while option:=next(optionsiter, False):
+                if option == 'frame':
+                    animfile.start_frame, animfile.end_frame = next(optionsiter), next(optionsiter)
+                elif option in ('origin', 'angles'):
+                    x,y,z = next(optionsiter), next(optionsiter), next(optionsiter)
+                elif option in ('rotate', 'scale'):
+                    f = next(optionsiter)
+                elif option == 'reverse': animfile.reverse = True
+                elif option == 'loop': animfile.looping = True
+                elif option == 'hidden': animfile.hidden = True
+                elif option == 'fps': animfile.framerate = next(optionsiter)
+                elif option == 'motion extract axis': ... # What is this?
+                elif option == 'activity' or option.startswith('act_'):
+                    if option.startswith('act_'):
+                        animfile.activity_name = option.upper()
+                    else:
+                        animfile.activity_name = str(next(optionsiter)).upper()
+                    animfile.activity_weight = next(optionsiter)
+                elif option == 'autoplay': ...
+                elif option == 'addlayer':
+                    sequence = next(optionsiter)
+                    # TODO: AnimAddLayer child node
+                elif option == 'blendlayer':
+                    sequence = next(optionsiter)
+                    startframe, peakframe, tailframe, endframe = next(optionsiter), next(optionsiter), next(optionsiter), next(optionsiter)
+                    optionsiter, blendlayer_options = tee(optionsiter) # grab a second iterator
+                    # TODO: AnimBlendLayer child node
+                    while option:=next(blendlayer_options, False):
+                        if option == 'spline': ...
+                        elif option == 'xfade': ...
+                        elif option == 'poseparameter':
+                            poseparameter_name: str = next(blendlayer_options)
+                            ...
+                        elif option == 'noblend': ...
+                        elif option == 'local': ...
+                        else:
+                            # advance optionsiter since local options stuff was consumed
+                            optionsiter = blendlayer_options
+                            break
+                elif option == 'worldspace': animfile.worldSpace = True
+                elif option == 'snap': ...
+                elif option == 'realtime': ...
+                elif option == 'fadein': animfile.fade_in_time = next(optionsiter)
+                elif option == 'fadeout': animfile.fade_out_time = next(optionsiter)
+                elif option == 'weightlist': animfile.weight_list_name = next(optionsiter)
+                elif option == 'localhierarchy':
+                    ...
+                elif option == 'compress':
+                    frameskip: int = next(optionsiter)
+                    ...
+                elif option == 'posecycle':
+                    pose_parameter: str = next(optionsiter)
+                    ...
+                # Advanced, I suppose for mode=2?
+                # https://developer.valvesoftware.com/wiki/Blend_sequence
+                elif option == 'delta': animfile.delta = True
+                elif option == 'predelta': ...
+                elif option == 'blend':
+                    blend_name: str = next(optionsiter)
+                    _min: float = next(optionsiter)
+                    _max: float = next(optionsiter)
+                    ...
+                elif option == 'blendwidth':
+                    width: int = next(optionsiter)
+                    ...
+                elif option == 'blendref':
+                    ref: str = next(optionsiter)
+                    ...
+                elif option == 'calcblend':
+                    _name: str = next(optionsiter)
+                    _attachment: str = next(optionsiter)
+                    _idk: Literal["XR"] | Literal["YR"] | Literal["ZR"] = next(optionsiter)
+                    ...
+                elif option == 'blendcenter':
+                    center: str = next(optionsiter)
+                    ...
+                elif option == 'ikrule': ...
+                elif option == 'iklock': ...
+                elif option == 'activitymodifier': ...
+                # Misc
+                elif option == 'node': ...
+                elif option == 'transition': ...
+                elif option == 'rtransition': ...
+                elif option == '$skiptransition': ...
+                elif option == 'keyvalues': ...
+                
             vmdl.add_to_appropriate_list(animfile)
 
         # https://developer.valvesoftware.com/wiki/$bodygroup

@@ -49,6 +49,8 @@ qcgrammar = Grammar(
 class Group(list): pass
 class Token(str): pass
 
+class InlineOrGroup: pass
+
 class QC:
     class include:
         filename: str
@@ -160,8 +162,7 @@ class QC:
 
     class sequence:
         name: str
-        mesh_filename: str
-        #options: _options
+        options: InlineOrGroup
     
     class declaresequence:
         name: str
@@ -213,23 +214,36 @@ class QCBuilder(NodeVisitor):
     def push_argument(self, arg: str):
         # inefficient but works
         max = len(self.command_to_build.__annotations__)
+        bIsInline = InlineOrGroup in self.command_to_build.__annotations__.values()
         for i, (member, type) in enumerate(self.command_to_build.__annotations__.items(), 1):
             if member == "options":
-                return
+                if not bIsInline:
+                    return
+                type = str
             #print(self.command_to_build, member, type)
+            bInlineOptions = bIsInline and member == "options"
+            bCommandBuiltYet = hasattr(self.command_to_build, member)
 
-            if not hasattr(self.command_to_build, member):
+            if bInlineOptions or not bCommandBuiltYet:
                 if type == str:
                     arg = arg.strip('"')
-                
                 if type in (int, float):
                     # fix for 7.006ff000, passes ff000 as token
                     if not all(c in "0123456789.-" for c in arg):
-                        return
+                        return # raise TokenError
+                if bInlineOptions:
+                    if not bCommandBuiltYet:
+                        self.command_to_build.options = Group([type(arg)])
+                    else:
+                        self.command_to_build.options.append(type(arg))
+                    return
                 setattr(self.command_to_build, member, type(arg))
                 # didn't run out yet
                 if i < max:
                     return
+            #else:
+            #    if not bIsInline:
+            #        raise RuntimeError("Command already has member", member)
         
         if hasattr(self.command_to_build, "handle_options"):
             return
@@ -254,7 +268,7 @@ class QCBuilder(NodeVisitor):
             self.command_to_build.handle_options(base_group_node.children[0].children[2])
         
         # just a list of tokens { "a" "b" "c" }
-        elif self.command_to_build.__annotations__.get("options") == Group[Token]:
+        elif self.command_to_build.__annotations__.get("options") in (Group[Token], InlineOrGroup):
             trav = QCBuilder.traverse_options(base_group_node.children[0].children[2])
             ls = Group()
             for option in trav:
@@ -262,7 +276,10 @@ class QCBuilder(NodeVisitor):
                     raise OptionParseError("Expected token, got group")
                 ls.append(option.text.lower().strip('"'))
 
-            setattr(self.command_to_build, "options", ls)
+            if getattr(self.command_to_build, "options", None) is not None:
+                self.command_to_build.options.extend(ls)
+            else:
+                self.command_to_build.options = ls
         
         # a list of groups { { "a1" "b1" } { "a2" "b2" } }
         elif self.command_to_build.__annotations__.get("options") == Group[Group[Token]]:
@@ -279,7 +296,7 @@ class QCBuilder(NodeVisitor):
                     subgr.append(token.text.lower().strip('"'))
                 base_group.append(subgr)
             
-            setattr(self.command_to_build, "options", base_group)
+            self.command_to_build.options = base_group
 
         # options is the last member
         self.qc.append(self.command_to_build)
@@ -340,7 +357,7 @@ $TextureGroup "skinfamilies" {
 }
 
 
-$sequencE idle	"myfirstmodel-ref.smd" { }
+$sequencE idle	"myfirstmodel-ref.smd" { activity "ACT_IDLE" -1 fadein 0.2 }
 
 $collisionmodel	"myfirstmodel-phys.smd" {
 	$concave
@@ -379,7 +396,6 @@ $collisiontext
 /* neither does this comment
 
 $collisionjoints "joints2"//lastcomment """
-
     import unittest
     class TestQC(unittest.TestCase):
         def test_parses_without_fail(self):
@@ -398,7 +414,7 @@ $collisionjoints "joints2"//lastcomment """
                 "surfaceprop": {'name': 'combine_metal'},
                 "cdmaterials": {'folder': 'models\\props'},
                 "texturegroup": {'name': 'skinfamilies', 'options': [['helicopter_news_adj', 'helicopter_news2'], ['..\\hybridphysx\\helicopter_army', '..\\hybridphysx\\helicopter_army2']]},
-                "sequence": {'name': 'idle', 'mesh_filename': 'myfirstmodel-ref.smd'},
+                "sequence": {'name': 'idle', 'options': ['myfirstmodel-ref.smd','activity','act_idle','-1','fadein','0.2','activity','act_idle','-1','fadein','0.2']},
                 "collisionmodel": {'mesh_filename': 'myfirstmodel-phys.smd'},
                 "keyvalues": {'prop_data': {'base': 'Metal.LargeHealth', 'allowstatic': '1', 'dmg.bullets': '0', 'dmg.fire': '0', 'dmg.club': '.35', 'multiplayer_break': 'both', 'BlockLOS': '1'}},
                 "collisionjoints": {'mesh_filename': 'joints1'},
@@ -412,5 +428,8 @@ $collisionjoints "joints2"//lastcomment """
                 if isinstance(cmd, str):
                     continue
                 self.assertEqual(cmd.__dict__, dicts[cmd.__class__.__name__])
+            
+            for name in names:
+                self.assertTrue(name in dicts, msg=f"Unexpected command: {name}")
 
     unittest.main()
