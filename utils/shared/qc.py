@@ -46,6 +46,9 @@ qcgrammar = Grammar(
     """
 )
 
+class Group(list): pass
+class Token(str): pass
+
 class QC:
     class include:
         filename: str
@@ -95,7 +98,7 @@ class QC:
 
     class texturegroup:
         name: str
-        options: list["{list[atleast1_material, _]}"] # list of skins
+        options: Group[Group[Token]]
     
     class cbox:
         minx: float
@@ -132,7 +135,7 @@ class QC:
 
     class bodygroup:
         name: str
-        options: list[str]
+        options: Group[Token]
 
     class body:
         name: str
@@ -142,7 +145,7 @@ class QC:
     
     class lod:
         threshold: int
-        options: list[str]
+        options: Group[Token]
 
     class model:
         name: str
@@ -176,7 +179,7 @@ class QC:
                     if key.expr_name != "token":
                         raise OptionParseError("Expected token as key, got group")
                     if val.expr_name == "group":
-                        d[key.text] = nested(QCBuilder.traverse_options(val.children[2]))
+                        d[key.text.strip('"')] = nested(QCBuilder.traverse_options(val.children[2]))
                         continue
                     d[key.text.strip('"')] = val.text.strip('"')
                 return d
@@ -192,8 +195,8 @@ class QCBuilder(NodeVisitor):
     def __init__(self):
         super().__init__()
         self.qc = list()
-        self.command_to_build = None
-        self.bInGroup = False
+        self.command_to_build: QC.bodygroup | None = None
+        self.bInGroup: bool = False
 
     def push_command(self, command_cls: Type):
         # argless command (e.g. $staticprop)
@@ -246,16 +249,33 @@ class QCBuilder(NodeVisitor):
         if hasattr(self.command_to_build, "handle_options"):
             self.command_to_build.handle_options(base_group_node.children[0].children[2])
         
-        # just a list of tokens
-        elif self.command_to_build.__annotations__.get("options") == list[str]:
+        # just a list of tokens { "a" "b" "c" }
+        elif self.command_to_build.__annotations__.get("options") == Group[Token]:
             trav = QCBuilder.traverse_options(base_group_node.children[0].children[2])
-            ls = []
+            ls = Group()
             for option in trav:
                 if option.expr_name != "token":
                     raise OptionParseError("Expected token, got group")
                 ls.append(option.text.lower().strip('"'))
 
             setattr(self.command_to_build, "options", ls)
+        
+        # a list of groups { { "a1" "b1" } { "a2" "b2" } }
+        elif self.command_to_build.__annotations__.get("options") == Group[Group[Token]]:
+            trav = QCBuilder.traverse_options(base_group_node.children[0].children[2])
+            base_group = Group()
+            for group in trav:
+                if group.expr_name != "group":
+                    raise OptionParseError(f"Expected group, got {group.expr_name}")
+                subgr: Group[Token] = Group()
+                a = QCBuilder.traverse_options(group.children[2])
+                for token in a:
+                    if token.expr_name != "token":
+                        raise OptionParseError(f"Expected token, got {token.expr_name}")
+                    subgr.append(token.text.lower().strip('"'))
+                base_group.append(subgr)
+            
+            setattr(self.command_to_build, "options", base_group)
 
         # options is the last member
         self.qc.append(self.command_to_build)
@@ -309,6 +329,13 @@ $staticprop
 $surfaceprop	combine_metal
 $CDmaterials	"models\props"
 
+$TextureGroup "skinfamilies" {
+	{ "helicopter_news_adj"                "helicopter_news2"                } // TODO: fix this character making the other line a comment->\
+	{ "..\hybridPhysx\helicopter_news_adj" "..\hybridPhysx\helicopter_news2" } //helicopter_news2 from models/hybridPhysx
+	{ "..\hybridPhysx\helicopter_army"     "..\hybridPhysx\helicopter_army2" } //Could also add second $cdmaterials line and just use "helicopter_army2"
+}
+
+
 $sequencE idle	"myfirstmodel-ref.smd" { }
 
 $collisionmodel	"myfirstmodel-phys.smd" {
@@ -356,6 +383,7 @@ $collisionjoints "joints2"//lastcomment """
             qc.parse(testqc)
         
         def test_commands(self):
+            self.maxDiff = None
             qc = QCBuilder()
             commands = qc.parse(testqc)
             dicts = {
@@ -365,16 +393,17 @@ $collisionjoints "joints2"//lastcomment """
                 "staticprop": {},
                 "surfaceprop": {'name': 'combine_metal'},
                 "cdmaterials": {'folder': 'models\\props'},
+                "texturegroup": {'name': 'skinfamilies', 'options': [['helicopter_news_adj', 'helicopter_news2'], ['..\\hybridphysx\\helicopter_army', '..\\hybridphysx\\helicopter_army2']]},
                 "sequence": {'name': 'idle', 'mesh_filename': 'myfirstmodel-ref.smd'},
                 "collisionmodel": {'mesh_filename': 'myfirstmodel-phys.smd'},
-                "keyvalues": {'"prop_data"': {'base': 'Metal.LargeHealth', 'allowstatic': '1', 'dmg.bullets': '0', 'dmg.fire': '0', 'dmg.club': '.35', 'multiplayer_break': 'both', 'BlockLOS': '1'}},
+                "keyvalues": {'prop_data': {'base': 'Metal.LargeHealth', 'allowstatic': '1', 'dmg.bullets': '0', 'dmg.fire': '0', 'dmg.club': '.35', 'multiplayer_break': 'both', 'BlockLOS': '1'}},
                 "collisionjoints": {'mesh_filename': 'joints1'},
                 "$collisiontext:unimplemented": None,
             }
             names = [cmd.__class__.__name__ if not isinstance(cmd, str) else cmd for cmd in commands]
             for name in dicts:
                 self.assertTrue(name in names, msg=f"Expected to have {name} in command list {names}")
-            
+
             for cmd in commands:
                 if isinstance(cmd, str):
                     continue

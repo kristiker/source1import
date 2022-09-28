@@ -165,6 +165,11 @@ class ModelDoc:
         remaps: list[dict[Literal["from"] | Literal["to"], resourcepath]] = field(default_factory=list)
         use_global_default: bool = False
         global_default_material: resourcepath = ""
+    
+    @dataclass
+    class MaterialGroup(_Node):
+        remaps: list[dict[Literal["from"] | Literal["to"], resourcepath]] = field(default_factory=list)
+
     @dataclass
     class Bounds_Hull(_Node):
         """
@@ -213,7 +218,7 @@ class ModelDoc:
     @containerof(Bone)
     class Skeleton(_BaseNode): pass
     
-    @containerof(DefaultMaterialGroup)
+    @containerof(DefaultMaterialGroup, MaterialGroup)
     class MaterialGroupList(_BaseNode): pass
 
     @containerof(PhysicsHullFile)

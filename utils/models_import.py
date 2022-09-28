@@ -93,7 +93,14 @@ def ImportQCtoVMDL(qc_path: Path):
         path = (sh.EXPORT_CONTENT / active_folder / path).resolve()
         return path.local.as_posix()
 
+    def fixup_material_path(name_or_path: str, is_path: bool = False):
+        if not is_path:
+            return (Path("materials/" + cdmaterials) / name_or_path ).as_posix()
+        # supports path traversal
+        return (sh.EXPORT_CONTENT / Path("materials/" + cdmaterials) / name_or_path ).resolve().local.as_posix()
+
     material_names: set[str] = set()
+    cdmaterials = "" # TODO: support multiple cdmaterials
 
     def add_rendermesh(name: str, reference_mesh_file: str):
         body = QC.body()
@@ -110,7 +117,7 @@ def ImportQCtoVMDL(qc_path: Path):
                     material_names.add(tri.mat)
         rendermeshfile = ModelDoc.RenderMeshFile(
             name = body.name,
-            filename = fixup_filepath(body.mesh_filename),
+            filename = smd_file.local.as_posix(),
             import_scale = body.scale,
         )
         return vmdl.add_to_appropriate_list(rendermeshfile)
@@ -206,15 +213,40 @@ def ImportQCtoVMDL(qc_path: Path):
         # https://developer.valvesoftware.com/wiki/$cdmaterials
         elif isinstance(command, QC.cdmaterials):
             command: QC.cdmaterials
+            if cdmaterials:
+                continue
+            cdmaterials = command.folder
             defaultmaterialgroup = ModelDoc.DefaultMaterialGroup()
             for material in material_names:
                 defaultmaterialgroup.remaps.append(
                     {
                         "from": material,
-                        "to": (Path("materials/" + command.folder) / material ).as_posix(),
+                        "to": fixup_material_path(material),
                     }
                 )
             vmdl.add_to_appropriate_list(defaultmaterialgroup)
+
+        # https://developer.valvesoftware.com/wiki/$texturegroup
+        elif isinstance(command, QC.texturegroup):
+            command: QC.texturegroup
+            if len(command.options) < 2:
+                continue
+            defaultgroup = command.options[0]
+
+            for skin_no, skin in enumerate(command.options[1:], 1):
+                materialgroup = ModelDoc.MaterialGroup(
+                    name = f"{command.name}_{skin_no}",
+                )
+                for i, default_mat in enumerate(defaultgroup):
+                    if len(skin) <= i:
+                        break
+                    materialgroup.remaps.append(
+                    {
+                        "from": fixup_material_path(default_mat),
+                        "to": fixup_material_path(skin[i], is_path=True),
+                    }
+                )
+                vmdl.add_to_appropriate_list(materialgroup)
 
         # https://developer.valvesoftware.com/wiki/$lod
         elif isinstance(command, QC.lod):
