@@ -29,7 +29,7 @@ those to Source 2 CONTENT than for the script to copy stuff around.
 
 So: move your Source1 GAME `models` to Source2 CONTENT `models`.
 If you're converting QC files (aka `modelsrc`), you can put those in S2 `models` as well,
-or anywhere inside it (like `models/legacy_qc/`) since QC files don't need to have
+or anywhere inside it (like `models/legacy_qc/`, recommended) since QC files don't need to have
 the same name the mdl. Source2 will happily read Source1 SMD, DMX, and MDL+PHY+VVD files as long as
 they are placed somewhere inside Source2 CONTENT `models`.
 """
@@ -248,6 +248,31 @@ def ImportQCtoVMDL(qc_path: Path):
                 )
                 vmdl.add_to_appropriate_list(materialgroup)
 
+        # https://developer.valvesoftware.com/wiki/$renamematerial
+        elif isinstance(command, QC.renamematerial):
+            command: QC.renamematerial
+            mgList = vmdl.base_lists.get(ModelDoc.MaterialGroupList)
+            if mgList is None:
+                continue
+
+            dmg = mgList.find_by_class_bfs(ModelDoc.DefaultMaterialGroup)
+            if dmg is None:
+                continue
+            
+            # rename the s2 filename in default material group
+            for remap in dmg.remaps:
+                if remap["from"] != command.current:
+                    continue
+                remap["to"] = fixup_material_path(command.new)
+                # then update any subsequent s2 links to the new one
+                for mg in mgList.children:
+                    if mg is dmg:
+                        continue
+                    for remap in mg.remaps:
+                        if remap["from"] != fixup_material_path(command.current):
+                            continue
+                        remap["from"] = fixup_material_path(command.new)
+
         # https://developer.valvesoftware.com/wiki/$lod
         elif isinstance(command, QC.lod):
             command: QC.lod
@@ -436,6 +461,8 @@ class ModelDocVMDL(KV3File):
         container_type = ModelDoc.get_container(type(node))
         container = self.base_lists.get(container_type)
         if container is None:
+            if container_type is None:
+                raise RuntimeError(f"Don't know where {type(node)} belongs.")
             container = container_type()
             self.base_lists[container_type] = container
             self.root.add_nodes(container)

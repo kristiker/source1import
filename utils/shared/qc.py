@@ -100,6 +100,10 @@ class QC:
         name: str
         options: Group[Group[Token]]
     
+    class renamematerial:
+        current: str
+        new: str
+
     class cbox:
         minx: float
         miny: float

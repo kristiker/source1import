@@ -190,6 +190,7 @@ class ModelDoc:
     class Prefab(_Node):
         target_file: resourcepath = ""
 
+    @staticmethod
     def get_container(node_type: Type[_Node]):
         for basecontainer in mdBaseLists:
             if node_type in basecontainer._childtypes:
