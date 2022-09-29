@@ -43,7 +43,7 @@ qcgrammar = Grammar(
     # This is dumber than the usual stuff, eating everything till it finds */ or EOF
     multiline_comment = ~"\\/\\*(.*?|\\s)*(\\*\\/|\\Z)"
     #multiline_comment = ~"/\\*[^*]*\\*+(?:[^/*][^*]*\\*+)*/"
-    
+
     """
 )
 
@@ -60,25 +60,25 @@ class QC:
 
     class includemodel:
         filename: str
-    
+
     class modelname:
         filename: str
 
     class pushd:
         path: str
-    
+
     class popd(): pass
 
     class staticprop(): pass
 
     class surfaceprop:
         name: str
-    
+
     class origin:
         x: float
         y: float
         z: float
-    
+
     class contents:
         name: str
 
@@ -86,25 +86,22 @@ class QC:
         x: float
         y: float
         z: float
-    
+
     class attachment:
         name: str
         parent_bone: str
         x: float
         y: float
         z: float
-        # TODO:
-        # absolute: "OptionalTrueIfTokenPresent"
-        # rigid: "OptionalTrueIfTokenPresent"
-        # rotate: "OptionalKeyReadNextValues[3]"
-    
+        options: TokensInlineOrGroup
+
     class cdmaterials:
         folder: str
 
     class texturegroup:
         name: str
         options: Group[Group[Token]]
-    
+
     class renamematerial:
         current: str
         new: str
@@ -116,7 +113,7 @@ class QC:
         maxx: float
         maxy: float
         maxz: float
-    
+
     class bbox:
         minx: float
         miny: float
@@ -137,7 +134,7 @@ class QC:
         rotx_fixup: float
         roty_fixup: float
         rotz_fixup: float
-    
+
     class hierarchy:
         child_name: str
         parent_name: str
@@ -152,7 +149,7 @@ class QC:
         # TODO: confirm these
         reverse: Optional[bool] = False
         scale: Optional[float] = 1
-    
+
     class lod:
         threshold: int
         options: Group[Token]
@@ -160,21 +157,21 @@ class QC:
     class model:
         name: str
         mesh_filename: str
-    
+
     class animation:
         name: str
 
     class sequence:
         name: str
         options: TokensInlineOrGroup
-    
+
     class declaresequence:
         name: str
-    
+
     class weightlist:
         name: str
         options: TokensInlineOrGroup
-    
+
     class defaultweightlist:
         options: TokensInlineOrGroup
 
@@ -185,7 +182,7 @@ class QC:
     class collisionjoints:
         mesh_filename: str
         #options: _options
-    
+
     class keyvalues:
         def handle_options(self, options_node: Node):
             trav = QCBuilder.traverse_options(options_node)
@@ -219,9 +216,9 @@ class QCBuilder(NodeVisitor):
 
     def push_command(self, command_cls: Type):
         # Didn't finish the previous command
-        if self.command_to_build is not None:
+        if self.command_to_build and len(self.annotations_to_build):
             # verify that the command is complete
-            for member, type in self.command_to_build.__annotations__.items():
+            for member, type in self.annotations_to_build:
                 if getattr(self.command_to_build, member, None) is None:
                     if member == "options":
                         self.command_to_build.options = Group()
@@ -229,15 +226,19 @@ class QCBuilder(NodeVisitor):
                         raise QCParseError(f"Missing member {member} in {self.command_to_build}")
             self.qc.append(self.command_to_build)
 
-        if not command_cls.__annotations__ and not hasattr(command_cls, "handle_options"):
-            self.qc.append(command_cls())
-            return
         self.command_to_build = command_cls()
+
+        if not command_cls.__annotations__ and not hasattr(command_cls, "handle_options"):
+            self.qc.append(self.command_to_build)
+            self.command_to_build = None
+            return
+
         self.annotations_to_build = deque(self.command_to_build.__annotations__.items())
-    
+
+
     def push_argument(self, arg: str):
         member, type = self.annotations_to_build[0]
-  
+
         bInlineOptions = False
         if member == "options":
             if type is not TokensInlineOrGroup:
@@ -247,7 +248,7 @@ class QCBuilder(NodeVisitor):
 
         bInlineOptional = get_origin(type) is Union
         bCommandBuiltYet = hasattr(self.command_to_build, member) and not bInlineOptional
-        
+
         if bInlineOptions or not bCommandBuiltYet:
             if bInlineOptional:
                 type = get_args(type)[0]
@@ -265,21 +266,21 @@ class QCBuilder(NodeVisitor):
                 else:
                     self.command_to_build.options.append(type(arg))
                 return
-            
-            # Fill member 
+
+            # Fill member
             setattr(self.command_to_build, member, type(arg))
             self.annotations_to_build.popleft()
-    
+
             # didn't run out yet
             if len(self.annotations_to_build):
                 return
-        
+
         if hasattr(self.command_to_build, "handle_options"):
             return
         # ran out of members to fill
         self.qc.append(self.command_to_build)
         self.command_to_build = None
-    
+
     @staticmethod
     def traverse_options(node: Node):
         for child in node:
@@ -301,13 +302,13 @@ class QCBuilder(NodeVisitor):
         return rv
 
     def push_argument_group(self, base_group_node: Node):
-        
+
         if self.command_to_build is None:
             return "?"
 
         if hasattr(self.command_to_build, "handle_options"):
             self.command_to_build.handle_options(base_group_node.children[0].children[2])
-        
+
         # just a list of tokens/groups { "a" "b" "c" { "d" "e" } }
         elif self.command_to_build.__annotations__.get("options") in (Group[Token], TokensInlineOrGroup):
 
@@ -319,7 +320,7 @@ class QCBuilder(NodeVisitor):
                 self.command_to_build.options.extend(ls)
             else:
                 self.command_to_build.options = ls
-        
+
         # a list of groups { { "a1" "b1" } { "a2" "b2" } }
         elif self.command_to_build.__annotations__.get("options") == Group[Group[Token]]:
             trav = QCBuilder.traverse_options(base_group_node.children[0].children[2])
@@ -334,16 +335,18 @@ class QCBuilder(NodeVisitor):
                         raise OptionParseError(f"Expected token, got {token.expr_name}")
                     subgr.append(token.text.strip('"'))
                 base_group.append(subgr)
-            
+
             self.command_to_build.options = base_group
 
         # options is the last member
         self.qc.append(self.command_to_build)
         self.command_to_build = None
+        if len(self.annotations_to_build):
+            self.annotations_to_build.popleft()
 
     def visit_qcfile(self, node: Node, visited_children: Sequence[Node]):
         return self.qc
-    
+
     def visit_cmd(self, node, visited_children):
         token_name = node.text.lower()
 
@@ -352,14 +355,14 @@ class QCBuilder(NodeVisitor):
         else:
             self.qc.append(f"{token_name}:unimplemented")
         return node
-    
+
     def visit_token_base(self, node, _):
         if self.command_to_build is None:
             return
         if not hasattr(self.command_to_build, "__annotations__"):
             return
-        self.push_argument(node.text.lower())
-    
+        self.push_argument(node.text)
+
     def visit_group_base(self, node, visited_children):
         self.push_argument_group(node)
         return node
@@ -384,6 +387,11 @@ $bodygroup sights {
 	studio myhead
 	blank
 }
+
+$attachment "nozzle" "" 0 4.8 0
+
+$attachment "anim_attachment_RH" "ValveBiped.Anim_Attachment_RH" -0.00 -0.00 0.00 rotate -90.00 -90.00 0.00
+
 
 $staticprop
 $surfaceprop	combine_metal
@@ -416,7 +424,7 @@ $keyvalues
 		"dmg.bullets" "0"
 		"dmg.fire" "0"
 		"dmg.club" ".35"
-	//	"dmg.explosive" "1" 
+	//	"dmg.explosive" "1"
 		"multiplayer_break"	"both"
 		"BlockLOS"	"1"
 	}
@@ -454,7 +462,8 @@ $collisionjoints "joints2"//lastcomment """
                 ("body", {'name': 'mybody', 'mesh_filename': 'myfirstmodel-ref.smd', 'reverse': True, 'scale': 0.236}),
                 ("body", {'mesh_filename': 'myfirstmodel-refhead.smd', 'name': 'myhead'}),
                 ("bodygroup", {'name': 'sights', 'options': ['studio', 'mybody', 'studio', 'myhead', 'blank']}),
-                #("attachment", {'name': 'anim_attachment_rh',  'options': ['rotate', '-90.00', '-90.00', '0.00'], 'parent_bone': 'valvebiped.anim_attachment_rh', 'x': -0.0, 'y': -0.0, 'z': 0.0}),
+                ("attachment", {'name': 'nozzle', 'parent_bone': '', 'x': 0.0, 'y': 4.8, 'z': 0.0, 'options': []}),
+                ("attachment", {'name': 'anim_attachment_RH', 'parent_bone': 'ValveBiped.Anim_Attachment_RH', 'x': -0.0, 'y': -0.0, 'z': 0.0, 'options': ['rotate', '-90.00', '-90.00', '0.00']}),
                 ("staticprop", {}),
                 ("surfaceprop", {'name': 'combine_metal'}),
                 ("cdmaterials", {'folder': 'models\\props'}),
