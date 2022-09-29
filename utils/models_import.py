@@ -82,6 +82,8 @@ def ImportMDLtoVMDL(mdl_path: Path):
 from shared.qc import QC, QCBuilder, QCParseError
 from shared.modeldoc import ModelDoc, _BaseNode, _Node
 
+DEFAULT_WEIGHTLIST_NAME = "_qc_default"
+
 def ImportQCtoVMDL(qc_path: Path):
     vmdl = ModelDocVMDL()
     
@@ -131,6 +133,7 @@ def ImportQCtoVMDL(qc_path: Path):
     sequences_declared: list[str] = []
     lod0 = None
     skeleton = ModelDoc.Skeleton()
+    bHasDefaultWeightlist = True
 
     bone_name_fixup = lambda name: name.replace('.', '_')
 
@@ -186,7 +189,10 @@ def ImportQCtoVMDL(qc_path: Path):
                 mode = 2
                 # TODO: more than 1 anims
                 animfile.source_filename = fixup_filepath(command.options[0])
-            
+
+            if bHasDefaultWeightlist:
+                animfile.weight_list_name = DEFAULT_WEIGHTLIST_NAME
+
             optionsiter = iter(command.options[1:])
 
             while option:=next(optionsiter, False):
@@ -276,6 +282,19 @@ def ImportQCtoVMDL(qc_path: Path):
                 elif option == 'keyvalues': ...
                 
             vmdl.add_to_appropriate_list(animfile)
+        
+        elif isinstance(command, (QC.weightlist, QC.defaultweightlist)):
+            command: QC.weightlist
+            if isinstance(command, QC.defaultweightlist):
+                command.name = DEFAULT_WEIGHTLIST_NAME
+                bHasDefaultWeightlist = True
+            weightlist = ModelDoc.WeightList(name = command.name)
+            optionsiter = iter(command.options)
+            for bone, weight in zip(optionsiter, optionsiter):
+                weightlist.weights.append(
+                    dict(bone=bone_name_fixup(bone), weight=weight)
+)
+            vmdl.add_to_appropriate_list(weightlist)
 
         # https://developer.valvesoftware.com/wiki/$bodygroup
         elif isinstance(command, QC.bodygroup):

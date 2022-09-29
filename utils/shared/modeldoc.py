@@ -162,6 +162,13 @@ class ModelDoc:
         do_not_discard: bool = True
 
     @dataclass
+    class WeightList(_Node):
+        default_weight: float = 0.0
+        weights: list[dict[Literal["bone"] | Literal["weight"], namelink | float]] = field(default_factory=list)
+        master_morph_weight: float = -1.0
+        morph_weights: list["unknown"] = field(default_factory=list)
+
+    @dataclass
     class DefaultMaterialGroup(_Node):
         remaps: list[dict[Literal["from"] | Literal["to"], resourcepath]] = field(default_factory=list)
         use_global_default: bool = False
@@ -220,6 +227,9 @@ class ModelDoc:
     @containerof(Bone)
     class Skeleton(_BaseNode): pass
     
+    @containerof(WeightList)
+    class WeightListList(_BaseNode): pass
+
     @containerof(DefaultMaterialGroup, MaterialGroup)
     class MaterialGroupList(_BaseNode): pass
 

@@ -49,7 +49,9 @@ qcgrammar = Grammar(
 class Group(list): pass
 class Token(str): pass
 
-class InlineOrGroup: pass
+# These have a rule "Opening bracket must be on the same line"
+# but it is not carried out here.
+class TokensInlineOrGroup: pass
 
 class QC:
     class include:
@@ -162,11 +164,18 @@ class QC:
 
     class sequence:
         name: str
-        options: InlineOrGroup
+        options: TokensInlineOrGroup
     
     class declaresequence:
         name: str
     
+    class weightlist:
+        name: str
+        options: TokensInlineOrGroup
+    
+    class defaultweightlist:
+        options: TokensInlineOrGroup
+
     class collisionmodel:
         mesh_filename: str
         #options: _options
@@ -214,7 +223,7 @@ class QCBuilder(NodeVisitor):
     def push_argument(self, arg: str):
         # inefficient but works
         max = len(self.command_to_build.__annotations__)
-        bIsInline = InlineOrGroup in self.command_to_build.__annotations__.values()
+        bIsInline = TokensInlineOrGroup in self.command_to_build.__annotations__.values()
         for i, (member, type) in enumerate(self.command_to_build.__annotations__.items(), 1):
             if member == "options":
                 if not bIsInline:
@@ -268,7 +277,7 @@ class QCBuilder(NodeVisitor):
             self.command_to_build.handle_options(base_group_node.children[0].children[2])
         
         # just a list of tokens { "a" "b" "c" }
-        elif self.command_to_build.__annotations__.get("options") in (Group[Token], InlineOrGroup):
+        elif self.command_to_build.__annotations__.get("options") in (Group[Token], TokensInlineOrGroup):
             trav = QCBuilder.traverse_options(base_group_node.children[0].children[2])
             ls = Group()
             for option in trav:
