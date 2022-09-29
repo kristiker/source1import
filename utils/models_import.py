@@ -125,7 +125,12 @@ def ImportQCtoVMDL(qc_path: Path):
         )
         return vmdl.add_to_appropriate_list(rendermeshfile)
 
-    qc_commands: list["QC.command" | str] = QCBuilder().parse(qc_path.open().read())
+    with qc_path.open() as fp:
+        try:
+            qc_commands: list["QC.command" | str] = QCBuilder().parse(fp.read())
+        except Exception:
+            print("Failed to parse QC file", qc_path)
+            raise
 
     model_name = ""
     global_surfaceprop = "default"

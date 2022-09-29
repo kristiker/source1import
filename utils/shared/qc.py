@@ -5,10 +5,11 @@ from parsimonious.nodes import Node, NodeVisitor
 
 qcgrammar = Grammar(
     """
-    qcfile = _? ((cmd / token / group_base) _*)*
+    qcfile = _? ((cmd / token_base / group_base) _*)*
 
     # to distinguish top level from other stuff
     cmd = ~"\\$[_$a-zA-Z][\w$/.]*"
+    token_base = token ""
     group_base = group ""
 
     group = "{" _* ((_2complex4grammar / token / group) _*)* ("}" / ~"\Z")
@@ -262,11 +263,23 @@ class QCBuilder(NodeVisitor):
     
     @staticmethod
     def traverse_options(node: Node):
-        if node.expr_name in ("token", "group"):
-            yield node
-            return
         for child in node:
+            if child.expr_name in ("token", "group"):
+                yield child
+                break
             yield from QCBuilder.traverse_options(child)
+
+    @staticmethod
+    def nested(node) -> Group[Token | Group[Token]]:
+        rv = Group()
+        trav = QCBuilder.traverse_options(node)
+        for option in trav:
+            # add group as a nested list of tokens
+            if option.expr_name == "group":
+                rv.append(QCBuilder.nested(option.children[2]))
+                continue
+            rv.append(option.text.lower().strip('"'))
+        return rv
 
     def push_argument_group(self, base_group_node: Node):
         
@@ -276,14 +289,12 @@ class QCBuilder(NodeVisitor):
         if hasattr(self.command_to_build, "handle_options"):
             self.command_to_build.handle_options(base_group_node.children[0].children[2])
         
-        # just a list of tokens { "a" "b" "c" }
+        # just a list of tokens/groups { "a" "b" "c" { "d" "e" } }
         elif self.command_to_build.__annotations__.get("options") in (Group[Token], TokensInlineOrGroup):
-            trav = QCBuilder.traverse_options(base_group_node.children[0].children[2])
-            ls = Group()
-            for option in trav:
-                if option.expr_name != "token":
-                    raise OptionParseError("Expected token, got group")
-                ls.append(option.text.lower().strip('"'))
+
+            #print(base_group_node.children[0].children[2])
+
+            ls = QCBuilder.nested(base_group_node.children[0].children[2])
 
             if getattr(self.command_to_build, "options", None) is not None:
                 self.command_to_build.options.extend(ls)
@@ -323,7 +334,7 @@ class QCBuilder(NodeVisitor):
             self.qc.append(f"{token_name}:unimplemented")
         return node
     
-    def visit_token(self, node, _):
+    def visit_token_base(self, node, _):
         if self.command_to_build is None:
             return
         if not hasattr(self.command_to_build, "__annotations__"):
@@ -366,7 +377,12 @@ $TextureGroup "skinfamilies" {
 }
 
 
-$sequencE idle	"myfirstmodel-ref.smd" { activity "ACT_IDLE" -1 fadein 0.2 }
+$sequencE idle	"myfirstmodel-ref.smd" { activity "ACT_IDLE" -1 fadein 0.2
+
+    { event AE_MUZZLEFLASH 0 "357 MUZZLE" }
+    { event 6001 0 "0" }
+    snap
+}
 
 $collisionmodel	"myfirstmodel-phys.smd" {
 	$concave
@@ -410,7 +426,6 @@ $collisionjoints "joints2"//lastcomment """
         def test_parses_without_fail(self):
             qc = QCBuilder()
             qc.parse(testqc)
-        
         def test_commands(self):
             self.maxDiff = None
             qc = QCBuilder()
@@ -423,7 +438,7 @@ $collisionjoints "joints2"//lastcomment """
                 "surfaceprop": {'name': 'combine_metal'},
                 "cdmaterials": {'folder': 'models\\props'},
                 "texturegroup": {'name': 'skinfamilies', 'options': [['helicopter_news_adj', 'helicopter_news2'], ['..\\hybridphysx\\helicopter_army', '..\\hybridphysx\\helicopter_army2']]},
-                "sequence": {'name': 'idle', 'options': ['myfirstmodel-ref.smd','activity','act_idle','-1','fadein','0.2','activity','act_idle','-1','fadein','0.2']},
+                "sequence": {'name': 'idle', 'options': ['myfirstmodel-ref.smd','activity','act_idle','-1','fadein','0.2',['event', 'ae_muzzleflash', '0', '357 muzzle'],['event', '6001', '0', '0'], 'snap']},
                 "collisionmodel": {'mesh_filename': 'myfirstmodel-phys.smd'},
                 "keyvalues": {'prop_data': {'base': 'Metal.LargeHealth', 'allowstatic': '1', 'dmg.bullets': '0', 'dmg.fire': '0', 'dmg.club': '.35', 'multiplayer_break': 'both', 'BlockLOS': '1'}},
                 "collisionjoints": {'mesh_filename': 'joints1'},
@@ -436,7 +451,8 @@ $collisionjoints "joints2"//lastcomment """
             for cmd in commands:
                 if isinstance(cmd, str):
                     continue
-                self.assertEqual(cmd.__dict__, dicts[cmd.__class__.__name__])
+                #print(f'"{cmd.__class__.__name__}": {cmd.__dict__},')
+                self.assertEqual(dicts[cmd.__class__.__name__], cmd.__dict__)
             
             for name in names:
                 self.assertTrue(name in dicts, msg=f"Unexpected command: {name}")
