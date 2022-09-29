@@ -1,5 +1,5 @@
 
-from typing import Optional, Sequence, Type
+from typing import Optional, Sequence, Type, Union, get_origin, get_args
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor
 
@@ -149,8 +149,9 @@ class QC:
     class body:
         name: str
         mesh_filename: str
+        # TODO: confirm these
         reverse: Optional[bool] = False
-        scale: Optional[int] = 1
+        scale: Optional[float] = 1
     
     class lod:
         threshold: int
@@ -204,6 +205,8 @@ class QC:
 class QCParseError(Exception): pass
 class OptionParseError(Exception): pass
 
+from collections import deque
+
 class QCBuilder(NodeVisitor):
     grammar = qcgrammar
 
@@ -211,49 +214,65 @@ class QCBuilder(NodeVisitor):
         super().__init__()
         self.qc = list()
         self.command_to_build: QC.bodygroup | None = None
+        self.annotations_to_build = deque()
         self.bInGroup: bool = False
 
     def push_command(self, command_cls: Type):
-        # argless command (e.g. $staticprop)
-        
+        # Didn't finish the previous command
+        if self.command_to_build is not None:
+            # verify that the command is complete
+            for member, type in self.command_to_build.__annotations__.items():
+                if getattr(self.command_to_build, member, None) is None:
+                    if member == "options":
+                        self.command_to_build.options = Group()
+                    else:
+                        raise QCParseError(f"Missing member {member} in {self.command_to_build}")
+            self.qc.append(self.command_to_build)
+
         if not command_cls.__annotations__ and not hasattr(command_cls, "handle_options"):
             self.qc.append(command_cls())
             return
         self.command_to_build = command_cls()
+        self.annotations_to_build = deque(self.command_to_build.__annotations__.items())
     
     def push_argument(self, arg: str):
-        # inefficient but works
-        max = len(self.command_to_build.__annotations__)
-        bIsInline = TokensInlineOrGroup in self.command_to_build.__annotations__.values()
-        for i, (member, type) in enumerate(self.command_to_build.__annotations__.items(), 1):
-            if member == "options":
-                if not bIsInline:
-                    return
-                type = str
-            #print(self.command_to_build, member, type)
-            bInlineOptions = bIsInline and member == "options"
-            bCommandBuiltYet = hasattr(self.command_to_build, member)
+        member, type = self.annotations_to_build[0]
+  
+        bInlineOptions = False
+        if member == "options":
+            if type is not TokensInlineOrGroup:
+                return
+            type = str
+            bInlineOptions = True
 
-            if bInlineOptions or not bCommandBuiltYet:
-                if type == str:
-                    arg = arg.strip('"')
-                if type in (int, float):
-                    # fix for 7.006ff000, passes ff000 as token
-                    if not all(c in "0123456789.-" for c in arg):
-                        return # raise TokenError
-                if bInlineOptions:
-                    if not bCommandBuiltYet:
-                        self.command_to_build.options = Group([type(arg)])
-                    else:
-                        self.command_to_build.options.append(type(arg))
-                    return
-                setattr(self.command_to_build, member, type(arg))
-                # didn't run out yet
-                if i < max:
-                    return
-            #else:
-            #    if not bIsInline:
-            #        raise RuntimeError("Command already has member", member)
+        bInlineOptional = get_origin(type) is Union
+        bCommandBuiltYet = hasattr(self.command_to_build, member) and not bInlineOptional
+        
+        if bInlineOptions or not bCommandBuiltYet:
+            if bInlineOptional:
+                type = get_args(type)[0]
+                if type is bool:
+                    arg = True
+            if type == str:
+                arg = arg.strip('"')
+            if type in (int, float):
+                # fix for 7.006ff000, passes ff000 as token
+                if not all(c in "0123456789.-" for c in arg):
+                    return # raise TokenError
+            if bInlineOptions:
+                if not bCommandBuiltYet:
+                    self.command_to_build.options = Group([type(arg)])
+                else:
+                    self.command_to_build.options.append(type(arg))
+                return
+            
+            # Fill member 
+            setattr(self.command_to_build, member, type(arg))
+            self.annotations_to_build.popleft()
+    
+            # didn't run out yet
+            if len(self.annotations_to_build):
+                return
         
         if hasattr(self.command_to_build, "handle_options"):
             return
@@ -278,7 +297,7 @@ class QCBuilder(NodeVisitor):
             if option.expr_name == "group":
                 rv.append(QCBuilder.nested(option.children[2]))
                 continue
-            rv.append(option.text.lower().strip('"'))
+            rv.append(option.text.strip('"'))
         return rv
 
     def push_argument_group(self, base_group_node: Node):
@@ -313,7 +332,7 @@ class QCBuilder(NodeVisitor):
                 for token in a:
                     if token.expr_name != "token":
                         raise OptionParseError(f"Expected token, got {token.expr_name}")
-                    subgr.append(token.text.lower().strip('"'))
+                    subgr.append(token.text.strip('"'))
                 base_group.append(subgr)
             
             self.command_to_build.options = base_group
@@ -357,7 +376,7 @@ if __name__ == "__main__":
     testqc = \
 """
 $modelname	"props\myfirstmodel .mdl"
-$body	mybody	"myfirstmodel-ref.smd" 0 2
+$body	mybody	"myfirstmodel-ref.smd" 1 0.236
 $body	myhead "myfirstmodel-refhead.smd"
 
 $bodygroup sights {
@@ -430,31 +449,31 @@ $collisionjoints "joints2"//lastcomment """
             self.maxDiff = None
             qc = QCBuilder()
             commands = qc.parse(testqc)
-            dicts = {
-                "modelname": {'filename': 'props\\myfirstmodel .mdl'},
-                "body": {'name': 'mybody', 'mesh_filename': 'myfirstmodel-ref.smd'},
-                "bodygroup": {'name': 'sights', 'options': ['studio', 'mybody', 'studio', 'myhead', 'blank']},
-                "staticprop": {},
-                "surfaceprop": {'name': 'combine_metal'},
-                "cdmaterials": {'folder': 'models\\props'},
-                "texturegroup": {'name': 'skinfamilies', 'options': [['helicopter_news_adj', 'helicopter_news2'], ['..\\hybridphysx\\helicopter_army', '..\\hybridphysx\\helicopter_army2']]},
-                "sequence": {'name': 'idle', 'options': ['myfirstmodel-ref.smd','activity','act_idle','-1','fadein','0.2',['event', 'ae_muzzleflash', '0', '357 muzzle'],['event', '6001', '0', '0'], 'snap']},
-                "collisionmodel": {'mesh_filename': 'myfirstmodel-phys.smd'},
-                "keyvalues": {'prop_data': {'base': 'Metal.LargeHealth', 'allowstatic': '1', 'dmg.bullets': '0', 'dmg.fire': '0', 'dmg.club': '.35', 'multiplayer_break': 'both', 'BlockLOS': '1'}},
-                "collisionjoints": {'mesh_filename': 'joints1'},
-                "$collisiontext:unimplemented": None,
-            }
+            expected_commands = [
+                ("modelname", {'filename': 'props\\myfirstmodel .mdl'}),
+                ("body", {'name': 'mybody', 'mesh_filename': 'myfirstmodel-ref.smd', 'reverse': True, 'scale': 0.236}),
+                ("body", {'mesh_filename': 'myfirstmodel-refhead.smd', 'name': 'myhead'}),
+                ("bodygroup", {'name': 'sights', 'options': ['studio', 'mybody', 'studio', 'myhead', 'blank']}),
+                #("attachment", {'name': 'anim_attachment_rh',  'options': ['rotate', '-90.00', '-90.00', '0.00'], 'parent_bone': 'valvebiped.anim_attachment_rh', 'x': -0.0, 'y': -0.0, 'z': 0.0}),
+                ("staticprop", {}),
+                ("surfaceprop", {'name': 'combine_metal'}),
+                ("cdmaterials", {'folder': 'models\\props'}),
+                ("texturegroup", {'name': 'skinfamilies', 'options': [['helicopter_news_adj', 'helicopter_news2'], ['..\\hybridPhysx\\helicopter_army', '..\\hybridPhysx\\helicopter_army2']]}),
+                ("sequence", {'name': 'idle', 'options': ['myfirstmodel-ref.smd','activity','ACT_IDLE','-1','fadein','0.2',['event', 'AE_MUZZLEFLASH', '0', '357 MUZZLE'],['event', '6001', '0', '0'], 'snap']}),
+                ("collisionmodel", {'mesh_filename': 'myfirstmodel-phys.smd'}),
+                ("keyvalues", {'prop_data': {'base': 'Metal.LargeHealth', 'allowstatic': '1', 'dmg.bullets': '0', 'dmg.fire': '0', 'dmg.club': '.35', 'multiplayer_break': 'both', 'BlockLOS': '1'}}),
+                ("collisionjoints", {'mesh_filename': 'joints1'}),
+                ("$collisiontext:unimplemented", None),
+            ]
             names = [cmd.__class__.__name__ if not isinstance(cmd, str) else cmd for cmd in commands]
-            for name in dicts:
-                self.assertTrue(name in names, msg=f"Expected to have {name} in command list {names}")
+            expected_names = [cmd[0] for cmd in expected_commands]
+            self.assertCountEqual(names, expected_names, "Where First=Parsed, Second=Expected")
 
-            for cmd in commands:
-                if isinstance(cmd, str):
-                    continue
-                #print(f'"{cmd.__class__.__name__}": {cmd.__dict__},')
-                self.assertEqual(dicts[cmd.__class__.__name__], cmd.__dict__)
-            
-            for name in names:
-                self.assertTrue(name in dicts, msg=f"Unexpected command: {name}")
+            for (expected_name, expected_params), cmd in zip(expected_commands, commands):
+                name = cmd if isinstance(cmd, str) else cmd.__class__.__name__
+                options = None if isinstance(cmd, str) else cmd.__dict__
+                print(f'("{name}", {options})')
+                self.assertEqual(name, expected_name)
+                self.assertEqual(options, expected_params, f"At command: {name}\np: {options}\ne: {expected_params}")
 
     unittest.main()
