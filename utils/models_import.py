@@ -41,6 +41,7 @@ IMPORT_MDL = True
 # qc import
 IMPORT_QC = False
 IGNORE_SINGLEBODY_BODYGROUPS = True
+IGNORE_BBOX = False
 
 SHOULD_OVERWRITE = False
 SAMPBOX = False
@@ -75,7 +76,7 @@ def ImportMDLtoVMDL(mdl_path: Path):
     vmdl = KV3File(
         m_sMDLFilename = ("../"*SAMPBOX) + mdl_path.local.as_posix()
     )
-    sh.write(vmdl_path, vmdl.ToString())
+    vmdl_path.write_text(vmdl.ToString())
     print('+ Generated', vmdl_path.local)
     return vmdl_path
 
@@ -118,6 +119,8 @@ def ImportQCtoVMDL(qc_path: Path):
                 ref = smd.Mesh.parse_smd(fp)
                 for tri in ref.triangles:
                     material_names.add(tri.mat)
+        else:
+            sh.status(f"missing-mesh {smd_file}")
         rendermeshfile = ModelDoc.RenderMeshFile(
             name = body.name,
             filename = smd_file.local.as_posix(),
@@ -138,7 +141,7 @@ def ImportQCtoVMDL(qc_path: Path):
     sequences_declared: list[str] = []
     lod0 = None
     skeleton = ModelDoc.Skeleton()
-    bHasDefaultWeightlist = True
+    bHasDefaultWeightlist = False
 
     bone_name_fixup = lambda name: name.replace('.', '_')
 
@@ -494,6 +497,8 @@ def ImportQCtoVMDL(qc_path: Path):
         # https://developer.valvesoftware.com/wiki/$bbox
         elif isinstance(command, (QC.bbox, QC.cbox)):
             command: Union[QC.bbox, QC.cbox]
+            if IGNORE_BBOX:
+                continue
             if isinstance(command, QC.bbox):
                 hull_type = ModelDoc.Bounds_Hull
             else:
@@ -548,13 +553,13 @@ def ImportQCtoVMDL(qc_path: Path):
             )
             vmdl_prefab.add_to_appropriate_list(animfile)
 
-        sh.write(out_vmdl_prefab_path, vmdl_prefab.ToString())
+        out_vmdl_prefab_path.write_text(vmdl_prefab.ToString())
         print('+ Saved prefab', out_vmdl_prefab_path.local)
 
     if len(skeleton.children):
         vmdl.root.add_nodes(skeleton)
         
-    sh.write(out_vmdl_path, vmdl.ToString())
+    out_vmdl_path.write_text(vmdl.ToString())
     print('+ Saved', out_vmdl_path.local)
 
 

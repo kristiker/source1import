@@ -6,13 +6,19 @@ from tkinter import filedialog, messagebox, ttk
 from tkinter import *
 import sys
 import json
-from traceback import format_tb
+from traceback import format_exception_only, format_tb
 
 def initialization_fail(type, value, traceback):
     Tk().withdraw()
     messagebox.showwarning("source1import init fail", f"{''.join(format_tb(traceback)[1:])}\n\n{type.__name__}:{value}")
 
 sys.excepthook = initialization_fail
+
+from contextlib import suppress
+
+def is_debugging() -> bool:
+    with suppress(AttributeError):
+        return sys.gettrace()
 
 sys.path.insert(0, sys.path[0] + '\\utils')
 
@@ -73,6 +79,11 @@ class TabContext:
     def load_module(self):
         if self.module:
             return __import__(f"utils.{self.module}", fromlist=[self.module])
+    
+    def reload_module(self):
+        import importlib
+        if self.module:
+            importlib.reload(self.load_module())
 
     def run(self):
         if not (module:= self.load_module()):
@@ -86,13 +97,13 @@ class TabContext:
             module.main()
         except SystemExit:
             raise
-        except ScriptError as e:  # Known error
-            print(e)
         except Exception as e:  # Unknown error
             traceback = format_tb(e.__traceback__, None)
             for l in traceback:
                 print(l, end='')
-            print(f"Failed! Something went wrong with the {self.module} module!\n\t", repr(e))
+            print(f"Failed! Something went wrong with the {self.module} module!\n-> ", format_exception_only(e))
+            if is_debugging():
+                raise
         print('=========================================================')
 
 class SampleApp(Tk):
@@ -134,6 +145,19 @@ class SampleApp(Tk):
         self.title(self.APP_TITLE)
         #self.maxsize(370, 350)
         self.configure(background=bg1)
+
+        if is_debugging():
+            menubar = Menu(self, bg=bg1, fg=fg1, activebackground=bg2, activeforeground=fg1)
+            filemenu = Menu(menubar, tearoff=0)
+            #filemenu.add_command(label="Open", command=lambda: None)
+            filemenu.add_command(label="Reload Modules", command=self.reload_modules)
+            filemenu.add_command(label="Reload Module Options", command=self.read_default_module_options)
+            filemenu.add_command(label="Reset Configuration", command=self.reset_config)
+            filemenu.add_command(label="Save Configuration", command=self.write_config)
+            filemenu.add_command(label="Print Local App Folder", command=self.get_application_folder)
+            filemenu.add_command(label="Exit", command=self.quit)
+            menubar.add_cascade(label="File", menu=filemenu)
+            self.config(menu=menubar)
 
         self.io_grid = Frame(self, width=310, height=100, bg=bg1)
         self.io_grid.pack(fill="both", expand=False, padx=6, pady=5 )#side="left", fill="both", )
@@ -293,7 +317,6 @@ class SampleApp(Tk):
         self.checkbutton_tab_update()
 
         # restore app state from last session
-        self.cfg = {'app_geometry':"480x500"}
         self.geometry("480x500")
         self.read_config()
         Thread(target=self.read_default_module_options).start()
@@ -365,6 +388,7 @@ class SampleApp(Tk):
         sh.filter_ = self.get_filter()
         thread = Thread(target=self.go, daemon=True)
         thread.start()
+
         self.is_running: bool = property(fget=lambda:thread.is_alive())
         self.gobutton_update()
 
@@ -460,6 +484,14 @@ class SampleApp(Tk):
         else:
             self.gobutton.configure(state=NORMAL, text='Go')
     
+    def reload_modules(self):
+        """Only reloads the top level files"""
+        for tab in self.tabs.values():
+            if not tab.enabled:
+                continue
+            tab.reload_module()
+            print(f"Reloaded utils/{tab.module}.py")
+
     def read_default_module_options(self):
         for tab in self.tabs.values():
             module = tab.load_module()
@@ -467,29 +499,33 @@ class SampleApp(Tk):
                 gui_var.set(getattr(module, option_variable_name, True))
 
     def read_config(self):
-        #print(Path(__file__).parent)qwe
+        self.cfg = {'app_geometry':self.geometry()}
         try:
-            with open(self.settings_file, 'r') as fp:
+            with self.settings_file.open() as fp:
                 try: data = json.load(fp)
                 except json.decoder.JSONDecodeError:
                     data = {}
                 self.cfg.update(data)
         except (PermissionError, FileNotFoundError):
-            pass
-        self.geometry(self.cfg['app_geometry'])
-        
-        def _async():
-            for var in self.vars:
-                var.set(self.cfg.setdefault(var._name, var.get()))
-            try:
-                self.update_paths()
-            except Exception:
-                print("Wrong paths were configured.")
-                self.in_path.set('')
-                self.out_path.set('')
-                self.write_config()
+            self.in_path.set('')
+            self.out_path.set('')
+            self.widgets[7].configure(state=DISABLED)
             self.checkbutton_tab_update()
-        Thread(target=_async, daemon=True).start()
+        else:
+            self.geometry(self.cfg['app_geometry'])
+        
+            def _async():
+                for var in self.vars:
+                    var.set(self.cfg.setdefault(var._name, var.get()))
+                try:
+                    self.update_paths()
+                except Exception:
+                    print("Wrong paths were configured.")
+                    self.in_path.set('')
+                    self.out_path.set('')
+                    self.write_config()
+                self.checkbutton_tab_update()
+            Thread(target=_async, daemon=True).start()
 
     def write_config(self):
         for var in self.vars:
@@ -497,6 +533,15 @@ class SampleApp(Tk):
         self.cfg['app_geometry'] = self.geometry()
         with open(self.settings_file, 'w') as fp:
             json.dump(self.cfg, fp, sort_keys=True, indent=4)
+    
+    def reset_config(self):
+        self.settings_file.unlink(missing_ok=True)
+        self.geometry("480x500")
+        self.read_config()
+    
+    def get_application_folder(self):
+        print(Path(__file__).parent.resolve())
+
 
 class Console(): # create file like object
     def __init__(self, textbox: Text): # pass reference to text widget

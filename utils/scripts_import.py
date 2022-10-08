@@ -113,7 +113,7 @@ class SoundscapeImporter:
 
         newsc_path = sh.output(file, '.txt')
         newsc_path.parent.MakeDir()
-        sh.write(newsc_path, new_soundscapes)
+        newsc_path.write_text(new_soundscapes)
         print("+ Saved", newsc_path.local)
         return newsc_path
         #soundscapes_manifest.add("file", f'scripts/{newsc_path.name}')
@@ -158,7 +158,7 @@ class SoundscapeImporter:
                 }
             }
             """
-            sh.write(sndscape_file, KV3File(data=sndscape_data).ToString())
+            sndscape_file.write_text(KV3File(data=sndscape_data).ToString())
             print("+ Saved", sndscape_file.local)
         return sndscape_folder
 
@@ -352,7 +352,7 @@ def ImportGameSounds(asset_path: Path):
             out_kv[out_k] = out_v
         
         if SBOX:
-            sh.write(sound_file, KV3File(data=sound_data).ToString())
+            sound_file.write_text(KV3File(data=sound_data).ToString())
             print("+ Saved", sound_file.local)
         else:
             if out_kv == dict(type='src1_3d'):  # empty
@@ -369,7 +369,7 @@ def ImportGameSounds(asset_path: Path):
     if SBOX:
         return out_sound_folder
     else:
-        sh.write(vsndevts_file, kv3.ToString())
+        vsndevts_file.write_text(kv3.ToString())
 
         print("+ Saved", vsndevts_file.local)
         return vsndevts_file
@@ -458,7 +458,7 @@ def ImportSurfaceProperties(asset_path: Path):
                 surface_data["Sounds"][key] = value
 
         if SBOX:
-            sh.write(surface_file, KV3File(data=surface_data).ToString())
+            surface_file.write_text(KV3File(data=surface_data).ToString())
             print("+ Saved", surface_file.local)
         else:
             # Add default base
@@ -475,7 +475,7 @@ def ImportSurfaceProperties(asset_path: Path):
     if SBOX:
         return surface_folder
     else:
-        sh.write(vsurf_file, vsurf.ToString())
+        vsurf_file.write_text(vsurf.ToString())
         print("+ Saved", vsurf_file.local)
 
         return vsurf_file, vsurf['SurfacePropertiesList']
@@ -516,7 +516,7 @@ class VsurfManifestHandler:
                         for surfaceproperty2 in vsurf['SurfacePropertiesList']):
                     vsurf['SurfacePropertiesList'].append(surfaceproperty)
 
-        sh.write(vsurf_path, vsurf.ToString())
+        vsurf_path.write_text(vsurf.ToString())
         print("+ Saved", vsurf_path.local)
 
 if __name__ == '__main__':

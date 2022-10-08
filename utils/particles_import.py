@@ -2100,7 +2100,7 @@ def ImportPSD(ParticleSystemDefinition: dmx.Element, out_root: Path, bOverwrite 
         vpcf.setdefault('m_PreEmissionOperators', list())
         vpcf['m_PreEmissionOperators'].append(operator)
 
-    sh.write(vpcf.path, vpcf.ToString())
+    vpcf.path.write_text(vpcf.ToString())
 
     print("+ Saved", vpcf.path.local.as_posix())
 

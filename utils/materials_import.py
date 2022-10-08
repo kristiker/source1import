@@ -2,7 +2,7 @@ from enum import Enum, auto
 import math
 from pathlib import Path
 from shutil import copyfile
-from typing import Any, Callable
+from typing import Any, Callable, Literal
 from PIL import Image, ImageOps
 
 import shared.base_utils2 as sh
@@ -139,7 +139,6 @@ class ValveMaterial:
 
 class VMT(ValveMaterial):
 
-    ver = 1  # materialsystem1
     __defaultkv = ('', {})  # unescaped, supports duplicates, keys case insensitive
 
     shader = ValveMaterial.shader
@@ -189,7 +188,6 @@ class VMT(ValveMaterial):
 
 class VMAT(ValveMaterial):
 
-    ver = 2   # materialsystem2
     __defaultkv = ('Layer0', {'shader': 'error.vfx'})  # unescaped, keys case sensitive
 
     shader: str = ValveMaterial.shader
@@ -202,7 +200,7 @@ class VMAT(ValveMaterial):
 
     @shader.getter
     def shader(self):
-        return self._shader[:-len(SOURCE2_SHADER_EXT)]
+        return self._shader.removesuffix(SOURCE2_SHADER_EXT)
 
     @shader.setter
     def shader(self, n: str):
@@ -472,8 +470,8 @@ def createSkyCubemap(json_collection: Path, maxFaceRes: int = 0):
     cube_w = 4 * maxFaceRes
     cube_h = 3 * maxFaceRes
 
-    def get_transform(face, faceRotate):
         pasteCoord = (cube_w/2, cube_h/2)
+    def get_transform(face: Literal['up', 'dn', 'lf', 'rt', 'bk', 'ft'], faceRotate: int):
         if face == 'up':
             pasteCoord = ( cube_w - (maxFaceRes * 3) , cube_h - (maxFaceRes * 3) ) # (1, 2)
             faceRotate += 90
@@ -538,7 +536,8 @@ def TextureFramesToSheet(frames: list[Path]):
     grid_rows = 2 ** math.ceil(grid_max_power/2)
     grid_columns = 2 ** math.floor(grid_max_power/2)
 
-    sheet_image = None
+    sheet_image: Image = None
+    sheet_path: Path = None
     for frame_no, frame in enumerate(frames):
         frame_image = Image.open(frame)
         if sheet_image is None:
@@ -554,10 +553,10 @@ def TextureFramesToSheet(frames: list[Path]):
 
     sheet_image.save(sheet_path)
     print("+ Saved animated texture", sheet_path.local.as_posix())
-    sh.write(
-        path=sheet_path.with_name(sheet_path.stem + '.sheet.json'),
-        content=f'{{"g_nNumAnimationCells":{len(frames)},"g_vAnimationGrid":"[{grid_rows} {grid_columns}]"}}'
+    sheet_path.with_name(sheet_path.stem + '.sheet.json').write_text(
+        f'{{"g_nNumAnimationCells":{len(frames)},"g_vAnimationGrid":"[{grid_rows} {grid_columns}]"}}'
     )
+
     return grid_rows, grid_columns, sheet_path
 
 def flipNormalMap(localPath):
@@ -1429,7 +1428,7 @@ def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False):
             vmat.KeyValues['F_FULLBRIGHT'] = 1
 
     sh.msg(vmt.shader + " => " + vmat.shader, "\n")
-    sh.write(path=vmat.path, content=vmat.KeyValues.ToString())
+    vmat.path.write_text(vmat.KeyValues.ToString())
 
     print("+ Saved", vmat.path if sh.DEBUG else vmat.path.local.as_posix())
 
