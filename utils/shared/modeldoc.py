@@ -108,6 +108,13 @@ class ModelDoc:
         reverse: bool = False
         anim_hold_list: list[dict[Literal["frame"] | Literal["frame_count"], int]] = field(default_factory=list)
 
+        @dataclass
+        class AnimEvent(_Node):
+            event_class: str = "AE_EMPTY"
+            event_frame: int = 0
+            event_keys: dict = field(default_factory=dict)
+            "custom keyvalues differ between event classes"
+
     @dataclass
     class PhysicsHullFile(_Node):
         parent_bone: str = ""

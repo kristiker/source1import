@@ -85,6 +85,16 @@ from shared.modeldoc import ModelDoc, _BaseNode, _Node
 
 DEFAULT_WEIGHTLIST_NAME = "_qc_default"
 
+AE_IDS = {
+    -1: 'AE_INVALID',
+    5004: 'AE_CL_PLAYSOUND',
+    7777: 'AE_SV_PLAYSOUND',
+    7777: 'AE_CL_STOPSOUND',
+    6001: 'CL_EVENT_EJECTBRASS1',
+    3014: 'EVENT_WEAPON_PISTOL_FIRE',
+}
+
+
 def ImportQCtoVMDL(qc_path: Path):
     vmdl = ModelDocVMDL()
     
@@ -204,6 +214,31 @@ def ImportQCtoVMDL(qc_path: Path):
             optionsiter = iter(command.options[1:])
 
             while option:=next(optionsiter, False):
+                # Handle subgroups first
+                if isinstance(option, list):
+                    if option[0].lower() != 'event':
+                        continue
+                    event_class: str = option[1]
+                    if str.isdigit(event_class):
+                        try:
+                            event_class = AE_IDS[int(event_class)]
+                        except KeyError:
+                            print("Unknown AnimEvent ID", event_class)
+                    animevent = animfile.AnimEvent(
+                        event_class=event_class,
+                        event_frame=option[2],
+                        note=" ".join(option[3:]),
+                    )
+                    if event_class in ('AE_CL_PLAYSOUND', 'AE_SV_PLAYSOUND', 'AE_CL_STOPSOUND'):
+                        animevent.event_keys["name"] = option[3]
+                    elif event_class == 'whatever':
+                        ...
+                    
+                    animfile.children.append(animevent)
+                    continue
+                
+                option = option.lower()
+
                 if option == 'frame':
                     animfile.start_frame, animfile.end_frame = next(optionsiter), next(optionsiter)
                 elif option in ('origin', 'angles'):
