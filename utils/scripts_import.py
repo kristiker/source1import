@@ -1,5 +1,5 @@
 import shared.base_utils2 as sh
-from shared.base_utils2 import SBOX
+from shutil import copyfile
 from pathlib import Path
 from shared.keyvalues1 import KV, VDFDict
 from shared.keyvalues3 import KV3File
@@ -10,6 +10,7 @@ OVERWRITE_ASSETS = False
 SOUNDSCAPES = True
 GAMESOUNDS = True
 SURFACES = True
+MISCELLANEOUS = True
 
 scripts = Path('scripts')
 SOUNDSCAPES_MANIFEST = scripts / "soundscapes_manifest.txt"
@@ -23,13 +24,10 @@ def main():
 
     print("Importing Scripts!")
 
-    # update branch conditionals
-    globals().update((k,v) for (k, v) in sh.__dict__.items() if k in ("SBOX"))
-
     if SOUNDSCAPES:
         print("- Soundscapes!") # soundscapes vsc, txt, and manifest...
-        
-        if SBOX:
+
+        if sh.SBOX:
             sh.import_context['dest'] = sh.EXPORT_CONTENT
             for soundscape_collection_path in itertools.chain(
                 (sh.src(scripts)).glob('**/soundscapes_*.vsc'),
@@ -53,7 +51,7 @@ def main():
 
     if GAMESOUNDS:
         print("- Game Sounds!") # game sounds: scripts -> soundevents
-        
+
         for file in (sh.src(scripts)).glob('**/game_sounds*.txt'):
             if file.name != 'game_sounds_manifest.txt':
                 ImportGameSounds(file)
@@ -71,10 +69,40 @@ def main():
                 continue
 
             folderOrFile = ImportSurfaceProperties(surfprop_txt)
-            if not SBOX:
+            if not sh.SBOX:
                 manifest_handle.retrieve_surfaces(folderOrFile) # file only
-        
+
         manifest_handle.after_all_converted()
+
+    if MISCELLANEOUS:
+        print("- Other scripts!")
+
+        propdata = sh.src(scripts / "propdata.txt")
+        if propdata.is_file():
+            if sh.ADJ or sh.DOTA2:
+                sh.import_context['dest'] = sh.EXPORT_CONTENT
+                sh.MakeDir(sh.output(scripts))
+                if not (sh.output(propdata, ".vdata").is_file() and not OVERWRITE_ASSETS):
+                    kv = KV.FromFile(propdata, case_sensitive=True)
+                    kv3 = KV3File(generic_data_type = "prop_data")
+                    for name, data in kv.items():
+                        if name.lower() == "breakablemodels":
+                            continue
+                        kv3[name] = dict()
+                        for key, value in data.items():
+                            if key.lower() == "base":
+                                key = "_base"
+                            kv3[name][key] = value
+                    sh.output(propdata, ".vdata").write_text(kv3.ToString())
+                    print("+ Saved scripts/propdata.vdata")
+            else:
+                sh.import_context['dest'] = sh.EXPORT_GAME
+                sh.MakeDir(sh.output(scripts))
+                if not (sh.output(propdata).is_file() and not OVERWRITE_ASSETS):
+                    copyfile(propdata, sh.output(propdata))
+                    print("+ Copied scripts/propdata.txt")
+
+
 
     print("Looks like we are done!")
 
@@ -142,7 +170,7 @@ class SoundscapeImporter:
                 dsp = 5
                 fadetime = 1.0
                 position = 5
-                playrandom = 
+                playrandom =
                 {
                     sound = "sounds/soundscapes/name.sound"
                 }
@@ -191,13 +219,13 @@ def ImportGameSounds(asset_path: Path):
     """
     vsndevts_file = sh.EXPORT_CONTENT / "soundevents" / asset_path.local.relative_to(scripts).with_suffix('.vsndevts')
     out_sound_folder = sh.EXPORT_CONTENT / sounds / asset_path.stem.removeprefix('game_sounds_')
-    if not SBOX:
+    if not sh.SBOX:
         if not OVERWRITE_ASSETS and vsndevts_file.exists():
             return vsndevts_file
         vsndevts_file.parent.MakeDir()
     else:
         out_sound_folder.MakeDir()
-    
+
     SNDLVL = {
         'SNDLVL_NONE': 0,
         'SNDLVL_25dB': 25,
@@ -233,7 +261,7 @@ def ImportGameSounds(asset_path: Path):
         'PITCH_LOW': 95,
         'PITCH_HIGH': 120,
     }
-    
+
     def _handle_range(k, v) -> "median, deviation":
         if not (type(v) is str and ',' in v):
             return
@@ -253,13 +281,13 @@ def ImportGameSounds(asset_path: Path):
     kv3 = KV3File()
 
     for gamesound, gs_data in kv.items(): # "weapon.fire", {}
-        
-        if not SBOX and gamesound[0].isdigit():
+
+        if not sh.SBOX and gamesound[0].isdigit():
             gamesound = '_' + gamesound
 
         # Valve
         out_kv = dict(type='src1_3d') # why 3d?
-        
+
         # SBOX
         sound_file = out_sound_folder / f'{gamesound}.sound'
         sound_data = dict(
@@ -273,7 +301,7 @@ def ImportGameSounds(asset_path: Path):
             selectionmode = "0",
         )
 
-        if SBOX and not OVERWRITE_ASSETS and sound_file.exists():
+        if sh.SBOX and not OVERWRITE_ASSETS and sound_file.exists():
             sh.status(f"Skipping {sound_file.local} [already-exist]")
             continue
 
@@ -283,9 +311,9 @@ def ImportGameSounds(asset_path: Path):
             # instead of using rndwave {} !!
             if k == 'wave':
                 fixed_wav = fix_wave_resource(v)
-                #if out_v == "sounds/common/null.vsnd" and not SBOX:
+                #if out_v == "sounds/common/null.vsnd" and not sh.SBOX:
                 #    continue
-                if not SBOX:
+                if not sh.SBOX:
                     out_kv.setdefault('vsnd_files', []).append(fixed_wav)
                     continue
                 sound_data['sounds'].append(fix_wave_resource(v))
@@ -299,8 +327,8 @@ def ImportGameSounds(asset_path: Path):
                     if res != 'sounds/common/null.vsnd':
                         out_v.append(res)
                         sound_data['sounds'].append(res)
-                
-                if not len(out_v) and not SBOX: continue
+
+                if not len(out_v) and not sh.SBOX: continue
 
             elif k in ('volume', 'pitch', 'soundlevel'):
                 if range:=_handle_range(k, v):
@@ -310,7 +338,7 @@ def ImportGameSounds(asset_path: Path):
                     continue
                 if k == 'volume':
                     if isinstance(v, str) and 'VOL_NORM' in v:
-                        if SBOX:
+                        if sh.SBOX:
                             continue
                         v = 1.0  # aka just continue? (default)
                     else:
@@ -325,7 +353,7 @@ def ImportGameSounds(asset_path: Path):
                     # Normalize pitch
                     out_v = sound_data[k] = v / 100
                 elif k == 'soundlevel':
-                    if SBOX:
+                    if sh.SBOX:
                         ...
                     elif type(v) is not str:
                         ...
@@ -338,7 +366,7 @@ def ImportGameSounds(asset_path: Path):
                                 except Exception:
                                     print(v[7:])
                             else: print(v)
-            if not SBOX:
+            if not sh.SBOX:
                 if k == 'delay_msec': out_k, out_v = 'delay', v/1000
                 elif k == 'ignore_occlusion': out_k, out_v = 'occlusion_scale', (1 if not v else 0)#'sa_enable_occlusion'
                 elif k == 'operator_stacks':  # this only exists in globul offensif
@@ -347,11 +375,11 @@ def ImportGameSounds(asset_path: Path):
                 elif k in ('soundentry_version', 'alert', 'hrtf_follow','gamedata',): # skiplist
                     continue
                 else:
-                    continue 
-            
+                    continue
+
             out_kv[out_k] = out_v
-        
-        if SBOX:
+
+        if sh.SBOX:
             sound_file.write_text(KV3File(data=sound_data).ToString())
             print("+ Saved", sound_file.local)
         else:
@@ -365,8 +393,8 @@ def ImportGameSounds(asset_path: Path):
                     else:
                         out_kv['vsnd_files'] = wav_list[0]
             kv3[gamesound] = out_kv
-    
-    if SBOX:
+
+    if sh.SBOX:
         return out_sound_folder
     else:
         vsndevts_file.write_text(kv3.ToString())
@@ -393,11 +421,11 @@ def ImportSurfaceProperties(asset_path: Path):
     VALVE: scripts/surfaceproperties*.txt -> surfaceproperties/surfaceproperties*.vsurf
     SBOX: scripts/surfaceproperties*.txt -> (n)[surfaces/*/name.surface]
     """
-    
+
     vsurf_file: Path = sh.EXPORT_CONTENT / "surfaceproperties" / asset_path.local.relative_to(scripts).with_suffix('.vsurf')
     surface_folder = sh.EXPORT_CONTENT / surfaces / asset_path.stem.removeprefix('surfaceproperties').lstrip("_")
-    
-    if not SBOX:
+
+    if not sh.SBOX:
         if vsurf_file.is_file() and not OVERWRITE_ASSETS:
             return sh.skip('already-exist', vsurf_file)
         vsurf_file.parent.MakeDir()
@@ -457,7 +485,7 @@ def ImportSurfaceProperties(asset_path: Path):
             elif key in surface_data["Sounds"]:
                 surface_data["Sounds"][key] = value
 
-        if SBOX:
+        if sh.SBOX:
             surface_file.write_text(KV3File(data=surface_data).ToString())
             print("+ Saved", surface_file.local)
         else:
@@ -472,7 +500,7 @@ def ImportSurfaceProperties(asset_path: Path):
 
             vsurf['SurfacePropertiesList'].append(new_surface)
 
-    if SBOX:
+    if sh.SBOX:
         return surface_folder
     else:
         vsurf_file.write_text(vsurf.ToString())
@@ -521,4 +549,4 @@ class VsurfManifestHandler:
 
 if __name__ == '__main__':
     sh.parse_argv()
-    main()  
+    main()

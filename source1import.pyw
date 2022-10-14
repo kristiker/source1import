@@ -273,6 +273,7 @@ class SampleApp(Tk):
             ("SOUNDSCAPES", "Soundscapes"),
             ("GAMESOUNDS", "Game Sounds"),
             ("SURFACES", "Surface Properties"),
+            ("MISCELLANEOUS", "Others..."),
         )
         add_tab("scenes", self.Scenes, "Generate vcdlist from vcds", "scenes_import").add_toggles(
             ("EVERYTHING_TO_ROOT", "Add everything to _root.vcdlist"),

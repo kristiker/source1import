@@ -51,10 +51,11 @@ from enum import Enum, unique, auto
 
 class eS2Game(Enum):
     "known moddable source2 games"
-    dota2 = "dota2"
     steamvr = "steamvr"
     hlvr = "hlvr"
     sbox = "sbox"
+    adj = "adj"
+    dota2 = "dota2"
 
 @unique
 class eEngineUtils(Enum):
@@ -63,7 +64,9 @@ class eEngineUtils(Enum):
     def full_path(self) -> Path:
         return BIN / "win64" / self.value
     def avaliable(self):
-        return self.full_path.is_file()
+        if BIN is None:
+            return False
+        return self.full_path().is_file()
     
     def __call__(self, args: list[str] = []) -> Optional[subprocess.CompletedProcess]:
         if self.avaliable():
@@ -108,6 +111,7 @@ gameinfo2: KV = None
 
 IMPORT_MOD = ""
 DOTA2: bool = False
+ADJ: bool = False
 STEAMVR: bool = False
 HLVR: bool = False
 SBOX: bool = False
@@ -214,7 +218,14 @@ def parse_out_path(source2_mod: Path):
 
     # if not forcing a branch, try to guess it from the path
     if not args_known.branch:
-        pp = {"sbox":eS2Game.sbox, "s&box":eS2Game.sbox, "steamtours": eS2Game.steamvr, "hlvr": eS2Game.hlvr, "dota": eS2Game.dota2}
+        pp = {
+            "steamtours": eS2Game.steamvr,
+            "hlvr": eS2Game.hlvr,
+            "sbox": eS2Game.sbox,
+            "s&box": eS2Game.sbox,
+            "steampal": eS2Game.adj,
+            "dota": eS2Game.dota2,
+        }
         for p in EXPORT_GAME.parts:
             for k, v in pp.items():
                 if k in p:
@@ -283,7 +294,7 @@ elif __name__ == '__main__':
     print(f"{gameinfo['game']=}")
     print(f"{destmod=}")
     print(f"{filter_=}")
-    print(BIN, eEngineUtils.dmxconvert.value, eEngineUtils.dmxconvert.avaliable)
+    print(BIN, eEngineUtils.dmxconvert.value, eEngineUtils.dmxconvert.avaliable())
     print(args_known.__dict__)
 
     import unittest
