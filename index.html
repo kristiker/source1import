@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>source1import</title>
+    <script defer src="https://pyscript.net/latest/pyscript.js"></script>
+
+</head>
+
+<body>
+    <h1>source1import</h1>
+    <py-config type="json">
+        {
+        "packages": ["numpy", "Pillow"],
+        "paths": [
+        "./utils/materials_import.py",
+        "./utils/base_utils2.py",
+        "./utils/keyvalues1.py",
+        "./utils/cppkeyvalues.py",
+        "./utils/cstr.py",
+        "./utils/keyvalue_simple.py",
+        "./utils/material_proxies.py",
+        "./utils/PFM.py"
+        ]
+        }
+    </py-config>
+    <py-script>
+        import materials_import
+        print(materials_import.VMAT_DEFAULT_PATH)
+    </py-script>
+</body>
+
+
+</html>

@@ -5,14 +5,14 @@ from shutil import copyfile
 from typing import Any, Callable, Literal
 from PIL import Image, ImageOps
 
-import shared.base_utils2 as sh
-from shared.base_utils2 import IMPORT_MOD, DOTA2, STEAMVR, HLVR, SBOX
-from shared.keyvalue_simple import getKV_tailored as getKeyValues
-from shared.keyvalues1 import KV
-from shared.material_proxies import ProxiesToDynamicParams
+import base_utils2 as sh
+from base_utils2 import IMPORT_MOD, DOTA2, STEAMVR, HLVR, SBOX
+from keyvalue_simple import getKV_tailored as getKeyValues
+from keyvalues1 import KV
+from material_proxies import ProxiesToDynamicParams
 
 import numpy as np
-from shared import PFM
+import PFM
 
 # Set this to True if you wish to overwrite your old vmat files.
 OVERWRITE_VMAT = False
