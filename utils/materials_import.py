@@ -470,7 +470,7 @@ def createSkyCubemap(json_collection: Path, maxFaceRes: int = 0):
     cube_w = 4 * maxFaceRes
     cube_h = 3 * maxFaceRes
 
-        pasteCoord = (cube_w/2, cube_h/2)
+    pasteCoord = (cube_w/2, cube_h/2)
     def get_transform(face: Literal['up', 'dn', 'lf', 'rt', 'bk', 'ft'], faceRotate: int):
         if face == 'up':
             pasteCoord = ( cube_w - (maxFaceRes * 3) , cube_h - (maxFaceRes * 3) ) # (1, 2)
@@ -1335,13 +1335,13 @@ def ImportSkyJSONtoVMAT(json_collection: Path):
 
     return vmat_path
 
-def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False):
+def ImportVMTtoVMAT(vmt_text: str):
 
     global vmt, vmat
     validMaterial = False
 
-    vmt = VMT(KV.FromFile(vmt_path))  # Its actually a collection - needs CollectionFromFile
-    vmt.path = vmt_path
+    vmt = VMT(KV.FromBuffer(vmt_text))  # Its actually a collection - needs CollectionFromFile
+    vmt.path = Path("<memory>")
 
     if any(wd in vmt.shader for wd in shaderDict):
         validMaterial = True
@@ -1377,21 +1377,9 @@ def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False):
         if face in SKY_FACES:
             return collectSkybox(name, face, vmt)
 
-    if not validMaterial:
-        return
-
-    if not preset_vmat:
-        vmat = VMAT()
-        vmat.shader = chooseShader()
-        vmat.path = OutName(vmt.path)
-
-    if not OVERWRITE_MODIFIED and vmat.path.is_file():
-        with open(vmat.path, 'r') as fp:
-            # don't overwrite if material has been modified
-            if fp.readline() == "// THIS FILE IS AUTO-GENERATED\n":
-                return
-    else:
-        vmat.path.parent.MakeDir()
+    vmat = VMAT()
+    vmat.shader = chooseShader()
+    vmat.path = Path("<memory>")
 
     convertSpecials()
     convertVmtToVmat()
@@ -1430,13 +1418,13 @@ def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False):
     sh.msg(vmt.shader + " => " + vmat.shader, "\n")
     vmat.path.write_text(vmat.KeyValues.ToString())
 
-    print("+ Saved", vmat.path if sh.DEBUG else vmat.path.local.as_posix())
+    #print("+ Saved", vmat.path if sh.DEBUG else vmat.path.local.as_posix())
 
     #if vmat.shader == vr.projected_decals():
     #    _ImportVMTtoExtraVMAT(vmt_path, shader=vr.static_overlay(),
     #        path=(vmat.path.parent / (vmat.path.stem + '-static' + vmat.path.suffix)))
 
-    return vmat.path
+    return str(vmat.KeyValues)
 
 if __name__ == "__main__":
     sh.parse_argv()

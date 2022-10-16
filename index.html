@@ -5,10 +5,38 @@
     <title>source1import</title>
     <script defer src="https://pyscript.net/latest/pyscript.js"></script>
 
+    <style>
+        body {
+            background-color: #363636;
+            color: #ffffff;
+        }
+    
+        .textAreaColumn {
+            width: 100%;
+        }
+
+        .textAreaColumn div {
+            flex: 50%;
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .textAreaColumn div textarea {
+            box-sizing: border-box;
+            font-size: 120%;
+            width: 50%;
+            flex: 50%;
+            border: 3px solid red;
+            min-height: 300px;
+            min-width: 800px;
+            color: white;
+            background-color: #262627;
+        }
+    </style>
 </head>
 
 <body>
-    <h1>source1import</h1>
     <py-config type="json">
         {
         "packages": ["numpy", "Pillow"],
@@ -24,9 +52,32 @@
         ]
         }
     </py-config>
+
+    <div class="textAreaColumn">
+        <div><textarea id="s1" onkeydown="if(event.keyCode===9){var v=this.value,s=this.selectionStart,e=this.selectionEnd;this.value=v.substring(0, s)+'    '+v.substring(e);this.selectionStart=this.selectionEnd=s+4;return false;}" oninput='this.style.height = "";this.style.height = this.scrollHeight + "px"'></textarea></div>
+        <div><textarea id="s2" disabled="true" oninput='this.style.height = "";this.style.height = this.scrollHeight + "px"'></textarea></div>
+    </div>
+    <br>
     <py-script>
         import materials_import
-        print(materials_import.VMAT_DEFAULT_PATH)
+        from pathlib import Path
+        Path.local = property(fget=lambda self: self)
+        materials_import.sh.output = Path
+        
+        import js
+        import pyodide
+        def refresh(pointerEventObj):
+            js.document.getElementById("s2").value = materials_import.ImportVMTtoVMAT(pointerEventObj.currentTarget.value)
+        js.document.getElementById("s1").addEventListener("input", pyodide.ffi.create_proxy(refresh))
+        
+        pyscript.write('s1', '''"LightmappedGeneric"
+        {
+            "$baseTexture" "ads/ad01"
+            "$selfillum" "1"
+            "$selfillumtint" "[ .1 .1 .1 ]"
+            "$surfaceprop" "glass"
+        }''')
+        js.document.getElementById("s2").value = materials_import.ImportVMTtoVMAT(js.document.getElementById("s1").value)
     </py-script>
 </body>
 
