@@ -74,11 +74,6 @@ def main():
     global vmt_to_vmat
     vmt_to_vmat = vmt_to_vmat_pre()
 
-    for d in vmt_to_vmat.values():
-        for k, v in d.items():
-            if isinstance(v, tuple): v = v[0]
-            KNOWN[k] = v
-
     global total, import_total, import_invalid
     sh.importing = materials
     for vmt_path in sh.collect(
@@ -1023,6 +1018,11 @@ vmt_to_vmat = vmt_to_vmat_pre()
 
 KNOWN = {}
 """for proxies; when $color is known as g_vTintColor, proxies yielding to $color can be translated"""
+
+for d in vmt_to_vmat.values():
+    for k, v in d.items():
+        if isinstance(v, tuple): v = v[0]
+        KNOWN[k] = v
 
 def convertVmtToVmat():
     # For each key-value in the vmt file...
