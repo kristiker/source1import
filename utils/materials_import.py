@@ -470,8 +470,8 @@ def createSkyCubemap(json_collection: Path, maxFaceRes: int = 0):
     cube_w = 4 * maxFaceRes
     cube_h = 3 * maxFaceRes
 
-        pasteCoord = (cube_w/2, cube_h/2)
     def get_transform(face: Literal['up', 'dn', 'lf', 'rt', 'bk', 'ft'], faceRotate: int):
+        pasteCoord = (cube_w/2, cube_h/2)
         if face == 'up':
             pasteCoord = ( cube_w - (maxFaceRes * 3) , cube_h - (maxFaceRes * 3) ) # (1, 2)
             faceRotate += 90
