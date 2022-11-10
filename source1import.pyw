@@ -261,8 +261,10 @@ class SampleApp(Tk):
         ).add_spinbox(
             "BEHAVIOR_VERSION", "Behavior Version", 0, 12
         )
-        add_tab("maps", self.Maps, "Import VMF Entities (only entities)", "maps_import").add_overwrite_toggles(
-            ("OVERWRITE_MAPS", "Overwrite Existing Map Files"),
+        add_tab("maps", self.Maps, "Import Maps", "maps_import").add_overwrite_toggles(
+            ("OVERWRITE_MAPS", "Overwrite Existing VMap Files"),
+            ("IMPORT_VMF_ENTITIES", "Import VMF Entities"),
+            ("IMPORT_BSP_ENTITIES", "Import BSP Entities"),
         )
         add_tab("sessions", self.Sessions, "Import Source Filmmaker Sessions", "elements_import").add_overwrite_toggles(
             ("SHOULD_OVERWRITE", "Overwrite Existing Sessions"),

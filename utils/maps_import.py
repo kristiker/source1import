@@ -2,6 +2,7 @@
 from dataclassy import dataclass, factory
 import shared.base_utils2 as sh
 import vdf
+import bsp_tool
 from pathlib import Path
 import shared.datamodel as dmx
 from shared.datamodel import (
@@ -15,6 +16,8 @@ from shared.datamodel import (
 )
 
 OVERWRITE_MAPS = False
+IMPORT_VMF_ENTITIES = True
+IMPORT_BSP_ENTITIES = False
 #WRITE_TO_PREFAB = True
 
 maps = Path("maps")
@@ -23,13 +26,20 @@ def out_vmap_name(in_vmf: Path):
     return sh.EXPORT_CONTENT / maps / "source1imported" / "entities" / in_vmf.local.relative_to(maps).with_suffix(".vmap")
 
 def main():
-    print("Importing maps (entities only)!", OVERWRITE_MAPS)
-    for vmf_path in sh.collect(maps, ".vmf", ".vmap", OVERWRITE_MAPS, out_vmap_name):
-        ImportVMFToVMAP(vmf_path)
+    
+    if IMPORT_VMF_ENTITIES:
+        print("Importing vmf entities!")
+        for vmf_path in sh.collect(maps, ".vmf", ".vmap", OVERWRITE_MAPS, out_vmap_name):
+            ImportVMFEntitiesToVMAP(vmf_path)
+    
+    if IMPORT_BSP_ENTITIES:
+        print("Importing bsp entities!")
+        for bsp_path in sh.collect(maps, ".bsp", ".vmap", OVERWRITE_MAPS, out_vmap_name):
+            ImportBSPEntitiesToVMAP(bsp_path)
 
     print("Looks like we are done!")
 
-def ImportVMFToVMAP(vmf_path):
+def ImportVMFEntitiesToVMAP(vmf_path):
 
     vmap_path = out_vmap_name(vmf_path)
     vmap_path.parent.MakeDir()
@@ -38,14 +48,37 @@ def ImportVMFToVMAP(vmf_path):
     with open(vmf_path) as fp:
         vmf: vdf.VDFDict = vdf.load(fp, mapper=vdf.VDFDict, merge_duplicate_keys=False)#KV.CollectionFromFile(vmf_path, case_sensitive=True)
 
+    out_vmap = convert_vmf_entities(vmf)
+    out_vmap.write(vmap_path, "keyvalues2", 4)
+    print("+ Generated", vmap_path.local)
+    return vmap_path
+
+def ImportBSPEntitiesToVMAP(bsp_path):
+    """Reads the bsp entity lump and converts it to a content vmap file."""
+    vmap_path = out_vmap_name(bsp_path)
+    vmap_path.parent.MakeDir()
+
+    sh.status(f'- Reading {bsp_path.local}')
+    bsp: bsp_tool.ValveBsp = bsp_tool.load_bsp(bsp_path.as_posix())
+    fake_vmf = vdf.VDFDict()
+    for entity in bsp.ENTITIES:
+        fake_vmf[base_vmf.entity] = entity
+
+    out_vmap = convert_vmf_entities(fake_vmf)
+    out_vmap.write(vmap_path, "keyvalues2", 4)
+    print("+ Generated from bsp", vmap_path.local)
+    return vmap_path
+
+def convert_vmf_entities(vmf: vdf.VDFDict) -> dmx.DataModel:
     out_vmap = create_fresh_vmap()
     vmap = out_vmap.root
 
-    #merge_multiple_worlds() use latest properties
     for key, value in vmf.items():
         # dismiss excess base keys (exlcuding entity)
+        # e.g. multiple worlds, TODO: merge_multiple_worlds() use latest properties
         if len(vmf.get_all_for(key)) > 1 or key in (base_vmf.world, base_vmf.entity):
             continue
+        # some fixups
         main_to_root(vmap, key, value)
 
     for vmfEntityKeyValues in vmf.get_all_for("entity"):
@@ -53,10 +86,8 @@ def ImportVMFToVMAP(vmf_path):
         vmap["world"]["children"].append(
             translated_entity.get_element(vmap)
         )
-
-    out_vmap.write(vmap_path, "keyvalues2", 4)
-    print("+ Generated", vmap_path.local)
-    return vmap_path
+        
+    return out_vmap
 
 from enum import Enum
 class base_vmf(str, Enum):
@@ -135,6 +166,8 @@ class _BaseNode(_CustomElement):
                 #print("caling v_v2")
                 baseDict[k] = t.Value_to_Value2(k, v)
             elif not isinstance(v, dict):
+                if isinstance(v, list):
+                    v = v[0] # bsp_tool duplicate keys
                 editorDict[k] = v
             #else:
             #    print("Unknown editor object", k, type(v))
