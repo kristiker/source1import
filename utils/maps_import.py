@@ -1,8 +1,11 @@
 
+import struct
 from dataclassy import dataclass, factory
+from dataclasses import asdict
 import shared.base_utils2 as sh
 import vdf
 import bsp_tool
+import shared.keyvalues3 as kv3
 from pathlib import Path
 import shared.datamodel as dmx
 from shared.datamodel import (
@@ -13,31 +16,183 @@ from shared.datamodel import (
     _ElementArray as element_array,
     _IntArray as int_array,
     _StrArray as string_array,
+    _Vector as datamodel_vector_t,
 )
 
 OVERWRITE_MAPS = False
 IMPORT_VMF_ENTITIES = True
 IMPORT_BSP_ENTITIES = False
 #WRITE_TO_PREFAB = True
+IMPORT_BSP_TO_VMAP_C = True
 
 maps = Path("maps")
 
-def out_vmap_name(in_vmf: Path):
+def out_vmap_name(in_vmf: Path) -> Path:
     return sh.EXPORT_CONTENT / maps / "source1imported" / "entities" / in_vmf.local.relative_to(maps).with_suffix(".vmap")
 
+def out_vmap_c_name(in_vmf: Path) -> Path:
+    return sh.EXPORT_GAME / in_vmf.local.with_suffix(".vmap_c")
+
 def main():
-    
+
     if IMPORT_VMF_ENTITIES:
         print("Importing vmf entities!")
         for vmf_path in sh.collect(maps, ".vmf", ".vmap", OVERWRITE_MAPS, out_vmap_name):
             ImportVMFEntitiesToVMAP(vmf_path)
-    
+
     if IMPORT_BSP_ENTITIES:
         print("Importing bsp entities!")
         for bsp_path in sh.collect(maps, ".bsp", ".vmap", OVERWRITE_MAPS, out_vmap_name):
             ImportBSPEntitiesToVMAP(bsp_path)
 
+    if IMPORT_BSP_TO_VMAP_C:
+        print("Converting bsp to vpk!")
+        for bsp_path in sh.collect(maps, ".bsp", ".vpk", OVERWRITE_MAPS, out_vmap_c_name):
+            ImportBSPToVPK(bsp_path)
+
     print("Looks like we are done!")
+
+import shared.worldnode as wnod
+
+def ImportBSPToVPK(bsp_path: Path):
+    compiled_vmap_path = out_vmap_c_name(bsp_path)
+    compiled_lumps_folder = compiled_vmap_path.parent / compiled_vmap_path.stem
+    compiled_lumps_folder.parent.MakeDir()
+
+    sh.status(f'- Reading {bsp_path.local}')
+    bsp: bsp_tool.ValveBsp = bsp_tool.load_bsp(bsp_path.as_posix())
+
+    sprp_lump = sprp(bsp.GAME_LUMP.sprp)
+    _dprp: bsp_tool.base.lumps.RawBspLump = bsp.GAME_LUMP.dprp
+
+    import numpy as np
+    def transforms_to_3x4(origin: vector3, angles: qangle) -> list:
+        m = np.zeros((3, 4))
+        m[:, 3] = origin
+        return m.tolist()
+
+    def col32_to_vec4(diffuse: int) -> list:
+        return [
+            (diffuse & 0xFF) / 255,
+            ((diffuse >> 8) & 0xFF) / 255,
+            ((diffuse >> 16) & 0xFF) / 255,
+            ((diffuse >> 24) & 0xFF) / 255,
+        ]
+
+    worldnode000 = wnod.WorldNode()
+
+    for static_prop in sprp_lump.static_props:
+        model_path = Path(sprp_lump.model_names[static_prop.PropType]).with_suffix(".vmdl")
+        prop_sceneobject = wnod.SceneObject(
+            m_nObjectID = 0,
+            m_vTransform = transforms_to_3x4(static_prop.Origin, static_prop.Angles),
+            m_flFadeStartDistance = static_prop.FadeMinDist,
+            m_flFadeEndDistance = static_prop.FadeMaxDist,
+            m_vTintColor = col32_to_vec4(static_prop.DiffuseModulation),
+            m_skin = str(static_prop.Skin),
+            m_nObjectTypeFlags = static_prop.Flags,
+            m_vLightingOrigin = static_prop.LightingOrigin, # TODO: relative to origin?
+            m_renderableModel = model_path.as_posix(),
+        )
+
+        worldnode000.m_sceneObjects.append(prop_sceneobject)
+
+    worldnode000_path = compiled_lumps_folder / "worldnodes" / "node000.vwnod"
+    worldnode000_path.parent.MakeDir()
+    v = asdict(worldnode000)
+    worldnode000_path.write_text(kv3.KV3File(v).ToString())
+    
+    # TODO: vmap, vrman
+    # TODO: compile to _c resources
+    ...
+    # TODO: pack to vpk
+
+import ctypes
+
+class sprp:
+    model_names: list[str]
+    leaf: list[ctypes.c_uint16]
+    static_props: list["StaticPropV11"]
+
+    def __init__(self, raw_lump: bsp_tool.base.lumps.RawBspLump):
+        raw_lump.file.seek(raw_lump.offset)
+        data = raw_lump.file.read(raw_lump._length)
+        pos = 0
+
+        dict_count = struct.unpack('<i', data[pos:pos+4])[0]
+        pos += 4
+        self.model_names = []
+        for _ in range(dict_count):
+            self.model_names.append(struct.unpack('<128s', data[pos:pos+128])[0].decode("ascii").rstrip('\x00'))
+            pos += 128
+
+        leaf_count = struct.unpack('<i', data[pos:pos+4])[0]
+        pos += 4
+        self.leaf = []
+        for _ in range(leaf_count):
+            self.leaf.append(struct.unpack('<H', data[pos:pos+2])[0])
+            pos += 2
+
+        self.static_prop_count = struct.unpack('<i', data[pos:pos+4])[0]
+        pos += 4
+        self.static_props = []
+        for _ in range(self.static_prop_count):
+            self.static_props.append(StaticPropV11.FromBytes(data[pos:pos+StaticPropV11.size()]))
+            pos += StaticPropV11.size()
+
+@dataclass
+class StaticPropV11:
+    # https://developer.valvesoftware.com/wiki/Source_BSP_File_Format#Static_props:~:text=struct%20StaticPropLump_t
+    Origin: vector3
+    Angles: qangle
+    PropType: ctypes.c_uint16
+    FirstLeaf: ctypes.c_uint16
+    LeafCount: ctypes.c_uint16
+    Solid: ctypes.c_uint8
+    Flags: ctypes.c_int
+    Skin: ctypes.c_int
+    FadeMinDist: ctypes.c_float
+    FadeMaxDist: ctypes.c_float
+    LightingOrigin: vector3
+    ForcedFadeScale: ctypes.c_float
+    MinCPULevel: ctypes.c_uint8
+    MaxCPULevel: ctypes.c_uint8
+    MinGPULevel: ctypes.c_uint8
+    MaxGPULevel: ctypes.c_uint8
+    DiffuseModulation: ctypes.c_int # color32
+    DisableX360: ctypes.c_bool
+    FlagsEx: ctypes.c_int32
+    UniformScale: ctypes.c_float
+
+    @classmethod
+    def size(cls):
+        total = 0
+        for type in cls.__annotations__.values():
+            if issubclass(type, ctypes._SimpleCData):
+                total += ctypes.sizeof(type)
+            elif issubclass(type, datamodel_vector_t):
+                total += sum(struct.calcsize(vec_element) for vec_element in type.type_str)
+        return total
+
+    @classmethod
+    def FromBytes(cls, data: bytes):
+        kwargs = {}
+        pos = 0
+        for property, type in cls.__annotations__.items():
+            if issubclass(type, ctypes._SimpleCData):
+                advance = ctypes.sizeof(type)
+                kwargs[property] = struct.unpack('<' + type._type_, data[pos:pos+advance])[0]
+                pos += advance
+            elif issubclass(type, datamodel_vector_t):
+                vecargs = []
+                for vector_element in type.type_str:
+                    advance = struct.calcsize(vector_element)
+                    vecargs.append(struct.unpack('<' + vector_element, data[pos:pos+advance])[0])
+                    pos += advance
+                kwargs[property] = type(vecargs)
+
+        assert pos == len(data)
+        return cls(**kwargs)
 
 def ImportVMFEntitiesToVMAP(vmf_path):
 
