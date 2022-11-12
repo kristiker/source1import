@@ -16,7 +16,6 @@ from shared import PFM
 
 # Set this to True if you wish to overwrite your old vmat files.
 OVERWRITE_VMAT = False
-OVERWRITE_SKYBOX_VMATS = False
 OVERWRITE_MODIFIED = False
 OVERWRITE_SKYCUBES = False
 
@@ -27,6 +26,7 @@ MISSING_TEXTURE_SET_DEFAULT = True # valve uses dev/white
 USE_SUGESTED_DEFAULT_ROUGHNESS = True
 SIMPLE_SHADER_WHERE_POSSIBLE = True
 PRINT_LEGACY_IMPORT = False  # Print vmt inside vmat as reference. Increases file size.
+IGNORE_PROXIES = False
 
 sh.DEBUG = False
 
@@ -103,7 +103,7 @@ def main():
     print("\nSkybox materials...")
 
     for skyfaces_json in sh.collect(
-            None, '.json', OUT_EXT, OVERWRITE_SKYBOX_VMATS,
+            None, '.json', OUT_EXT, OVERWRITE_VMAT,
             outNameRule=OutName_Sky, searchPath=sh.EXPORT_CONTENT/legacy_skyfaces):
         ImportSkyJSONtoVMAT(skyfaces_json)
 
@@ -1259,7 +1259,7 @@ def collectSkybox(name:str, face: str, vmt: VMT):
 
     if (texture:= hdr_tex or hdr_compressed_tex or ldr_tex) is not None:
         face_collect_path = sh.output(legacy_skyfaces/name).with_suffix(".json")
-        if face_collect_path.is_file() and not OVERWRITE_SKYBOX_VMATS:
+        if face_collect_path.is_file() and not OVERWRITE_VMAT:
             return sh.skip('already-collected', face_collect_path)
         Collect = sh.GetJson(face_collect_path, bCreate = True)
 
@@ -1396,7 +1396,7 @@ def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False):
     convertSpecials()
     convertVmtToVmat()
 
-    if proxies:= vmt.KeyValues["proxies"]:
+    if (not IGNORE_PROXIES) and (proxies:= vmt.KeyValues["proxies"]):
         kvalues, vmat.KeyValues['DynamicParams'] = ProxiesToDynamicParams(proxies, KNOWN, vmt.KeyValues)
         vmat.KeyValues.update(kvalues)
 

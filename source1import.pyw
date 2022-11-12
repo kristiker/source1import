@@ -240,14 +240,14 @@ class SampleApp(Tk):
         )
         add_tab("materials", self.Materials, "Import VMT materials", "materials_import").add_overwrite_toggles(
             ("OVERWRITE_VMAT", "Overwrite Existing VMATs"),
-            ("OVERWRITE_SKYBOX_VMATS", "Overwrite Skybox VMATs"),
-            ("OVERWRITE_SKYCUBES", "Overwrite Sky Images"),
             ("OVERWRITE_MODIFIED", "Overwrite Materials that have been modified"),
+            ("OVERWRITE_SKYCUBES", "Overwrite Sky Images"),
         ).add_toggles(
             ("SIMPLE_SHADER_WHERE_POSSIBLE", "Use Simple Shader if possible"),
             #("USE_SUGESTED_DEFAULT_ROUGHNESS", "Default Roughness 210 instead of 128"),
             ("NORMALMAP_G_VTEX_INVERT", "Invert Normal Via Settings File"),
             ("PRINT_LEGACY_IMPORT", "Print old material inside new"),
+            ("IGNORE_PROXIES", "Ignore Proxies"),
         )
         add_tab("models", self.Models, "Generate VMDL models", "models_import").add_overwrite_toggles(
             ("SHOULD_OVERWRITE", "Overwrite Existing VMDLs"),
