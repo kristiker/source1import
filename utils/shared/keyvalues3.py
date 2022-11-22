@@ -1,5 +1,5 @@
 from pathlib import Path    
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, is_dataclass
 from uuid import UUID
 
 @dataclass(frozen=True)
@@ -20,7 +20,10 @@ class resource:
 
 class KV3File(dict):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        if len(args) and is_dataclass(args[0]):
+            super().__init__(asdict(args[0]))
+        else:
+            super().__init__(*args, **kwargs)
         self.header = KV3Header(format="source1imported")
 
     def __str__(self):

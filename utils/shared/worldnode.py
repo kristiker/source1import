@@ -22,6 +22,13 @@ class SceneObject:
     """vmdl file to render"""
     m_renderable: str = None
     """vmesh file to render"""
+    m_externalTextures: list[str] = field(default_factory=list)
+    m_VisClusterMemberBits: int = 0
+
+@dataclass
+class BoundsGroup:
+    m_vMinBounds: list[float]
+    m_vMaxBounds: list[float]
 
 @dataclass
 class MaterialOverride:
@@ -44,7 +51,8 @@ class WorldNode:
     m_sceneObjects: list[SceneObject] = field(default_factory=list)
     m_infoOverlays: list = field(default_factory=list)
     m_visClusterMembership: list = field(default_factory=list)
-    m_boundsGroups: list = field(default_factory=list)
+    m_boundsGroups: list[BoundsGroup] = field(default_factory=list)
+    m_boneOverrides: list = field(default_factory=list)
     m_aggregateSceneObjects: list = field(default_factory=list)
     m_extraVertexStreamOverrides: list = field(default_factory=list)
     m_materialOverrides: list[MaterialOverride] = field(default_factory=list)
@@ -53,4 +61,4 @@ class WorldNode:
     m_sceneObjectLayerIndices: list[int] = field(default_factory=list)
     m_overlayLayerIndices: list = field(default_factory=list)
     m_grassFileName: str = ""
-    m_nodeLightingInfo: NodeLightingInfo = NodeLightingInfo()
+    m_nodeLightingInfo: NodeLightingInfo = field(default_factory=NodeLightingInfo)

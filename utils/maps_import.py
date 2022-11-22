@@ -99,8 +99,7 @@ def ImportBSPToVPK(bsp_path: Path):
 
     worldnode000_path = compiled_lumps_folder / "worldnodes" / "node000.vwnod"
     worldnode000_path.parent.MakeDir()
-    v = asdict(worldnode000)
-    worldnode000_path.write_text(kv3.KV3File(v).ToString())
+    worldnode000_path.write_text(kv3.KV3File(worldnode000).ToString())
     
     # TODO: vmap, vrman
     # TODO: compile to _c resources
