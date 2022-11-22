@@ -30,6 +30,8 @@ PRINT_LEGACY_IMPORT = False  # Print vmt inside vmat as reference. Increases fil
 
 sh.DEBUG = False
 
+WEB = True
+
 # File format of the textures. Needs to be lowercase
 # source 2 supports all kinds: tga jpeg png gif psd exr tiff pfm...
 TEXTURE_FILEEXT = ".tga"
@@ -373,6 +375,10 @@ def createMask(image_path, copySub = '_mask', channel = 'A', invert = False, que
         f"{image_path.stem}_{channel[:3].lower()}{'-1' if invert else ''}{copySub + image_path.suffix}"
 
     sh.msg(f"createMask{image_path.local.relative_to(materials).as_posix(), copySub, channel, invert, queue} -> {newMaskPath.local}")
+
+    if WEB:
+        print(f"Split {'inverted' if invert else ''} channel {channel.upper()} from {image_path.name} to -> {copySub}")
+        return newMaskPath.local.as_posix()
 
     if newMaskPath.exists(): #and not DEBUG:
         return newMaskPath.local.as_posix()
