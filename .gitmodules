@@ -1,0 +1,3 @@
+[submodule "utils/shared/keyvalues3"]
+	path = utils/shared/keyvalues3
+	url = https://github.com/kristiker/keyvalues3
