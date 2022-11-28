@@ -97,13 +97,21 @@ def ImportBSPToVPK(bsp_path: Path):
 
         worldnode000.m_sceneObjects.append(prop_sceneobject)
 
-    worldnode000_path = compiled_lumps_folder / "worldnodes" / "node000.vwnod"
+    worldnode000_path = compiled_lumps_folder / "worldnodes" / "node000.vwnod_c"
     worldnode000_path.parent.MakeDir()
-    worldnode000_path.write_text(kv3.KV3File(worldnode000).ToString())
+    worldnode000_path.with_suffix('.vwnod').write_text(kv3.KV3File(worldnode000).ToString())
     
     # TODO: vmap, vrman
     # TODO: compile to _c resources
-    ...
+    def write_vwnode_resource(vwnode: wnod.WorldNode, path: Path):
+        # TODO: Resource external references
+        DATA = bytes(kv3.binarywriter.BinaryV1UncompressedWriter(kv3.KV3File(worldnode000)))
+        resource = bytearray(Path("shared/maps/node000.vwnod_c.template").read_bytes())
+        resource += DATA
+        resource = struct.pack("<I", len(resource))  + resource[4:]
+        worldnode000_path.write_bytes(resource)
+    
+    write_vwnode_resource(worldnode000, worldnode000_path)
     # TODO: pack to vpk
 
 import ctypes
