@@ -53,6 +53,7 @@ def main():
     print("Looks like we are done!")
 
 import shared.worldnode as wnod
+import shared.world as wrld
 
 def ImportBSPToVPK(bsp_path: Path):
     compiled_vmap_path = out_vmap_c_name(bsp_path)
@@ -103,15 +104,64 @@ def ImportBSPToVPK(bsp_path: Path):
     
     # TODO: vmap, vrman
     # TODO: compile to _c resources
-    def write_vwnode_resource(vwnode: wnod.WorldNode, path: Path):
+    def write_node_resource(vwnode: wnod.WorldNode, path: Path):
         # TODO: Resource external references
-        DATA = bytes(kv3.binarywriter.BinaryV1UncompressedWriter(kv3.KV3File(worldnode000)))
         resource = bytearray(Path("shared/maps/node000.vwnod_c.template").read_bytes())
+        DATA = bytes(kv3.binarywriter.BinaryV1UncompressedWriter(kv3.KV3File(worldnode000)))
         resource += DATA
+        # adjust file size bytes
         resource = struct.pack("<I", len(resource))  + resource[4:]
         worldnode000_path.write_bytes(resource)
     
-    write_vwnode_resource(worldnode000, worldnode000_path)
+    def write_node_manifest():
+        resource = bytearray(Path("shared/maps/node000.vrman_c").read_bytes())
+        #resource = resource.replace(b"maps/dota/", b"maps/" + compiled_lumps_folder.name.encode() + b"/")
+        # adjust file size bytes
+        resource = struct.pack("<I", len(resource))  + resource[4:]
+        (compiled_lumps_folder / "worldnodes" / "node000.vrman_c").write_bytes(resource)
+    
+    def write_world():
+        resource = bytearray(Path("shared/maps/node000.vwnod_c.template").read_bytes())
+        world = wrld.World(
+            m_builderParams=wrld.BuilderParams(
+                m_nSizeBytesPerVoxel=1_000_000_000,
+                m_flMinDrawVolumeSize=128.0,
+                m_flMinDistToCamera=1024.0,
+                m_flMinAtlasDist = 1000.0,
+                m_flMinSimplifiedDist = 8192.0,
+                m_flHorzFOV = 1.570796,
+                m_flHalfScreenWidth = 960.0,
+                m_nAtlasTextureSizeX = 2048,
+                m_nAtlasTextureSizeY = 2048,
+                m_nUniqueTextureSizeX = 1024,
+                m_nUniqueTextureSizeY = 1024,
+                m_nCompressedAtlasSize = 0,
+                m_flGutterSize = 8.0,
+                m_flUVMapThreshold = 0.3,
+                m_vWorldUnitsPerTile = [ 10000.0, 10000.0, 1000.0 ],
+                m_nMaxTexScaleSlots = 128,
+                m_bWrapInAtlas = False,
+                m_bBuildBakedLighting = True,
+                m_vLightmapUvScale = [ 1.000000, 1.000000 ],
+                m_nCompileTimestamp = 1657194806,
+                m_nCompileFingerprint = 8654431948308770350
+            )
+        )
+        world.m_worldNodes.append(
+            wrld.Node(m_Flags=192, m_nParent=-1, m_worldNodePrefix=f"maps/{compiled_lumps_folder.name}/worldnodes/node000")
+        )
+
+        world.m_worldLightingInfo.m_bHasLightmaps = False
+
+        DATA = bytes(kv3.binarywriter.BinaryV1UncompressedWriter(kv3.KV3File(world)))
+        resource += DATA
+        # adjust file size bytes
+        resource = struct.pack("<I", len(resource))  + resource[4:]
+        (compiled_lumps_folder / "world.vwrld_c").write_bytes(resource)
+
+    write_node_resource(worldnode000, worldnode000_path)
+    write_node_manifest()
+    write_world()
     # TODO: pack to vpk
 
 import ctypes

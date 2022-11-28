@@ -1,5 +1,4 @@
-from dataclasses import dataclass, field, asdict
-from typing import Literal, Type
+from dataclasses import dataclass, field
 
 @dataclass
 class SceneObject:
