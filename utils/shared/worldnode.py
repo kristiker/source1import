@@ -21,8 +21,8 @@ class SceneObject:
     """vmdl file to render"""
     m_renderable: str = None
     """vmesh file to render"""
-    m_externalTextures: list[str] = field(default_factory=list)
-    m_VisClusterMemberBits: int = 0
+    #m_externalTextures: list[str] = field(default_factory=list)
+    #m_VisClusterMemberBits: int = 0
 
 @dataclass
 class BoundsGroup:
