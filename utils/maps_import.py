@@ -107,7 +107,11 @@ def ImportBSPToVPK(bsp_path: Path):
     def write_node_resource(vwnode: wnod.WorldNode, path: Path):
         # TODO: Resource external references
         resource = bytearray(Path("shared/maps/node000.vwnod_c.template").read_bytes())
-        DATA = bytes(kv3.binarywriter.BinaryV1UncompressedWriter(kv3.KV3File(worldnode000)))
+        DATA = bytes(kv3.binarywriter.BinaryLZ4(kv3.KV3File(worldnode000)))
+        # adjust block size bytes
+        blocksize_location = resource.find(b"DATA") + 8
+        resource = resource[:blocksize_location] + struct.pack("<I", len(DATA)) + resource[blocksize_location + 4:]
+        
         resource += DATA
         # adjust file size bytes
         resource = struct.pack("<I", len(resource))  + resource[4:]
