@@ -93,7 +93,7 @@ def ImportBSPToVPK(bsp_path: Path):
             m_skin = str(static_prop.Skin),
             m_nObjectTypeFlags = static_prop.Flags,
             m_vLightingOrigin = static_prop.LightingOrigin, # TODO: relative to origin?
-            m_renderableModel = model_path.as_posix(),
+            m_renderableModel = kv3.flagged_value(model_path.as_posix(), kv3.Flag.resource),
         )
 
         worldnode000.m_sceneObjects.append(prop_sceneobject)
