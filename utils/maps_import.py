@@ -96,7 +96,7 @@ def ImportBSPToVPK(bsp_path: Path):
             m_renderableModel = kv3.flagged_value(model_path.as_posix(), kv3.Flag.resource),
         )
 
-        worldnode000.m_sceneObjects.append(prop_sceneobject)
+        worldnode000.add_to_layer(prop_sceneobject, "world_layer_base")
 
     worldnode000_path = compiled_lumps_folder / "worldnodes" / "node000.vwnod_c"
     worldnode000_path.parent.MakeDir()

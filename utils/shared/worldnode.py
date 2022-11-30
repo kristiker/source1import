@@ -61,3 +61,10 @@ class WorldNode:
     m_overlayLayerIndices: list = field(default_factory=list)
     m_grassFileName: str = ""
     m_nodeLightingInfo: NodeLightingInfo = field(default_factory=NodeLightingInfo)
+
+    def add_to_layer(self, scene_object: SceneObject, layer: str):
+        """Add a scene object to a layer"""
+        if layer not in self.m_layerNames:
+            self.m_layerNames.append(layer)
+        self.m_sceneObjectLayerIndices.append(self.m_layerNames.index(layer))
+        self.m_sceneObjects.append(scene_object)
