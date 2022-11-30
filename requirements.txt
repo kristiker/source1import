@@ -6,6 +6,7 @@ numpy
 vdf
 dataclassy==0.10.4
 bsp_tool==0.3.1
+murmurhash2==0.2.10
 
 # Models/qc-import
 parsimonious==0.10.0

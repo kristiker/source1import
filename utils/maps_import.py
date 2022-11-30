@@ -55,6 +55,8 @@ def main():
 
 import shared.worldnode as wnod
 import shared.world as wrld
+import shared.entities as entities
+from murmurhash2 import murmurhash2
 
 def ImportBSPToVPK(bsp_path: Path):
     compiled_vmap_path = out_vmap_c_name(bsp_path)
@@ -91,7 +93,6 @@ def ImportBSPToVPK(bsp_path: Path):
             ((diffuse >> 24) & 0xFF) / 255,
         ]
 
-
     worldnode000 = wnod.WorldNode()
     worldnode000.m_boundsGroups.append(wnod.BoundsGroup([-9999.0, -9999.0, -9999.0], [9999999.0, 9999999.0, 9999999.0]))
 
@@ -116,29 +117,45 @@ def ImportBSPToVPK(bsp_path: Path):
     worldnode000_path = Path(r"D:\Games\steamapps\common\Half-Life Alyx\game\hlvr_addons\csgo\maps\compile\maps\ar_lunacy\worldnodes") / "node000.vwnod_c"
     worldnode000_path.parent.MakeDir()
     #worldnode000_path.with_suffix('.vwnod').write_text(kv3.KV3File(worldnode000).ToString())
-    
-    # TODO: vmap, vrman
-    # TODO: compile to _c resources
-    def write_node_resource(vwnode: wnod.WorldNode, path: Path):
+
+    def write_resource_data_by_template(data: object, template_path: Path, resurce_path: Path):
         # TODO: Resource external references
-        resource = bytearray(Path("shared/maps/node000.vwnod_c.template").read_bytes())
-        DATA = bytes(kv3.binarywriter.BinaryLZ4(kv3.KV3File(worldnode000)))
+        resource = bytearray(template_path.read_bytes())
+        DATA = bytes(kv3.binarywriter.BinaryLZ4(kv3.KV3File(data)))
         # adjust block size bytes
         blocksize_location = resource.find(b"DATA") + 8
         resource = resource[:blocksize_location] + struct.pack("<I", len(DATA)) + resource[blocksize_location + 4:]
-        
         resource += DATA
         # adjust file size bytes
         resource = struct.pack("<I", len(resource))  + resource[4:]
-        worldnode000_path.write_bytes(resource)
+        resurce_path.write_bytes(resource)
+
+    default_ents = entities.Ents()
+    default_ents_path = Path(r"D:\Games\steamapps\common\Half-Life Alyx\game\hlvr_addons\csgo\maps\compile\maps\ar_lunacy\entities") / "default_ents.vents_c"
+    default_ents_path.parent.MakeDir()
     
-    def write_node_manifest():
-        resource = bytearray(Path("shared/maps/node000.vrman_c").read_bytes())
-        #resource = resource.replace(b"maps/dota/", b"maps/" + compiled_lumps_folder.name.encode() + b"/")
-        # adjust file size bytes
-        resource = struct.pack("<I", len(resource))  + resource[4:]
-        (compiled_lumps_folder / "worldnodes" / "node000.vrman_c").write_bytes(resource)
-    
+    for entity in bsp.ENTITIES:
+        # In VRF https://github.com/SteamDatabase/ValveResourceFormat/blob/5ac74c973cd843b9d7eafb143d68e9be010c5ae2/ValveResourceFormat/Resource/ResourceTypes/EntityLump.cs#L66
+        hashed_kv: dict[int, object] = {}
+        string_kv: dict[str, object] = {}
+
+        for key, value in entity.items():
+            if isinstance(value, list):
+                # connections
+                continue
+            hashed_kv[murmurhash2(key.encode("ascii"), 0x31415926)] = value
+
+        kvData = bytearray()
+        kvData += struct.pack("<I", 1)
+        kvData += struct.pack("<I", len(hashed_kv))
+        kvData += struct.pack("<I", len(string_kv))
+        for key, value in hashed_kv.items():
+            kvData += struct.pack("<I", key) # key
+            kvData += struct.pack("<I", 0x1e) # type (string)
+            kvData += value.encode("utf-8") + b"\x00" # value
+
+        default_ents.m_entityKeyValues.append(entities.Entity(kvData, []))
+
     def write_world():
         resource = bytearray(Path("shared/maps/node000.vwnod_c.template").read_bytes())
         world = wrld.World(
@@ -178,7 +195,11 @@ def ImportBSPToVPK(bsp_path: Path):
         resource = struct.pack("<I", len(resource))  + resource[4:]
         (compiled_lumps_folder / "world.vwrld_c").write_bytes(resource)
 
-    write_node_resource(worldnode000, worldnode000_path)
+    bsp.file.close()
+    write_resource_data_by_template(worldnode000, Path("shared/maps/node000.vwnod_c.template"), worldnode000_path)
+    write_resource_data_by_template(default_ents, Path("shared/maps/default_ents.vents_c.template"), default_ents_path)
+
+    #write_node_resource(worldnode000, worldnode000_path)
     #write_node_manifest()
     #write_world()
     # TODO: pack to vpk
