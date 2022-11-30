@@ -67,10 +67,20 @@ def ImportBSPToVPK(bsp_path: Path):
     _dprp: bsp_tool.base.lumps.RawBspLump = bsp.GAME_LUMP.dprp
 
     import numpy as np
+    from math import sin, cos
     def transforms_to_3x4(origin: vector3, angles: qangle) -> list:
         m = np.zeros((3, 4))
+        # TODO: Figure out rotation
         m[:, 3] = origin
-        return m.tolist()
+        #return m.tolist()
+        α = angles[1]
+        β = angles[0]
+        γ = angles[2]
+        return [
+            [cos(α)*cos(β), cos(α)*sin(β)*sin(γ)-sin(α)*cos(γ), cos(α)*sin(β)*cos(γ)+sin(α)*sin(γ), origin[0]],
+            [sin(α)*cos(β), sin(α)*sin(β)*sin(γ)+cos(α)*cos(γ), sin(α)*sin(β)*cos(γ)-cos(α)*sin(γ), origin[1]],
+            [-sin(β),       cos(β)*sin(γ),                      cos(β)*cos(γ),                      origin[2]],
+        ]
 
     def col32_to_vec4(diffuse: int) -> list:
         return [
