@@ -1,4 +1,5 @@
 
+import shutil
 import struct
 from dataclassy import dataclass, factory
 from dataclasses import asdict
@@ -112,9 +113,9 @@ def ImportBSPToVPK(bsp_path: Path):
         worldnode000.add_to_layer(prop_sceneobject, "world_layer_base")
         
 
-    worldnode000_path = compiled_lumps_folder / "worldnodes" / "node000.vwnod_c"
+    worldnode000_path = Path(r"D:\Games\steamapps\common\Half-Life Alyx\game\hlvr_addons\csgo\maps\compile\maps\ar_lunacy\worldnodes") / "node000.vwnod_c"
     worldnode000_path.parent.MakeDir()
-    worldnode000_path.with_suffix('.vwnod').write_text(kv3.KV3File(worldnode000).ToString())
+    #worldnode000_path.with_suffix('.vwnod').write_text(kv3.KV3File(worldnode000).ToString())
     
     # TODO: vmap, vrman
     # TODO: compile to _c resources
@@ -178,9 +179,26 @@ def ImportBSPToVPK(bsp_path: Path):
         (compiled_lumps_folder / "world.vwrld_c").write_bytes(resource)
 
     write_node_resource(worldnode000, worldnode000_path)
-    write_node_manifest()
-    write_world()
+    #write_node_manifest()
+    #write_world()
     # TODO: pack to vpk
+
+    if sh.eEngineUtils.vpk.avaliable():
+        r = sh.eEngineUtils.vpk([
+            "-?",
+        ])
+
+        # map
+        import os
+        os.system(r'"D:\Games\steamapps\common\Half-Life Alyx\game\hlvr_addons\csgo\maps\compilemap.bat"')
+        
+        # rename compile.vpk to mapname.vpk
+        shutil.copyfile(r"D:\Games\steamapps\common\Half-Life Alyx\game\hlvr_addons\csgo\maps\compile.vpk", r"D:\Users\kristi\Documents\s&box projects\cs\maps\ar_lunacy.vpk")
+        # copy to
+        
+
+        print(r.stdout)
+    print("Saved map ", compiled_lumps_folder.name)
 
 import ctypes
 
