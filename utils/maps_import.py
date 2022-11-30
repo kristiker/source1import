@@ -90,7 +90,9 @@ def ImportBSPToVPK(bsp_path: Path):
             ((diffuse >> 24) & 0xFF) / 255,
         ]
 
+
     worldnode000 = wnod.WorldNode()
+    worldnode000.m_boundsGroups.append(wnod.BoundsGroup([-9999.0, -9999.0, -9999.0], [9999999.0, 9999999.0, 9999999.0]))
 
     for static_prop in sprp_lump.static_props:
         model_path = Path(sprp_lump.model_names[static_prop.PropType]).with_suffix(".vmdl")
@@ -103,10 +105,12 @@ def ImportBSPToVPK(bsp_path: Path):
             m_skin = str(static_prop.Skin),
             m_nObjectTypeFlags = static_prop.Flags,
             m_vLightingOrigin = static_prop.LightingOrigin, # TODO: relative to origin?
+            m_nBoundsGroupIndex = 0,
             m_renderableModel = kv3.flagged_value(model_path.as_posix(), kv3.Flag.resource),
         )
 
         worldnode000.add_to_layer(prop_sceneobject, "world_layer_base")
+        
 
     worldnode000_path = compiled_lumps_folder / "worldnodes" / "node000.vwnod_c"
     worldnode000_path.parent.MakeDir()
