@@ -56,6 +56,7 @@ def main():
 import shared.worldnode as wnod
 import shared.world as wrld
 import shared.entities as entities
+import shared.physics as physics
 from murmurhash2 import murmurhash2
 
 def ImportBSPToVPK(bsp_path: Path):
@@ -94,7 +95,7 @@ def ImportBSPToVPK(bsp_path: Path):
         ]
 
     worldnode000 = wnod.WorldNode()
-    worldnode000.m_boundsGroups.append(wnod.BoundsGroup([-9999.0, -9999.0, -9999.0], [9999999.0, 9999999.0, 9999999.0]))
+    worldnode000.m_boundsGroups.append(wnod.Bounds([-9999.0, -9999.0, -9999.0], [9999999.0, 9999999.0, 9999999.0]))
 
     for static_prop in sprp_lump.static_props:
         model_path = Path(sprp_lump.model_names[static_prop.PropType]).with_suffix(".vmdl")
@@ -155,6 +156,42 @@ def ImportBSPToVPK(bsp_path: Path):
             kvData += value.encode("utf-8") + b"\x00" # value
 
         default_ents.m_entityKeyValues.append(entities.Entity(kvData, []))
+
+    world_physics = physics.PhysX()
+    world_physics_path = Path(r"D:\Games\steamapps\common\Half-Life Alyx\game\hlvr_addons\csgo\maps\compile\maps\ar_lunacy") / "world_physics.vphys_c"
+    world_physics_path.parent.MakeDir()
+
+    a = bsp.PHYSICS_DISPLACEMENT
+    from bsp_tool.branches.shared import PhysicsCollide, PhysicsBlock
+    from shared.keyvalues1 import KV as KV1
+    collide_lump: PhysicsCollide = bsp.PHYSICS_COLLIDE
+    
+    for (collision_model_index, solids, script) in collide_lump:
+        collision_model_index: int
+        solids: list[PhysicsBlock]
+        script: bytes
+        keyvalues = KV1.CollectionFromBuffer(script.rstrip(b'\x00').decode("ascii"))
+        
+        for staticsolid in keyvalues.get_all_for("staticsolid"):
+            staticsolid["index"]: int
+            staticsolid["contents"]: int
+        
+        # Hopefully sorted
+        for surfaceprop in keyvalues["materialtable"]:
+            world_physics.m_surfacePropertyHashes.append(
+                murmurhash2(surfaceprop.encode("ascii").lower(), 0x31415926)
+            )
+
+        for solid in solids:
+            collide_header, surface_header = solid.header
+            # COLLIDE_POLY
+            if collide_header.model_type != 0:
+                continue
+            # https://github.com/Joshua-Ashton/VPhysics-Jolt/blob/067cc7eb4e5a145f4c3be6629f597809a5ca1317/vphysics_jolt/vjolt_collide.cpp#L559
+            surface = solid.data
+
+
+    part = physics.Part()
 
     def write_world():
         resource = bytearray(Path("shared/maps/node000.vwnod_c.template").read_bytes())

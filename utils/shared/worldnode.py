@@ -25,7 +25,7 @@ class SceneObject:
     #m_VisClusterMemberBits: int = 0
 
 @dataclass
-class BoundsGroup:
+class Bounds:
     m_vMinBounds: list[float]
     m_vMaxBounds: list[float]
 
@@ -50,7 +50,7 @@ class WorldNode:
     m_sceneObjects: list[SceneObject] = field(default_factory=list)
     m_infoOverlays: list = field(default_factory=list)
     m_visClusterMembership: list = field(default_factory=list)
-    m_boundsGroups: list[BoundsGroup] = field(default_factory=list)
+    m_boundsGroups: list[Bounds] = field(default_factory=list)
     m_boneOverrides: list = field(default_factory=list)
     m_aggregateSceneObjects: list = field(default_factory=list)
     m_extraVertexStreamOverrides: list = field(default_factory=list)
