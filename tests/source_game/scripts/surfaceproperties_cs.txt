@@ -1,0 +1,138 @@
+
+"default"
+{
+	"density"	"2000"
+	"elasticity"	"0.25"
+	"friction"	"0.8"
+	"dampening"	"0.0"
+
+	"stepleft"	"Default.StepLeft"
+	"stepright"	"Default.StepRight"
+	"bulletimpact"	"Default.BulletImpact"
+	"scraperough"	"Default.ScrapeRough"
+	"scrapesmooth"	"Default.ScrapeSmooth"
+	"impacthard"	"Default.ImpactHard"
+	"impactsoft"	"Default.ImpactSoft"
+
+	"audioreflectivity" "0.66"
+	"audiohardnessfactor" "1.0"
+	"audioroughnessfactor" "1.0"
+
+	"scrapeRoughThreshold" "0.5"
+	"impactHardThreshold" "0.5"
+
+	//Occlusion properties reduce sound of that pitch level by a certain
+	//percentage for every game unit (inch) of the material the sound
+	//passes through.
+	"lowPitchOcclusion" "0.0"
+	"midPitchOcclusion" "15.0"
+	"highPitchOcclusion" "1.0"
+
+	"gamematerial"	"C"
+	
+	"jumpfactor" "1.0"
+	"maxspeedfactor" "1.0"
+	"climbable"	"0"
+	
+	"penetrationmodifier" "1.0"
+	"damagemodifier" "0.5"
+	
+}
+
+// NOTE: Almost nothing is solid metal - so "metal" is sheet metal
+"solidmetal"
+{
+	"density"	"2700"
+	"elasticity"	"0.1"
+	"audioreflectivity" "0.83"
+	"friction"	"0.8"
+	
+	"lowPitchOcclusion" "0.0"
+	"midPitchOcclusion" "15.0"
+	"highPitchOcclusion" "1.0"
+	
+	"stepleft"          "SolidMetal.StepLeft"
+	"stepright"         "SolidMetal.StepRight"
+
+	"impacthard"	"SolidMetal.ImpactHard"
+	"impactsoft"	"SolidMetal.ImpactSoft"
+	"scraperough"	"SolidMetal.ScrapeRough"
+	"scrapesmooth"	"SolidMetal.ScrapeSmooth"
+	"bulletimpact"	"SolidMetal.BulletImpact"
+
+	// "strain"		"SolidMetal.Strain"
+
+	"gamematerial"	"M"
+
+	"damagemodifier" "0.3"
+
+	"penetrationmodifier" "0.27"
+
+}
+"metal"
+{
+	"base"		"solidmetal"
+	"elasticity"	"0.25"
+	"thickness"	"0.1"
+	
+	"stepleft"          "SolidMetal.StepLeft"
+	"stepright"         "SolidMetal.StepRight"
+	
+	"lowPitchOcclusion" "0.0"
+	"midPitchOcclusion" "15.0"
+	"highPitchOcclusion" "1.0"
+
+	"penetrationmodifier" "0.4"
+}
+"metal_barrelSoundOverride"
+{
+	"base"		"metal"
+	
+	"stepleft"	"MetalBarrel.StepLeft"
+	"stepright"	"MetalBarrel.StepRight"
+	"bulletimpact"	"MetalBarrel.BulletImpact"
+
+}
+
+// for invisible collision materials (like sky)
+"default_silent"
+{
+	"gamematerial"	"X"
+}
+
+// special materials for player controller
+"player"
+{
+	"density"	"1000"
+	"friction"	"0.5"
+	"elasticity"	"0.001"
+
+	// player is soft & smooth for sound selection
+	"audiohardnessfactor" "0.0"
+	"audioroughnessfactor" "0.0"
+}
+
+"jalopytire"
+{
+	"base"			"jeeptire"
+	"elasticity"		"0.1"
+}
+
+"slidingrubbertire_jalopyfront"
+{
+	"base"			"jalopytire"
+	"friction"		"0.15"
+}
+
+"slidingrubbertire_jalopyrear"
+{
+	"base"			"jalopytire"
+	"friction"		"0.15"
+}
+
+"jalopy"
+{
+	"base"			"metal"
+	"impacthard"	"ATV_impact_medium"
+	"impactsoft"	"ATV_impact_medium"
+}

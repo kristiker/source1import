@@ -1,0 +1,375 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:generic:version{7412167c-06e9-4698-aff2-e63eb59037e7} -->
+{
+	SurfacePropertiesList = 
+	[
+		{
+			surfacePropertyName = "default"
+			physics = 
+			{
+				density = 2000
+				elasticity = 0.25
+				friction = 0.8
+				dampening = 0.0
+			}
+			audiosounds = 
+			{
+				bulletimpact = "Default.BulletImpact"
+				scraperough = "Default.ScrapeRough"
+				scrapesmooth = "Default.ScrapeSmooth"
+				impacthard = "Default.ImpactHard"
+				impactsoft = "Default.ImpactSoft"
+			}
+			audioparams = 
+			{
+				audioreflectivity = 0.66
+				audiohardnessfactor = 1.0
+				audioroughnessfactor = 1.0
+			}
+			legacy_import = 
+			{
+				stepleft = "Default.StepLeft"
+				stepright = "Default.StepRight"
+				scraperoughthreshold = 0.5
+				impacthardthreshold = 0.5
+				lowpitchocclusion = 0.0
+				midpitchocclusion = 15.0
+				highpitchocclusion = 1.0
+				gamematerial = "C"
+				jumpfactor = 1.0
+				maxspeedfactor = 1.0
+				climbable = 0
+				penetrationmodifier = 1.0
+				damagemodifier = 0.5
+			}
+		},
+		{
+			surfacePropertyName = "solidmetal"
+			physics = 
+			{
+				density = 2700
+				elasticity = 0.1
+				friction = 0.8
+			}
+			audioparams = 
+			{
+				audioreflectivity = 0.83
+			}
+			audiosounds = 
+			{
+				impacthard = "SolidMetal.ImpactHard"
+				impactsoft = "SolidMetal.ImpactSoft"
+				scraperough = "SolidMetal.ScrapeRough"
+				scrapesmooth = "SolidMetal.ScrapeSmooth"
+				bulletimpact = "SolidMetal.BulletImpact"
+			}
+			base = "default"
+			legacy_import = 
+			{
+				lowpitchocclusion = 0.0
+				midpitchocclusion = 15.0
+				highpitchocclusion = 1.0
+				stepleft = "SolidMetal.StepLeft"
+				stepright = "SolidMetal.StepRight"
+				gamematerial = "M"
+				damagemodifier = 0.3
+				penetrationmodifier = 0.27
+			}
+		},
+		{
+			surfacePropertyName = "metal"
+			base = "solidmetal"
+			physics = 
+			{
+				elasticity = 0.25
+				thickness = 0.1
+			}
+			legacy_import = 
+			{
+				stepleft = "SolidMetal.StepLeft"
+				stepright = "SolidMetal.StepRight"
+				lowpitchocclusion = 0.0
+				midpitchocclusion = 15.0
+				highpitchocclusion = 1.0
+				penetrationmodifier = 0.4
+			}
+		},
+		{
+			surfacePropertyName = "metal_barrelsoundoverride"
+			base = "metal"
+			audiosounds = 
+			{
+				bulletimpact = "MetalBarrel.BulletImpact"
+			}
+			legacy_import = 
+			{
+				stepleft = "MetalBarrel.StepLeft"
+				stepright = "MetalBarrel.StepRight"
+			}
+		},
+		{
+			surfacePropertyName = "metal_vehiclesoundoverride"
+			base = "metal"
+			audiosounds = 
+			{
+				bulletimpact = "MetalVehicle.BulletImpact"
+			}
+			legacy_import = 
+			{
+				stepleft = "MetalVehicle.StepLeft"
+				stepright = "MetalVehicle.StepRight"
+			}
+		},
+		{
+			surfacePropertyName = "metal_survivalcase"
+			base = "metal"
+			audiosounds = 
+			{
+				bulletimpact = "Survival.ContainerDamage"
+				impacthard = "Survival.ContainerDamage"
+				impactsoft = "Survival.ContainerDamage"
+				scraperough = "Silent.ScrapeRough"
+				scrapesmooth = "Silent.ScrapeSmooth"
+				break = "Silent.Breakable"
+			}
+			legacy_import = 
+			{
+				stepleft = "silent.StepLeft"
+				stepright = "silent.StepRight"
+			}
+		},
+		{
+			surfacePropertyName = "metal_survivalcase_unpunchable"
+			base = "metal_survivalCase"
+			audiosounds = 
+			{
+				impactsoft = "Survival.ContainerDamageUnpunchable"
+			}
+		},
+		{
+			surfacePropertyName = "metaldogtags"
+			base = "solidmetal"
+			physics = 
+			{
+				elasticity = 0.25
+				thickness = 0.1
+			}
+			audiosounds = 
+			{
+				impacthard = "DogTags.Impact"
+				impactsoft = "DogTags.Impact"
+				scraperough = "DogTags.Impact"
+				scrapesmooth = "DogTags.Impact"
+				bulletimpact = "DogTags.Impact"
+			}
+			legacy_import = 
+			{
+				penetrationmodifier = 0.4
+			}
+		},
+		{
+			surfacePropertyName = "metalgrate"
+			physics = 
+			{
+				thickness = 0.5
+				density = 1600
+				elasticity = 0.25
+				friction = 0.8
+			}
+			audiosounds = 
+			{
+				impacthard = "MetalGrate.ImpactHard"
+				impactsoft = "MetalGrate.ImpactSoft"
+				scraperough = "MetalGrate.ScrapeRough"
+				scrapesmooth = "MetalGrate.ScrapeSmooth"
+				bulletimpact = "MetalGrate.BulletImpact"
+			}
+			audioparams = 
+			{
+				audioreflectivity = 0.83
+			}
+			base = "default"
+			legacy_import = 
+			{
+				stepleft = "MetalGrate.StepLeft"
+				stepright = "MetalGrate.StepRight"
+				lowpitchocclusion = 0.0
+				midpitchocclusion = 2.0
+				highpitchocclusion = 1.0
+				gamematerial = "G"
+				damagemodifier = 0.99
+				penetrationmodifier = 0.95
+			}
+		},
+		{
+			surfacePropertyName = "metal_box"
+			base = "solidmetal"
+			physics = 
+			{
+				thickness = 0.1
+			}
+			audiosounds = 
+			{
+				bulletimpact = "Metal_Box.BulletImpact"
+				scraperough = "Metal_Box.ScrapeRough"
+				scrapesmooth = "Metal_Box.ScrapeSmooth"
+				impacthard = "Metal_Box.ImpactHard"
+				impactsoft = "Metal_Box.ImpactSoft"
+				break = "Metal_Box.Break"
+			}
+			legacy_import = 
+			{
+				stepleft = "SolidMetal.StepLeft"
+				stepright = "SolidMetal.StepRight"
+				penetrationmodifier = 0.5
+			}
+		},
+		{
+			surfacePropertyName = "metal_bouncy"
+			base = "solidmetal"
+			physics = 
+			{
+				elasticity = 1000
+				friction = 0
+				density = 10000
+			}
+		},
+		{
+			surfacePropertyName = "slipperymetal"
+			base = "metal"
+			physics = 
+			{
+				friction = 0.1
+				elasticity = 0.15
+			}
+			audioparams = 
+			{
+				audioreflectivity = 0.83
+				audioroughnessfactor = 0.1
+			}
+		},
+		{
+			surfacePropertyName = "grate"
+			base = "metalgrate"
+		},
+		{
+			surfacePropertyName = "metalvent"
+			base = "metal_box"
+			physics = 
+			{
+				thickness = 0.04
+				density = 2700
+				elasticity = 0.1
+				friction = 0.8
+			}
+			audiosounds = 
+			{
+				impacthard = "MetalVent.ImpactHard"
+			}
+			audioparams = 
+			{
+				audioreflectivity = 0.33
+				audioroughnessfactor = 0.1
+			}
+			legacy_import = 
+			{
+				stepleft = "MetalVent.StepLeft"
+				stepright = "MetalVent.StepRight"
+				gamematerial = "V"
+				damagemodifier = 0.45
+				penetrationmodifier = 0.6
+			}
+		},
+		{
+			surfacePropertyName = "metalpanel"
+			base = "metal"
+			physics = 
+			{
+				thickness = 0.1
+				density = 2700
+				elasticity = 0.2
+				friction = 0.8
+			}
+			audiosounds = 
+			{
+				bulletimpact = "MetalVehicle.BulletImpact"
+			}
+			audioparams = 
+			{
+				audioreflectivity = 0.33
+				audioroughnessfactor = 0.1
+			}
+			legacy_import = 
+			{
+				stepleft = "MetalVehicle.StepLeft"
+				stepright = "MetalVehicle.StepRight"
+				gamematerial = "V"
+				damagemodifier = 0.45
+				penetrationmodifier = 0.5
+			}
+		},
+		{
+			surfacePropertyName = "dirt"
+			physics = 
+			{
+				density = 1600
+				elasticity = 0.01
+				friction = 0.8
+			}
+			audiosounds = 
+			{
+				impacthard = "Dirt.Impact"
+				scraperough = "Dirt.Scrape"
+				bulletimpact = "Dirt.BulletImpact"
+			}
+			audioparams = 
+			{
+				audioreflectivity = 0.03
+				audiohardnessfactor = 0.25
+			}
+			base = "default"
+			legacy_import = 
+			{
+				lowpitchocclusion = 0.0
+				midpitchocclusion = 19.0
+				highpitchocclusion = 1.0
+				stepleft = "Dirt.StepLeft"
+				stepright = "Dirt.StepRight"
+				gamematerial = "D"
+				damagemodifier = 0.3
+				penetrationmodifier = 0.6
+			}
+		},
+		{
+			surfacePropertyName = "mud"
+			base = "dirt"
+			physics = 
+			{
+				friction = 0.6
+				dampening = 6.0
+			}
+			audioparams = 
+			{
+				audiohardnessfactor = 0.0
+				audioroughnessfactor = 0.1
+			}
+			legacy_import = 
+			{
+				lowpitchocclusion = 0.0
+				midpitchocclusion = 15.0
+				highpitchocclusion = 1.0
+				stepleft = "Mud.StepLeft"
+				stepright = "Mud.StepRight"
+				gamematerial = 11
+			}
+		},
+		{
+			surfacePropertyName = "slidingrubbertire_jalopyfront"
+			base = "jalopytire"
+			physics = 
+			{
+				friction = 0.1337
+			}
+		},
+	]
+
+}

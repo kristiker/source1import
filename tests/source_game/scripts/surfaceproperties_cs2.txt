@@ -1,0 +1,293 @@
+
+// NOTE: Almost nothing is solid metal - so "metal" is sheet metal
+"solidmetal"
+{
+	"density"	"2700"
+	"elasticity"	"0.1"
+	"audioreflectivity" "0.83"
+	"friction"	"0.8"
+	
+	"lowPitchOcclusion" "0.0"
+	"midPitchOcclusion" "15.0"
+	"highPitchOcclusion" "1.0"
+	
+	"stepleft"          "SolidMetal.StepLeft"
+	"stepright"         "SolidMetal.StepRight"
+
+	"impacthard"	"SolidMetal.ImpactHard"
+	"impactsoft"	"SolidMetal.ImpactSoft"
+	"scraperough"	"SolidMetal.ScrapeRough"
+	"scrapesmooth"	"SolidMetal.ScrapeSmooth"
+	"bulletimpact"	"SolidMetal.BulletImpact"
+
+	// "strain"		"SolidMetal.Strain"
+
+	"gamematerial"	"M"
+
+	"damagemodifier" "0.3"
+
+	"penetrationmodifier" "0.27"
+
+}
+
+
+
+// Assume that everything we are building
+// is large enough to be constructed out of a thin sheet of metal
+// only flag a few things as "solidmetal" (I-Beams, anvils, etc)
+"metal"
+{
+	"base"		"solidmetal"
+	"elasticity"	"0.25"
+	"thickness"	"0.1"
+	
+	"stepleft"          "SolidMetal.StepLeft"
+	"stepright"         "SolidMetal.StepRight"
+	
+	"lowPitchOcclusion" "0.0"
+	"midPitchOcclusion" "15.0"
+	"highPitchOcclusion" "1.0"
+
+	"penetrationmodifier" "0.4"
+}
+
+"metal_barrelSoundOverride"
+{
+	"base"		"metal"
+	
+	"stepleft"	"MetalBarrel.StepLeft"
+	"stepright"	"MetalBarrel.StepRight"
+	"bulletimpact"	"MetalBarrel.BulletImpact"
+
+}
+
+"metal_vehicleSoundOverride"
+{
+	"base"		"metal"
+	
+	"stepleft"          "MetalVehicle.StepLeft"
+	"stepright"         "MetalVehicle.StepRight"
+	"bulletimpact"	"MetalVehicle.BulletImpact"
+
+}
+
+"metal_survivalCase"
+{
+	"base"		"metal"
+	"bulletimpact"	"Survival.ContainerDamage"
+	"impacthard"	"Survival.ContainerDamage"
+	"impactsoft"	"Survival.ContainerDamage"
+	"stepleft"      "silent.StepLeft"
+	"stepright"     "silent.StepRight"
+	"scraperough"	"Silent.ScrapeRough"
+	"scrapesmooth"	"Silent.ScrapeSmooth"
+	"break"		"Silent.Breakable"
+}
+
+"metal_survivalCase_unpunchable"
+{
+	"base"		"metal_survivalCase"
+	"impactsoft"	"Survival.ContainerDamageUnpunchable"
+}
+
+"metaldogtags"
+{
+	"base"		"solidmetal"
+	"elasticity"	"0.25"
+	"thickness"	"0.1"
+	
+	"impacthard"	"DogTags.Impact"
+	"impactsoft"	"DogTags.Impact"
+	"scraperough"	"DogTags.Impact"
+	"scrapesmooth"	"DogTags.Impact"
+	"bulletimpact"	"DogTags.Impact"
+
+	"penetrationmodifier" "0.4"
+}
+
+
+// metal grating, used for decking
+
+"metalgrate"
+{
+	"thickness"	"0.5"
+	"density"	"1600"
+	"elasticity"	"0.25"
+	"friction"	"0.8"
+
+	"stepleft"	"MetalGrate.StepLeft"
+	"stepright"	"MetalGrate.StepRight"
+	
+	"lowPitchOcclusion" "0.0"
+	"midPitchOcclusion" "2.0"
+	"highPitchOcclusion" "1.0"
+	
+	"impacthard"	"MetalGrate.ImpactHard"
+	"impactsoft"	"MetalGrate.ImpactSoft"
+	"scraperough"	"MetalGrate.ScrapeRough"
+	"scrapeSmooth"	"MetalGrate.ScrapeSmooth"
+	"bulletimpact"	"MetalGrate.BulletImpact"
+
+	"audioreflectivity" "0.83"
+
+	// "strain"		"Metal_Box.Strain"
+
+	"gamematerial"	"G"
+	"damagemodifier" "0.99"
+
+	"penetrationmodifier" "0.95"
+}
+
+// metal box - smaller metal box (< 2' width/height/depth)
+
+"Metal_Box"
+{
+	"base"	"solidmetal"
+	"thickness"	"0.1"
+
+	"stepleft"          "SolidMetal.StepLeft"
+	"stepright"         "SolidMetal.StepRight"
+
+
+	"bulletimpact"	"Metal_Box.BulletImpact"
+	"scraperough"	"Metal_Box.ScrapeRough"
+	"scrapesmooth"	"Metal_Box.ScrapeSmooth"
+	"impacthard"	"Metal_Box.ImpactHard"
+	"impactsoft"	"Metal_Box.ImpactSoft"
+
+	"break"		"Metal_Box.Break"
+	// "strain"		"Metal_Box.Strain"
+
+	"penetrationmodifier" "0.5"
+}
+
+// Assume that everything we are building
+// is large enough to be constructed out of a thin sheet of metal
+// only flag a few things as "solidmetal" (I-Beams, anvils, etc)
+
+"metal_bouncy"
+{
+	"base"		"solidmetal"
+	"elasticity"	"1000"
+	"friction"	"0"
+	"density"	"10000"
+}
+
+// Airboat pontoons have very low friction
+// TODO: make the pontoon material separate from the rest of the airboat?
+"slipperymetal"
+{
+	"base"		"metal"
+	"friction"	"0.1"
+	"elasticity" "0.15"
+
+	"audioreflectivity" "0.83"
+	"audioroughnessfactor" "0.1"
+}
+
+"grate"
+{
+	"base" "metalgrate"
+}
+
+// ~1mm thick metal
+
+"metalvent"
+{
+	"base"		"metal_box"
+	"thickness"	"0.04"
+	"density"	"2700"
+	"elasticity"	"0.1"
+	"friction"	"0.8"
+
+	"stepleft"          "MetalVent.StepLeft"
+	"stepright"         "MetalVent.StepRight"
+
+	"impacthard"	"MetalVent.ImpactHard"
+	
+	"audioreflectivity" "0.33"
+	"audioroughnessfactor" "0.1"
+
+	"gamematerial"	"V"
+
+	"damagemodifier" "0.45"
+
+	"penetrationmodifier" "0.6"
+}
+
+// thick solid steel panel - used for solid wall, floor, machine construction
+
+"metalpanel"
+{
+	"base"		"metal"
+	"thickness"	"0.1"
+	"density"	"2700"
+	"elasticity"	"0.2"
+	"friction"	"0.8"
+	
+	"stepleft"          "MetalVehicle.StepLeft"
+	"stepright"         "MetalVehicle.StepRight"
+	"bulletimpact"	"MetalVehicle.BulletImpact"
+
+	"audioreflectivity" "0.33"
+	"audioroughnessfactor" "0.1"
+
+	"gamematerial"	"V"
+
+	"damagemodifier" "0.45"
+
+	"penetrationmodifier" "0.5"
+}
+
+"dirt"
+{
+	"density"	"1600"
+	"elasticity"	"0.01"
+	"friction"	"0.8"
+	
+	"lowPitchOcclusion" "0.0"
+	"midPitchOcclusion" "19.0"
+	"highPitchOcclusion" "1.0"
+	
+	"stepleft"          "Dirt.StepLeft"
+	"stepright"         "Dirt.StepRight"
+
+	"impacthard"	"Dirt.Impact"
+	"scraperough"	"Dirt.Scrape"
+	"bulletimpact"	"Dirt.BulletImpact"
+
+	"audioreflectivity" "0.03"
+	"audiohardnessfactor" "0.25"
+
+	"gamematerial"	"D"
+
+	"damagemodifier" "0.3"
+
+	"penetrationmodifier" "0.6"
+}
+
+"mud"
+{
+	"base"		 "dirt"
+	"friction"	 "0.6"
+	"dampening"	 "6.0"
+	
+	"lowPitchOcclusion" "0.0"
+	"midPitchOcclusion" "15.0"
+	"highPitchOcclusion" "1.0"
+
+	"stepleft"          "Mud.StepLeft"
+	"stepright"         "Mud.StepRight"
+	
+	"audiohardnessfactor" "0.0"
+	"audioroughnessfactor" "0.1"
+
+	"gamematerial"	"11"
+}
+
+
+"slidingrubbertire_jalopyfront"
+{
+	"base"			"jalopytire"
+	"friction"		"0.1337"
+}
