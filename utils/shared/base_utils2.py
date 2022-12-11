@@ -339,6 +339,11 @@ elif __name__ == '__main__':
     raise SystemExit(0)
 
 @add_method(Path)
+def as_posix(self) -> str:
+    """pathlib's as_posix replaces '/' with '/' on linux 🤦"""
+    return str(self).replace('\\', '/')
+
+@add_method(Path)
 def without_spaces(self, repl = '_') -> Path:
     return self.parent / self.name.replace(' ', repl)
 
