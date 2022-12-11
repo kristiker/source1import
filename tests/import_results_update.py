@@ -30,8 +30,8 @@ import scripts_import
 
 @workflow(
     (particles_import, {
-        "OVERWRITE_PARTICLES": False,
-        "OVERWRITE_VSNAPS": False,
+        "OVERWRITE_PARTICLES": True,
+        "OVERWRITE_VSNAPS": True,
         "BEHAVIOR_VERSION": 12,
     }),
     (scripts_import, {
