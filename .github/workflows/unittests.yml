@@ -44,5 +44,5 @@ jobs:
       - name: Check imported files for changes
         run: |
           python tests/import_results_update.py
-          git diff HEAD $REF -- tests
+          git diff --exit-code HEAD $REF -- tests
 
