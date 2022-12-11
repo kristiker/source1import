@@ -25,6 +25,7 @@ def workflow(*modules: tuple[ModuleType, dict[str, Any]]):
 
 import particles_import
 import scripts_import
+import scenes_import
 
 
 
@@ -41,6 +42,7 @@ import scripts_import
         "SURFACES": True,
         "MISCELLANEOUS": True,
     }),
+    (scenes_import, {}),
 )
 def hlvr(module: ModuleType):
     module.main()
