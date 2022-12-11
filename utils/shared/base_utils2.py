@@ -428,7 +428,7 @@ def source2namefixup(path: Path):
 def skip(skip_reason: str, path: Path):
     status(f"- skipping [{skip_reason}]: {path.local.as_posix()}")
 
-MOCK = True
+MOCK = False
 def globsort(iterable_files: Iterable[Path]) -> list[Path]:
     if MOCK:
         return sorted(iterable_files)
