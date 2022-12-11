@@ -1,8 +1,0 @@
-soundscapes_manifest
-{
-
-	"file"		"scripts/soundscapes_aztec.txt"
-    "file"		"scripts/soundscapes.txt"
-    "file"		"scripts/soundscapes_noexist.txt"
-
-}
