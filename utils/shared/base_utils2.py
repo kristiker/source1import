@@ -5,7 +5,7 @@ from enum import Enum
 import fnmatch
 import subprocess
 from types import GeneratorType
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 try:
     from keyvalues1 import KV
 except ImportError:
@@ -275,13 +275,36 @@ def parse_out_path(source2_mod: Path):
             return out.with_suffix(out_ext)
         return out
 
-def parse_argv():
+def parse_unknowns(submodule_globals: dict[str, Any]):
+    def try_assign():
+        for arg in args_unknown:
+            arg = arg.lstrip('-').upper()
+            if not arg.startswith(var):
+                continue
+            value = arg[len(var):].lstrip('= ')
+            if value.isnumeric():
+                value = int(value)
+            elif value.lower() in ('true', 'false'):
+                value = value.lower() == 'true'
+            submodule_globals[var] = value
+            break
+
+
+    for var in submodule_globals:
+        if not var.isupper():
+            continue
+        try_assign()
+
+
+def parse_argv(submodule_globals: None | dict[str, Any] = None):
     if not args_known.src1gameinfodir:
         argv_error(f"Missing required argument: -i | --src1gameinfodir")
     parse_in_path()
     if not args_known.game:
         argv_error(f"Missing required argument: -e | --game")
     parse_out_path(Path(args_known.game))
+    if submodule_globals:
+        parse_unknowns(submodule_globals)
 
 importing = Path()
 filter_=args_known.filter
