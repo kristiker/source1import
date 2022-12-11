@@ -26,6 +26,7 @@ def workflow(*modules: tuple[ModuleType, dict[str, Any]]):
         return wrapper
     return inner
 
+import materials_import
 import particles_import
 import scripts_import
 import scenes_import
@@ -34,6 +35,7 @@ import vtf_to_tga
 
 @workflow(
     (vtf_to_tga, {}),
+    (materials_import, {}),
     (particles_import, {
         "OVERWRITE_PARTICLES": True,
         "OVERWRITE_VSNAPS": True,
@@ -55,6 +57,7 @@ def hlvr(module: ModuleType):
 
 @workflow(
     (vtf_to_tga, {}),
+    (materials_import, {}),
     (scripts_import, {
         "OVERWRITE_ASSETS": True,
         "SOUNDSCAPES": True,
@@ -70,6 +73,7 @@ def sbox(module: ModuleType):
 
 @workflow(
     (vtf_to_tga, {}),
+    (materials_import, {}),
     (scripts_import, {
         "OVERWRITE_ASSETS": True,
         "SOUNDSCAPES": False,
