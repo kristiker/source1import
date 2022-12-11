@@ -19,7 +19,7 @@ def workflow(*modules: tuple[ModuleType, dict[str, Any]]):
                 file.unlink()
 
         @functools.wraps(f)
-        def wrapper(*args, **kwargs):
+        def wrapper():
             for module, options in modules:
                 module.sh.MOCK = True
                 module.sh.update_destmod(module.sh.eS2Game(f.__name__))
