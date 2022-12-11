@@ -5,7 +5,7 @@ from enum import Enum
 import fnmatch
 import subprocess
 from types import GeneratorType
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Iterable, Optional
 try:
     from keyvalues1 import KV
 except ImportError:
@@ -383,7 +383,7 @@ def collect(root, inExt, outExt, existing:bool = False, outNameRule = None, sear
         if match is None:
             match = ('**/'*_recurse()) + '*' + inExt
 
-        for filePath in searchPath.glob(match):
+        for filePath in globsort(searchPath.glob(match)):
             skip_reason = ''
             if filter_ is not None:
                 if not fnmatch.fnmatch(filePath, filter_):
@@ -429,6 +429,11 @@ def skip(skip_reason: str, path: Path):
     status(f"- skipping [{skip_reason}]: {path.local.as_posix()}")
 
 MOCK = True
+def globsort(iterable_files: Iterable[Path]) -> list[Path]:
+    if MOCK:
+        return sorted(iterable_files)
+    return iterable_files
+
 DEBUG = False
 def msg(*args, **kwargs):
     if DEBUG:
