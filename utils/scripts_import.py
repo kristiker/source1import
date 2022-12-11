@@ -448,7 +448,7 @@ def ImportSurfaceProperties(asset_path: Path):
             CaseInsensitiveKey("Elasticity"): 0.5,
             CaseInsensitiveKey("Density"): 0.5,
             CaseInsensitiveKey("Thickness"): 0.5,
-            CaseInsensitiveKey("Dampe3ning"): 0.0,
+            CaseInsensitiveKey("Dampening"): 0.0,
             CaseInsensitiveKey("BounceThreshold"): 0.0,
             CaseInsensitiveKey("ImpactEffects"): CaseInsensitiveDict({
                 CaseInsensitiveKey("Bullet"): [],
