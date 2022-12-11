@@ -2,6 +2,7 @@ import sys, os
 from types import ModuleType
 from typing import Any, Callable
 from pathlib import Path
+import shutil
 
 os.chdir(Path(__file__).parent)
 sys.path.append("../utils")
@@ -9,6 +10,8 @@ sys.path.append("../utils")
 import functools
 def workflow(*modules: tuple[ModuleType, dict[str, Any]]):
     def inner(f: Callable):
+        out = Path(f"source2_{f.__name__}_game").resolve()
+        shutil.rmtree(out)
         @functools.wraps(f)
         def wrapper(*args, **kwargs):
             for module, options in modules:
@@ -16,7 +19,7 @@ def workflow(*modules: tuple[ModuleType, dict[str, Any]]):
                 module.sh.update_destmod(module.sh.eS2Game(f.__name__))
                 module.sh.args_known.src1gameinfodir = "source_game"
                 module.sh.parse_in_path()
-                module.sh.parse_out_path(Path(f"source2_{f.__name__}_game").resolve())
+                module.sh.parse_out_path(out)
                 for name, value in options.items():
                     if hasattr(module, name):
                         setattr(module, name, value)
