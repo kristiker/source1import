@@ -379,7 +379,11 @@ def createMask(image_path, copySub = '_mask', channel = 'A', invert = False, que
 
     sh.msg(f"createMask{image_path.local.relative_to(materials).as_posix(), copySub, channel, invert, queue} -> {newMaskPath.local}")
 
-    if newMaskPath.exists(): #and not DEBUG:
+    if sh.MOCK:
+        newMaskPath.open('a').close()
+        return newMaskPath.local.as_posix()
+
+    if newMaskPath.exists():
         return newMaskPath.local.as_posix()
 
     if not image_path.is_file():

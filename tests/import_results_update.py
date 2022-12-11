@@ -12,6 +12,7 @@ def workflow(*modules: tuple[ModuleType, dict[str, Any]]):
         @functools.wraps(f)
         def wrapper(*args, **kwargs):
             for module, options in modules:
+                module.sh.MOCK = True
                 module.sh.update_destmod(module.sh.eS2Game(f.__name__))
                 module.sh.args_known.src1gameinfodir = "source_game"
                 module.sh.parse_in_path()
@@ -19,6 +20,8 @@ def workflow(*modules: tuple[ModuleType, dict[str, Any]]):
                 for name, value in options.items():
                     if hasattr(module, name):
                         setattr(module, name, value)
+                if module == vtf_to_tga and os.name != "nt":
+                    continue
                 f(module)
         return wrapper
     return inner
@@ -26,10 +29,11 @@ def workflow(*modules: tuple[ModuleType, dict[str, Any]]):
 import particles_import
 import scripts_import
 import scenes_import
-
+import vtf_to_tga
 
 
 @workflow(
+    (vtf_to_tga, {}),
     (particles_import, {
         "OVERWRITE_PARTICLES": True,
         "OVERWRITE_VSNAPS": True,
@@ -50,6 +54,7 @@ def hlvr(module: ModuleType):
 
 
 @workflow(
+    (vtf_to_tga, {}),
     (scripts_import, {
         "OVERWRITE_ASSETS": True,
         "SOUNDSCAPES": True,
@@ -64,6 +69,7 @@ def sbox(module: ModuleType):
 
 
 @workflow(
+    (vtf_to_tga, {}),
     (scripts_import, {
         "OVERWRITE_ASSETS": True,
         "SOUNDSCAPES": False,

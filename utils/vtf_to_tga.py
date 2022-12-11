@@ -120,7 +120,11 @@ def ImportVTFtoTGA(vtfFile, force_2nd = False):
                 for path in outImages:
                     movePath = sh.output(path)
                     os.makedirs(movePath.parent, exist_ok=True) #fs.MakeDir(movePath)
-                    shutil.move(path, movePath)
+                    if sh.MOCK:
+                        path.unlink()
+                        movePath.open('a').close()
+                    else:
+                        shutil.move(path, movePath)
 
             if not bCreated:
                 print(f"[{tag}] uhm...?", vtfFile.local)

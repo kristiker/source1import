@@ -428,6 +428,7 @@ def source2namefixup(path: Path):
 def skip(skip_reason: str, path: Path):
     status(f"- skipping [{skip_reason}]: {path.local.as_posix()}")
 
+MOCK = True
 DEBUG = False
 def msg(*args, **kwargs):
     if DEBUG:
