@@ -2,7 +2,8 @@ import sys, os
 from types import ModuleType
 from typing import Any, Callable
 from pathlib import Path
-import shutil
+
+WINDOWS = os.name == "nt"
 
 os.chdir(Path(__file__).parent)
 sys.path.append("../utils")
@@ -11,7 +12,12 @@ import functools
 def workflow(*modules: tuple[ModuleType, dict[str, Any]]):
     def inner(f: Callable):
         out = Path(f"source2_{f.__name__}_game").resolve()
-        shutil.rmtree(out)
+        for file in out.glob("**/*"):
+            if file.is_file():
+                if file.suffix == ".tga" and not WINDOWS:
+                    continue
+                file.unlink()
+
         @functools.wraps(f)
         def wrapper(*args, **kwargs):
             for module, options in modules:
@@ -23,7 +29,7 @@ def workflow(*modules: tuple[ModuleType, dict[str, Any]]):
                 for name, value in options.items():
                     if hasattr(module, name):
                         setattr(module, name, value)
-                if module == vtf_to_tga and os.name != "nt":
+                if module == vtf_to_tga and not WINDOWS:
                     continue
                 f(module)
         return wrapper
