@@ -1,0 +1,11 @@
+"Layer0"
+{
+	shader	"vr_standard.vfx"
+	TextureColor	"materials/brick/hr_brick/vertigo/hr_brick_white_01.tga"
+	SystemAttributes
+	{
+		PhysicsSurfaceProperties	"brick"
+	}
+	TextureNormal	"materials/brick/hr_brick/vertigo/hr_brick_white_01_normal.tga"
+	TextureRoughness	"materials/default/default_rough_s1import.tga"
+}

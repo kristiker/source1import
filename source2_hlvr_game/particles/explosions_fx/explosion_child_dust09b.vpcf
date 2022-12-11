@@ -1,0 +1,118 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf26:version{26288658-411e-4f14-b698-2e1e5d00dec6} -->
+{
+	m_nBehaviorVersion = 12
+	_class = "CParticleSystemDefinition"
+	m_Renderers = 
+	[
+		{
+			_class = "C_OP_RenderSprites"
+			m_hMaterial = resource:"materials/particle/vistasmokev1/vistasmokev1_emods_impactdust.vmat"
+			m_flAnimationRate = 0.6
+			m_flAnimationRate2 = 0.075
+		},
+	]
+
+	m_Operators = 
+	[
+		{
+			_class = "C_OP_BasicMovement"
+			m_Gravity = [0.0, 0.0, -10.0]
+			m_fDrag = 0.005
+		},
+		{
+			_class = "C_OP_Decay"
+		},
+		{
+			_class = "C_OP_FadeIn"
+			m_bProportional = false
+			m_flFadeInTimeMax = 3.0
+			m_flFadeInTimeMin = 3.0
+		},
+		{
+			_class = "C_OP_FadeOut"
+			m_bEaseInAndOut = false
+			m_bProportional = false
+			m_flFadeOutTimeMin = 4.0
+			m_flFadeOutTimeMax = 4.0
+		},
+		{
+			_class = "C_OP_InterpolateRadius"
+			m_flStartScale = 0.5
+			m_flEndScale = 5.0
+		},
+		{
+			_class = "C_OP_DampenToCP"
+			m_flScale = 0.5
+			m_flRange = 40.0
+		},
+	]
+
+	m_Initializers = 
+	[
+		{
+			_class = "C_INIT_RandomSequence"
+			m_nSequenceMax = 1
+			m_nSequenceMin = 1
+		},
+		{
+			_class = "C_INIT_RandomLifeTime"
+			m_fLifetimeMin = 4.0
+			m_fLifetimeMax = 5.0
+		},
+		{
+			_class = "C_INIT_RandomRadius"
+			m_flRadiusMin = 40.0
+			m_flRadiusMax = 55.0
+		},
+		{
+			_class = "C_INIT_RandomAlpha"
+			m_nAlphaMin = 180
+			m_nAlphaMax = 200
+		},
+		{
+			_class = "C_INIT_RandomRotation"
+			m_bRandomlyFlipDirection = false
+			m_flDegreesMax = 60.0
+			m_flDegreesMin = 60.0
+		},
+		{
+			_class = "C_INIT_RandomRotationSpeed"
+			m_flDegreesMin = -25.0
+			m_flDegreesMax = 25.0
+		},
+		{
+			_class = "C_INIT_RandomSecondSequence"
+		},
+		{
+			_class = "C_INIT_CreateWithinBox"
+			m_vecMax = [40.0, 40.0, 100.0]
+			m_vecMin = [-40.0, -40.0, 20.0]
+		},
+		{
+			_class = "C_INIT_RandomYawFlip"
+		},
+		{
+			_class = "C_INIT_RandomColor"
+			m_TintMax = [166, 158, 150, 255]
+			m_TintMin = [43, 39, 37, 255]
+			m_ColorMin = [103, 98, 92, 255]
+			m_ColorMax = [68, 62, 60, 255]
+			m_flTintPerc = 0.5
+			m_nTintBlendMode = 4
+		},
+	]
+
+	m_Emitters = 
+	[
+		{
+			_class = "C_OP_InstantaneousEmitter"
+			m_flStartTime = 0.7
+			m_nParticlesToEmit = 4
+			m_nMaxEmittedPerFrame = 50
+		},
+	]
+
+	m_bPreventnamebasedlookup = false
+	m_nMaxParticles = 30
+	m_flConstantRadius = 128.0
+}

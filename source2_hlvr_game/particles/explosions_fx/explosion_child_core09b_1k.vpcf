@@ -1,0 +1,180 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf26:version{26288658-411e-4f14-b698-2e1e5d00dec6} -->
+{
+	m_nBehaviorVersion = 12
+	_class = "CParticleSystemDefinition"
+	m_Renderers = 
+	[
+		{
+			_class = "C_OP_RenderSprites"
+			m_hMaterial = resource:"materials/particle/fluidexplosions/fluidexplosion.vmat"
+			m_bAnimateInFPS = true
+			m_flAnimationRate2 = 1.0
+			m_nAnimationType = "ANIMATION_TYPE_FIT_LIFETIME"
+			m_flAnimationRate = 300.0
+		},
+	]
+
+	m_Operators = 
+	[
+		{
+			_class = "C_OP_FadeAndKill"
+			m_flStartFadeOutTime = 0.1
+			m_flEndFadeInTime = 0.05
+		},
+		{
+			_class = "C_OP_InterpolateRadius"
+			m_flBias = 0.8
+			m_flEndScale = 9.0
+			m_flEndTime = 0.1
+		},
+		{
+			_class = "C_OP_BasicMovement"
+			m_fDrag = 0.175
+			m_Gravity = [0.0, 0.0, 125.0]
+			m_flOpEndFadeOutTime = 45.0
+			m_flOpStartFadeOutTime = 0.25
+			m_flOpEndFadeInTime = 0.1
+		},
+		{
+			_class = "C_OP_Spin"
+			m_fSpinRateStopTime = 10.0
+			m_nSpinRateDegrees = -1
+			m_flOpStrength = 
+			{
+				m_nType = "PF_TYPE_RANDOM_UNIFORM"
+				m_flRandomMin = 0.1
+				m_flRandomMax = 0.5
+			}
+			m_nOpStrengthScaleSeed = 1564
+			m_flOpEndFadeOutTime = 45.0
+		},
+		{
+			_class = "C_OP_ColorInterpolate"
+			m_flFadeEndTime = 0.4
+			m_ColorFade = [0, 0, 0, 255]
+		},
+	]
+
+	m_Initializers = 
+	[
+		{
+			_class = "C_INIT_RandomSequence"
+			m_nSequenceMax = 4
+		},
+		{
+			_class = "C_INIT_CreateWithinSphere"
+			m_fSpeedRandExp = 0.75
+			m_fSpeedMax = 900.0
+			m_fSpeedMin = 150.0
+			m_fRadiusMax = 750.0
+			m_vecDistanceBiasAbs = [0.0, 0.0, 1.0]
+		},
+		{
+			_class = "C_INIT_RandomRotation"
+			m_flDegreesMax = 120.0
+			m_flDegreesMin = -120.0
+		},
+		{
+			_class = "C_INIT_SequenceLifeTime"
+			m_flFramerate = 60.0
+			m_flOpStrength = 
+			{
+				m_nType = "PF_TYPE_RANDOM_UNIFORM"
+				m_flRandomMin = 1.15
+				m_flRandomMax = 1.15
+			}
+			m_nOpStrengthScaleSeed = 12314
+		},
+		{
+			_class = "C_INIT_RandomYawFlip"
+			m_flPercent = 0.0
+		},
+		{
+			_class = "C_INIT_InitialVelocityNoise"
+			m_vecOutputMax = [200.0, 200.0, 600.0]
+			m_vecOutputMin = [-200.0, -200.0, -600.0]
+			m_vecAbsVal = [1.0, 1.0, 1.0]
+			m_flNoiseScaleLoc = 0.1
+		},
+		{
+			_class = "C_INIT_RandomAlpha"
+		},
+		{
+			_class = "C_INIT_RemapScalar"
+			m_flOutputMin = 0.15
+			m_nFieldOutput = 5
+			m_flInputMax = 0.25
+		},
+		{
+			_class = "C_INIT_RandomColor"
+			m_ColorMax = [55, 55, 55, 255]
+			m_ColorMin = [86, 86, 86, 255]
+		},
+		{
+			_class = "C_INIT_DistanceToCPInit"
+			m_flInputMax = 750.0
+			m_flOutputMin = 60.0
+			m_flOutputMax = 15.0
+		},
+		{
+			_class = "C_INIT_PositionOffset"
+			m_OffsetMax = [0.0, 0.0, 25.0]
+		},
+	]
+
+	m_Emitters = 
+	[
+		{
+			_class = "C_OP_ContinuousEmitter"
+			m_flEmissionDuration = 0.35
+			m_flEmitRate = 400.0
+		},
+	]
+
+	m_ForceGenerators = 
+	[
+		{
+			_class = "C_OP_TwistAroundAxis"
+			m_TwistAxis = [0.0, 1.0, 0.0]
+			m_fForceAmount = -20.0
+			m_flOpStrength = 
+			{
+				m_nType = "PF_TYPE_RANDOM_UNIFORM"
+				m_flRandomMin = 0.8
+				m_flRandomMax = 2.0
+			}
+			m_nOpStrengthScaleSeed = 131234
+		},
+		{
+			_class = "C_OP_RandomForce"
+			m_MaxForce = [75.0, 0.0, 0.0]
+			m_MinForce = [50.0, 0.0, 0.0]
+			m_flOpStrength = 
+			{
+				m_nType = "PF_TYPE_RANDOM_UNIFORM"
+				m_flRandomMin = 0.95
+				m_flRandomMax = 1.25
+			}
+			m_nOpStrengthScaleSeed = 123124
+		},
+		{
+			_class = "C_OP_ForceBasedOnDistanceToPlane"
+			m_flMaxDist = 600.0
+			m_vecForceAtMaxDist = [200.0, 0.0, 0.0]
+			m_flExponent = 2.0
+		},
+	]
+
+	m_bPreventnamebasedlookup = false
+	m_nMaxParticles = 150
+	m_BoundingBoxMin = [-900.0, 1200.0, -200.0]
+	m_BoundingBoxMax = [900.0, 1300.0, 200.0]
+	m_flMaximumTimeStep = 0.0
+	m_PreEmissionOperators = 
+	[
+		{
+			_class = "C_OP_SetControlPointPositions"
+		},
+	]
+
+}

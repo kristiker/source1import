@@ -1,0 +1,125 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf26:version{26288658-411e-4f14-b698-2e1e5d00dec6} -->
+{
+	m_nBehaviorVersion = 12
+	_class = "CParticleSystemDefinition"
+	m_Renderers = 
+	[
+		{
+			_class = "C_OP_RenderSprites"
+			m_hMaterial = resource:"materials/particle/vistasmokev1/vistasmokev1.vmat"
+			m_flAnimationRate2 = 0.05
+			m_flAnimationRate = 0.9
+		},
+	]
+
+	m_Operators = 
+	[
+		{
+			_class = "C_OP_BasicMovement"
+			m_Gravity = [0.0, 0.0, 10.0]
+			m_fDrag = 0.003
+		},
+		{
+			_class = "C_OP_ColorInterpolate"
+			m_flFadeEndTime = 0.3
+			m_bEaseInOut = false
+			m_ColorFade = [232, 100, 21, 50]
+		},
+		{
+			_class = "C_OP_PositionLock"
+			m_flStartTime_min = 0.075
+			m_flStartTime_max = 0.12
+			m_flEndTime_min = 0.15
+			m_flEndTime_max = 0.25
+		},
+		{
+			_class = "C_OP_OscillateScalar"
+			m_RateMin = -0.008
+			m_RateMax = 0.008
+			m_FrequencyMin = 0.25
+			m_FrequencyMax = 0.4
+			m_nField = 4
+		},
+		{
+			_class = "C_OP_FadeAndKill"
+			m_flEndFadeInTime = 0.1
+			m_flStartFadeOutTime = 0.3
+		},
+		{
+			_class = "C_OP_InterpolateRadius"
+			m_flBias = 0.4
+			m_flEndScale = 10.0
+			m_flEndTime = 0.7
+		},
+		{
+			_class = "C_OP_Spin"
+			m_nSpinRateDegrees = 3
+		},
+	]
+
+	m_Initializers = 
+	[
+		{
+			_class = "C_INIT_RandomLifeTime"
+			m_fLifetimeMin = 10.0
+			m_fLifetimeMax = 12.0
+		},
+		{
+			_class = "C_INIT_RandomRadius"
+			m_flRadiusMin = 5.0
+			m_flRadiusMax = 7.0
+		},
+		{
+			_class = "C_INIT_RandomColor"
+			m_ColorMax = [210, 167, 65, 255]
+			m_ColorMin = [213, 106, 58, 255]
+			m_flTintPerc = 0.5
+			m_TintMin = [72, 72, 72, 0]
+			m_nTintBlendMode = 4
+		},
+		{
+			_class = "C_INIT_RandomRotation"
+		},
+		{
+			_class = "C_INIT_RandomAlpha"
+			m_nAlphaMin = 50
+			m_nAlphaMax = 100
+		},
+		{
+			_class = "C_INIT_RandomSecondSequence"
+			m_nSequenceMax = 9
+			m_nSequenceMin = 4
+		},
+		{
+			_class = "C_INIT_CreateWithinSphere"
+		},
+		{
+			_class = "C_INIT_InitialVelocityNoise"
+			m_flNoiseScaleLoc = 0.02
+			m_vecOutputMin = [-22.0, -22.0, -2.0]
+			m_vecOutputMax = [16.0, 16.0, 48.0]
+		},
+	]
+
+	m_Emitters = 
+	[
+		{
+			_class = "C_OP_ContinuousEmitter"
+			m_flEmitRate = 10.0
+		},
+	]
+
+	m_ForceGenerators = 
+	[
+		{
+			_class = "C_OP_TwistAroundAxis"
+			m_fForceAmount = 20.0
+		},
+	]
+
+	m_bPreventnamebasedlookup = false
+	m_nMaxParticles = 5000
+	m_BoundingBoxMin = [-32.0, -32.0, -10.0]
+	m_BoundingBoxMax = [32.0, 32.0, 200.0]
+	m_flMaxDrawDistance = 800000.0
+}

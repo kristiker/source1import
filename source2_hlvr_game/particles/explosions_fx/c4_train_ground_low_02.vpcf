@@ -1,0 +1,101 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf26:version{26288658-411e-4f14-b698-2e1e5d00dec6} -->
+{
+	m_nBehaviorVersion = 12
+	_class = "CParticleSystemDefinition"
+	m_Renderers = 
+	[
+		{
+			_class = "C_OP_RenderSprites"
+			m_hMaterial = resource:"materials/particle/star.vmat"
+			m_bAnimateInFPS = true
+			m_flAnimationRate = 1.0
+		},
+	]
+
+	m_Operators = 
+	[
+		{
+			_class = "C_OP_BasicMovement"
+			m_Gravity = [0.0, 0.0, -125.0]
+		},
+		{
+			_class = "C_OP_FadeOut"
+			m_flFadeOutTimeMin = 0.2
+			m_flFadeOutTimeMax = 0.2
+		},
+		{
+			_class = "C_OP_ColorInterpolate"
+			m_flFadeEndTime = 0.2
+		},
+		{
+			_class = "C_OP_InterpolateRadius"
+			m_flEndScale = 0.0
+		},
+		{
+			_class = "C_OP_Decay"
+		},
+		{
+			_class = "C_OP_OscillateScalar"
+			m_nField = 16
+			m_RateMin = -25.0
+			m_RateMax = -100.0
+			m_FrequencyMin = 3.0
+			m_FrequencyMax = 8.0
+		},
+	]
+
+	m_Initializers = 
+	[
+		{
+			_class = "C_INIT_RandomRadius"
+			m_flRadiusMin = 8.0
+			m_flRadiusMax = 12.0
+		},
+		{
+			_class = "C_INIT_RandomAlpha"
+			m_nAlphaMin = 150
+		},
+		{
+			_class = "C_INIT_CreateWithinSphere"
+			m_flEndCPGrowthTime = 2.0
+			m_LocalCoordinateSystemSpeedMin = [-100.0, -100.0, 30.0]
+			m_LocalCoordinateSystemSpeedMax = [100.0, 100.0, 100.0]
+			m_bUseHighestEndCP = true
+			m_vecDistanceBiasAbs = [0.0, 0.0, 1.0]
+			m_vecDistanceBias = [1.0, 1.0, 0.0]
+		},
+		{
+			_class = "C_INIT_RandomColor"
+			m_ColorMin = [252, 254, 193, 255]
+		},
+		{
+			_class = "C_INIT_PositionOffset"
+			m_OffsetMin = [-12.0, -12.0, 0.0]
+			m_OffsetMax = [12.0, 12.0, 9.0]
+		},
+		{
+			_class = "C_INIT_RandomLifeTime"
+			m_fLifetimeMin = 0.1
+			m_fLifetimeMax = 0.3
+		},
+		{
+			_class = "C_INIT_RandomRotation"
+		},
+	]
+
+	m_Emitters = 
+	[
+		{
+			_class = "C_OP_ContinuousEmitter"
+			m_flEmissionScale = 1.0
+			m_flOpEndFadeInTime = 2.0
+			m_flEmitRate = 200.0
+			m_flEmissionDuration = 2.5
+		},
+	]
+
+	m_bPreventnamebasedlookup = false
+	m_nMaxParticles = 400
+	m_flNoDrawTimeToGoToSleep = 0.1
+	m_bShouldSort = false
+}

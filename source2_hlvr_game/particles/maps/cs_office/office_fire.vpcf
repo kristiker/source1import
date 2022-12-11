@@ -1,0 +1,37 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf26:version{26288658-411e-4f14-b698-2e1e5d00dec6} -->
+{
+	m_nBehaviorVersion = 12
+	_class = "CParticleSystemDefinition"
+	m_Children = 
+	[
+		{
+			m_ChildRef = resource:"particles/maps/cs_office/office_child_flame03b.vpcf"
+		},
+		{
+			m_ChildRef = resource:"particles/maps/cs_office/office_child_glow03a.vpcf"
+		},
+		{
+			m_ChildRef = resource:"particles/maps/cs_office/office_child_flame02b.vpcf"
+		},
+		{
+			m_ChildRef = resource:"particles/maps/cs_office/office_smoke.vpcf"
+		},
+		{
+			m_ChildRef = resource:"particles/maps/cs_office/office_child_flame01b.vpcf"
+		},
+		{
+			m_ChildRef = resource:"particles/maps/cs_office/office_child_glow02b.vpcf"
+		},
+		{
+			m_ChildRef = resource:"particles/maps/cs_office/office_child_embers01a.vpcf"
+		},
+		{
+			m_ChildRef = resource:"particles/maps/cs_office/office_child_glow04a.vpcf"
+		},
+	]
+
+	m_bPreventnamebasedlookup = false
+	m_nMaxParticles = 640
+	m_flMaxDrawDistance = 10000.0
+	m_flNoDrawTimeToGoToSleep = 0.1
+}

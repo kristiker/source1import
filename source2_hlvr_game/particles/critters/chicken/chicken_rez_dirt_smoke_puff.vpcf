@@ -1,0 +1,112 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf26:version{26288658-411e-4f14-b698-2e1e5d00dec6} -->
+{
+	m_nBehaviorVersion = 12
+	_class = "CParticleSystemDefinition"
+	m_Renderers = 
+	[
+		{
+			_class = "C_OP_RenderSprites"
+			m_hMaterial = resource:"materials/particle/vistasmokev1/vistasmokev1_emods_impactdust.vmat"
+			VisibilityInputs = 
+			{
+				m_flRadiusScaleMin = 0.0
+				m_flProxyRadius = 8.0
+			}
+			m_flAnimationRate2 = 0.035
+			m_flAnimationRate = 0.5
+		},
+	]
+
+	m_Operators = 
+	[
+		{
+			_class = "C_OP_BasicMovement"
+			m_fDrag = 0.5
+			m_Gravity = [0.0, 0.0, -100.0]
+		},
+		{
+			_class = "C_OP_Decay"
+		},
+		{
+			_class = "C_OP_FadeOut"
+			m_flFadeOutTimeMin = 0.8
+			m_flFadeOutTimeMax = 0.8
+			m_bProportional = false
+			m_bEaseInAndOut = false
+		},
+		{
+			_class = "C_OP_InterpolateRadius"
+			m_flBias = 0.7
+			m_flEndScale = 3.0
+			m_flStartScale = 0.5
+		},
+		{
+			_class = "C_OP_FadeIn"
+			m_flFadeInTimeMax = 0.1
+			m_flFadeInTimeMin = 0.1
+		},
+	]
+
+	m_Initializers = 
+	[
+		{
+			_class = "C_INIT_RandomSequence"
+			m_nSequenceMax = 1
+			m_nSequenceMin = 1
+		},
+		{
+			_class = "C_INIT_RandomRadius"
+			m_flRadiusMax = 7.0
+			m_flRadiusMin = 4.0
+		},
+		{
+			_class = "C_INIT_RandomLifeTime"
+			m_fLifetimeMax = 1.5
+			m_fLifetimeMin = 1.5
+		},
+		{
+			_class = "C_INIT_RandomAlpha"
+			m_nAlphaMax = 60
+			m_nAlphaMin = 30
+		},
+		{
+			_class = "C_INIT_RandomYawFlip"
+		},
+		{
+			_class = "C_INIT_RandomSecondSequence"
+		},
+		{
+			_class = "C_INIT_RandomColor"
+			m_nTintCP = 4
+			m_nTintBlendMode = 4
+			m_TintMax = [198, 198, 198, 255]
+			m_TintMin = [19, 19, 19, 255]
+			m_flTintPerc = 0.5
+			m_ColorMax = [80, 73, 73, 255]
+			m_ColorMin = [80, 73, 73, 255]
+		},
+		{
+			_class = "C_INIT_RandomRotation"
+		},
+		{
+			_class = "C_INIT_CreateWithinSphere"
+			m_LocalCoordinateSystemSpeedMax = [0.0, 0.0, 150.0]
+			m_LocalCoordinateSystemSpeedMin = [0.0, 0.0, 140.0]
+		},
+	]
+
+	m_Emitters = 
+	[
+		{
+			_class = "C_OP_ContinuousEmitter"
+			m_flEmissionDuration = 4.0
+			m_flEmitRate = 4.0
+		},
+	]
+
+	m_bPreventnamebasedlookup = false
+	m_nMaxParticles = 50
+	m_BoundingBoxMin = [-64.0, -64.0, -64.0]
+	m_BoundingBoxMax = [64.0, 64.0, 64.0]
+	m_flMaxDrawDistance = 1500.0
+}

@@ -1,0 +1,107 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf26:version{26288658-411e-4f14-b698-2e1e5d00dec6} -->
+{
+	m_nBehaviorVersion = 12
+	_class = "CParticleSystemDefinition"
+	m_Renderers = 
+	[
+		{
+			_class = "C_OP_RenderSprites"
+			m_hMaterial = resource:"materials/particle/vistasmokev1/vistasmokev1_emods_impactdust.vmat"
+			m_flAnimationRate = 0.3
+		},
+	]
+
+	m_Operators = 
+	[
+		{
+			_class = "C_OP_InterpolateRadius"
+			m_flStartScale = 0.1
+			m_flEndTime = 0.25
+			m_flBias = 0.95
+		},
+		{
+			_class = "C_OP_Decay"
+		},
+		{
+			_class = "C_OP_FadeIn"
+			m_bProportional = false
+			m_flFadeInTimeMax = 0.75
+			m_flFadeInTimeMin = 0.5
+		},
+		{
+			_class = "C_OP_FadeOut"
+			m_flFadeOutTimeMax = 5.0
+			m_flFadeOutTimeMin = 4.0
+			m_bProportional = false
+			m_bEaseInAndOut = false
+		},
+		{
+			_class = "C_OP_BasicMovement"
+			m_Gravity = [0.0, 0.0, -40.0]
+		},
+	]
+
+	m_Initializers = 
+	[
+		{
+			_class = "C_INIT_CreateWithinSphere"
+			m_vecDistanceBiasAbs = [0.0, 0.0, 1.0]
+			m_fSpeedMax = 1.0
+			m_fSpeedMin = 0.1
+			m_fRadiusMax = 30.0
+		},
+		{
+			_class = "C_INIT_RandomLifeTime"
+			m_fLifetimeMax = 3.0
+			m_fLifetimeMin = 2.0
+		},
+		{
+			_class = "C_INIT_RandomAlpha"
+			m_nAlphaMax = 30
+			m_nAlphaMin = 20
+		},
+		{
+			_class = "C_INIT_RandomRotation"
+		},
+		{
+			_class = "C_INIT_PositionOffset"
+			m_OffsetMin = [0.0, 0.0, 10.0]
+			m_OffsetMax = [0.0, 0.0, 25.0]
+		},
+		{
+			_class = "C_INIT_RandomSequence"
+		},
+		{
+			_class = "C_INIT_RandomColor"
+			m_ColorMax = [200, 205, 228, 255]
+			m_flTintPerc = 0.6
+			m_TintMin = [27, 27, 27, 0]
+			m_nTintBlendMode = 4
+		},
+		{
+			_class = "C_INIT_RandomYawFlip"
+		},
+	]
+
+	m_Emitters = 
+	[
+		{
+			_class = "C_OP_InstantaneousEmitter"
+			m_nParticlesToEmit = 6
+		},
+	]
+
+	m_ForceGenerators = 
+	[
+		{
+			_class = "C_OP_TwistAroundAxis"
+			m_fForceAmount = 3.0
+			m_TwistAxis = [1.0, 0.0, 1.0]
+		},
+	]
+
+	m_bPreventnamebasedlookup = false
+	m_nMaxParticles = 40
+	m_flConstantRadius = 160.0
+	m_bShouldSort = false
+}

@@ -1,0 +1,102 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf26:version{26288658-411e-4f14-b698-2e1e5d00dec6} -->
+{
+	m_nBehaviorVersion = 12
+	_class = "CParticleSystemDefinition"
+	m_Renderers = 
+	[
+		{
+			_class = "C_OP_RenderTrails"
+			m_hMaterial = resource:"materials/particle/particle_spark.vmat"
+			m_flLengthFadeInTime = 0.1
+			m_flMaxLength = 256.0
+		},
+	]
+
+	m_Operators = 
+	[
+		{
+			_class = "C_OP_FadeAndKill"
+			m_flEndFadeInTime = 0.0
+			m_flStartFadeOutTime = 0.0
+		},
+		{
+			_class = "C_OP_BasicMovement"
+			m_fDrag = 0.35
+			m_Gravity = [0.0, 0.0, -400.0]
+		},
+	]
+
+	m_Initializers = 
+	[
+		{
+			_class = "C_INIT_CreateWithinSphere"
+			m_LocalCoordinateSystemSpeedMax = [100.0, 0.0, 150.0]
+			m_LocalCoordinateSystemSpeedMin = [100.0, 0.0, 125.0]
+			m_fSpeedMax = 300.0
+			m_fSpeedMin = 150.0
+			m_fRadiusMax = 8.0
+		},
+		{
+			_class = "C_INIT_RandomLifeTime"
+			m_fLifetimeMax = 0.3
+			m_fLifetimeMin = 0.025
+		},
+		{
+			_class = "C_INIT_RandomRadius"
+			m_flRadiusMin = 0.5
+		},
+		{
+			_class = "C_INIT_RandomColor"
+			m_ColorMax = [255, 234, 189, 255]
+			m_ColorMin = [195, 242, 255, 255]
+		},
+		{
+			_class = "C_INIT_RandomAlpha"
+			m_nAlphaMin = 200
+		},
+		{
+			_class = "C_INIT_InitialVelocityNoise"
+			m_bLocalSpace = true
+			m_vecOutputMax = [-400.0, -400.0, 450.0]
+			m_vecOutputMin = [400.0, 400.0, 100.0]
+		},
+		{
+			_class = "C_INIT_RandomTrailLength"
+			m_flMaxLength = 0.15
+			m_flMinLength = 0.051
+		},
+	]
+
+	m_Emitters = 
+	[
+		{
+			_class = "C_OP_ContinuousEmitter"
+			m_flEmitRate = 1000.0
+			m_flOpFadeOscillatePeriod = 3.0
+			m_flOpEndFadeOutTime = 0.05
+			m_flOpStartFadeOutTime = 0.05
+			m_flEmissionDuration = 1.0
+		},
+		{
+			_class = "C_OP_ContinuousEmitter"
+			m_flEmissionDuration = 1.0
+			m_flEmitRate = 5000.0
+			m_flOpFadeOscillatePeriod = 5.0
+			m_flOpEndFadeOutTime = 0.01
+			m_flOpStartFadeOutTime = 0.01
+		},
+	]
+
+	m_Children = 
+	[
+		{
+			m_ChildRef = resource:"particles/explosions_fx/bumpmine_detonate_sparks_core.vpcf"
+		},
+		{
+			m_ChildRef = resource:"particles/explosions_fx/bumpmine_detonate_sparks_glow.vpcf"
+		},
+	]
+
+	m_bPreventnamebasedlookup = false
+	m_nMaxParticles = 48
+}

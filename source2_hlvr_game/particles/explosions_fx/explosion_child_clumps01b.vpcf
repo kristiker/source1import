@@ -1,0 +1,90 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf26:version{26288658-411e-4f14-b698-2e1e5d00dec6} -->
+{
+	m_nBehaviorVersion = 12
+	_class = "CParticleSystemDefinition"
+	m_Renderers = 
+	[
+		{
+			_class = "C_OP_RenderSprites"
+			m_hMaterial = resource:"materials/particle/dirt_splash/dirt_splash.vmat"
+			m_flAnimationRate = 0.8
+		},
+	]
+
+	m_Operators = 
+	[
+		{
+			_class = "C_OP_BasicMovement"
+			m_Gravity = [0.0, 0.0, -400.0]
+		},
+		{
+			_class = "C_OP_Decay"
+		},
+		{
+			_class = "C_OP_FadeOut"
+			m_bEaseInAndOut = false
+			m_bProportional = false
+			m_flFadeOutTimeMax = 0.5
+			m_flFadeOutTimeMin = 0.5
+		},
+		{
+			_class = "C_OP_InterpolateRadius"
+			m_flEndScale = 8.0
+			m_flStartScale = 4.0
+		},
+		{
+			_class = "C_OP_PlaneCull"
+			m_flPlaneOffset = 50.0
+		},
+	]
+
+	m_Initializers = 
+	[
+		{
+			_class = "C_INIT_CreateWithinSphere"
+			m_LocalCoordinateSystemSpeedMax = [120.0, 120.0, 250.0]
+			m_LocalCoordinateSystemSpeedMin = [-120.0, -120.0, 100.0]
+			m_fSpeedMax = 200.0
+			m_vecDistanceBiasAbs = [0.0, 0.0, 1.0]
+		},
+		{
+			_class = "C_INIT_RandomRotation"
+		},
+		{
+			_class = "C_INIT_RandomLifeTime"
+			m_fLifetimeMax = 2.5
+			m_fLifetimeMin = 2.0
+		},
+		{
+			_class = "C_INIT_RandomColor"
+			m_TintMax = [206, 206, 206, 255]
+			m_TintMin = [42, 42, 42, 255]
+			m_flTintPerc = 0.9
+			m_ColorMax = [98, 92, 88, 255]
+			m_ColorMin = [147, 141, 129, 255]
+			m_nTintBlendMode = 4
+		},
+		{
+			_class = "C_INIT_RandomAlpha"
+			m_nAlphaMax = 240
+			m_nAlphaMin = 220
+		},
+		{
+			_class = "C_INIT_RandomRadius"
+			m_flRadiusMin = 3.0
+			m_flRadiusMax = 5.0
+		},
+	]
+
+	m_Emitters = 
+	[
+		{
+			_class = "C_OP_InstantaneousEmitter"
+			m_nParticlesToEmit = 50
+			m_flStartTime = 0.1
+		},
+	]
+
+	m_bPreventnamebasedlookup = false
+	m_nMaxParticles = 60
+}

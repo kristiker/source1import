@@ -1,0 +1,14 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:source1imported:version{7412167c-06e9-4698-aff2-e63eb59037e7} -->
+{
+	data = 
+	{
+		ui = false
+		volume = 0.4
+		volumerandom = 0.0
+		pitch = 1.0
+		pitchrandom = 0.0
+		distancemax = 2000.0
+		sounds = ["sounds/player/death_fem_01.vsnd", "sounds/player/death_fem_02.vsnd", "sounds/player/death_fem_03.vsnd", "sounds/player/death_fem_04.vsnd", "sounds/player/death_fem_05.vsnd", "sounds/player/death_fem_06.vsnd", "sounds/player/death_fem_07.vsnd", "sounds/player/death_fem_08.vsnd"]
+		selectionmode = "0"
+	}
+}

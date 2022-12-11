@@ -1,0 +1,91 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf26:version{26288658-411e-4f14-b698-2e1e5d00dec6} -->
+{
+	m_nBehaviorVersion = 12
+	_class = "CParticleSystemDefinition"
+	m_Renderers = 
+	[
+		{
+			_class = "C_OP_RenderSprites"
+			m_hMaterial = resource:"materials/particle/fire_burning_character/fire_burning_character.vmat"
+			m_flAnimationRate = 5.0
+			VisibilityInputs = 
+			{
+				m_nCPin = 0
+			}
+		},
+	]
+
+	m_Operators = 
+	[
+		{
+			_class = "C_OP_Decay"
+		},
+		{
+			_class = "C_OP_BasicMovement"
+			m_fDrag = 0.1
+		},
+		{
+			_class = "C_OP_FadeOut"
+			m_flFadeOutTimeMin = 0.5
+			m_flFadeOutTimeMax = 0.5
+			m_bEaseInAndOut = false
+			m_bProportional = false
+		},
+	]
+
+	m_Initializers = 
+	[
+		{
+			_class = "C_INIT_RandomRotation"
+		},
+		{
+			_class = "C_INIT_RandomLifeTime"
+			m_fLifetimeMin = 0.25
+			m_fLifetimeMax = 0.25
+		},
+		{
+			_class = "C_INIT_CreateWithinSphere"
+			m_fRadiusMax = 500.0
+		},
+	]
+
+	m_Emitters = 
+	[
+		{
+			_class = "C_OP_InstantaneousEmitter"
+			m_nParticlesToEmit = 1
+			m_nMaxEmittedPerFrame = 1
+		},
+	]
+
+	m_Children = 
+	[
+		{
+			m_ChildRef = resource:"particles/explosions_fx/explosion_child_core09b_1k.vpcf"
+		},
+		{
+			m_ChildRef = resource:"particles/explosions_fx/explosion_child_core04c_1k.vpcf"
+		},
+		{
+			m_ChildRef = resource:"particles/explosions_fx/explosion_child_flash02b_1k.vpcf"
+		},
+		{
+			m_ChildRef = resource:"particles/explosions_fx/explosion_child_flash01b.vpcf"
+		},
+	]
+
+	m_bPreventnamebasedlookup = false
+	m_nMaxParticles = 1
+	m_BoundingBoxMin = [-1500.0, -1500.0, -1500.0]
+	m_BoundingBoxMax = [1500.0, 1500.0, 1500.0]
+	m_flConstantRadius = 1.0
+	m_bShouldSort = false
+	m_PreEmissionOperators = 
+	[
+		{
+			_class = "C_OP_SetControlPointPositions"
+			m_vecCP1Pos = [0.0, 0.0, 10.0]
+		},
+	]
+
+}

@@ -1,0 +1,13 @@
+"CoopCompound.ExplodeDistant2"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"1.0"
+	"pitch"			"PITCH_NORM"
+	"soundlevel"  		"SNDLVL_150dB"
+	"rndwave"
+	{
+		"wave"			")weapons/molotov/molotov_detonate_1_distant.wav"
+		"wave"			")weapons/molotov/molotov_detonate_2_distant.wav"
+		"wave"			")weapons/molotov/molotov_detonate_3_distant.wav"
+	}
+}

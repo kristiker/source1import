@@ -1,0 +1,98 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf26:version{26288658-411e-4f14-b698-2e1e5d00dec6} -->
+{
+	m_nBehaviorVersion = 12
+	_class = "CParticleSystemDefinition"
+	m_Renderers = 
+	[
+		{
+			_class = "C_OP_RenderSprites"
+			m_hMaterial = resource:"materials/debug/particleerror.vmat"
+			m_flOpStartFadeInTime = 0.0
+			m_flOpEndFadeInTime = 0.0
+			m_flOpStartFadeOutTime = 0.0
+			m_flOpEndFadeOutTime = 0.0
+			m_flOpFadeOscillatePeriod = 0.0
+			m_flAnimationRate = 0.1
+			m_nOrientationType = 0
+			m_flAnimationRate2 = 0.0
+			m_bAnimateInFPS = false
+		},
+	]
+
+	m_Operators = 
+	[
+		{
+			_class = "C_OP_BasicMovement"
+			m_flOpStartFadeInTime = 0.0
+			m_flOpEndFadeInTime = 0.0
+			m_flOpStartFadeOutTime = 0.0
+			m_flOpEndFadeOutTime = 0.0
+			m_flOpFadeOscillatePeriod = 0.0
+			m_Gravity = [0.0, 0.0, 0.0]
+			m_fDrag = 0.0
+			m_nMaxConstraintPasses = 3
+		},
+		{
+			_class = "C_OP_Decay"
+			m_flOpStartFadeInTime = 0.0
+			m_flOpEndFadeInTime = 0.0
+			m_flOpStartFadeOutTime = 0.0
+			m_flOpEndFadeOutTime = 0.0
+			m_flOpFadeOscillatePeriod = 0.0
+		},
+	]
+
+	m_Initializers = 
+	[
+		{
+			_class = "C_INIT_CreateWithinSphere"
+			m_flOpStartFadeInTime = 0.0
+			m_flOpEndFadeInTime = 0.0
+			m_flOpStartFadeOutTime = 0.0
+			m_flOpEndFadeOutTime = 0.0
+			m_flOpFadeOscillatePeriod = 0.0
+			m_fRadiusMin = 0.0
+			m_fRadiusMax = 30.0
+			m_vecDistanceBias = [1.0, 1.0, 1.0]
+			m_vecDistanceBiasAbs = [0.0, 0.0, 0.0]
+			m_bLocalCoords = false
+			m_nControlPointNumber = 0
+			m_fSpeedMin = 100.0
+			m_fSpeedMax = 100.0
+			m_fSpeedRandExp = 1.0
+			m_LocalCoordinateSystemSpeedMin = [0.0, 0.0, 0.0]
+			m_LocalCoordinateSystemSpeedMax = [0.0, 0.0, 0.0]
+			m_bUseHighestEndCP = false
+		},
+		{
+			_class = "C_INIT_RandomLifeTime"
+			m_flOpStartFadeInTime = 0.0
+			m_flOpEndFadeInTime = 0.0
+			m_flOpStartFadeOutTime = 0.0
+			m_flOpEndFadeOutTime = 0.0
+			m_flOpFadeOscillatePeriod = 0.0
+			m_fLifetimeMin = 3.0
+			m_fLifetimeMax = 3.0
+			m_fLifetimeRandExponent = 1.0
+		},
+	]
+
+	m_bPreventnamebasedlookup = false
+	m_nMaxParticles = 1000
+	m_nInitialParticles = 200
+	m_nBoundingBoxControl = 0
+	m_BoundingBoxMin = [-10.0, -10.0, -10.0]
+	m_BoundingBoxMax = [10.0, 10.0, 10.0]
+	m_flConstantRadius = 15.0
+	m_ConstantColor = [255, 0, 0, 255]
+	m_flConstantRotation = 0.0
+	m_flConstantRotationSpeed = 0.0
+	m_nConstantSequenceNumber = 0
+	m_nConstantSequenceNumber1 = 0
+	m_nGroupID = 0
+	m_flMaximumTimeStep = 0.1
+	m_flMaximumSimTime = 0.0
+	m_flMinimumSimTime = 0.0
+	m_nMinimumFrames = 0
+	m_nSkipRenderControlPoint = -1
+}

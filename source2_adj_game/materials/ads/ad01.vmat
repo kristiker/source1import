@@ -1,0 +1,13 @@
+"Layer0"
+{
+	shader	"complex.vfx"
+	TextureColor	"materials/ads/ad01.tga"
+	F_SELF_ILLUM	"1"
+	TextureSelfIllumMask	"materials/ads/ad01_a_selfillummask.tga"
+	g_vSelfIllumTint	"[0.100000 0.100000 0.100000 1.000000]"
+	SystemAttributes
+	{
+		PhysicsSurfaceProperties	"glass"
+	}
+	TextureRoughness	"materials/default/default_rough_s1import.tga"
+}

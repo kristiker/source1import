@@ -1,0 +1,85 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf26:version{26288658-411e-4f14-b698-2e1e5d00dec6} -->
+{
+	m_nBehaviorVersion = 12
+	_class = "CParticleSystemDefinition"
+	m_Renderers = 
+	[
+		{
+			_class = "C_OP_RenderSprites"
+			m_hMaterial = resource:"materials/particle/star_noz.vmat"
+			VisibilityInputs = 
+			{
+				m_nCPin = 0
+			}
+		},
+	]
+
+	m_Operators = 
+	[
+		{
+			_class = "C_OP_FadeAndKill"
+			m_flEndFadeInTime = 0.0
+			m_flStartFadeOutTime = 0.7
+		},
+		{
+			_class = "C_OP_InterpolateRadius"
+			m_flEndScale = 0.25
+			m_flBias = 0.65
+		},
+	]
+
+	m_Initializers = 
+	[
+		{
+			_class = "C_INIT_CreateWithinSphere"
+			m_fSpeedMax = 64.0
+			m_fSpeedMin = 16.0
+			m_fRadiusMax = 2.0
+		},
+		{
+			_class = "C_INIT_RandomLifeTime"
+			m_fLifetimeRandExponent = 5.0
+			m_fLifetimeMax = 0.125
+			m_fLifetimeMin = 0.025
+		},
+		{
+			_class = "C_INIT_RandomRadius"
+			m_flRadiusMax = 32.0
+			m_flRadiusMin = 24.0
+		},
+		{
+			_class = "C_INIT_RandomColor"
+			m_ColorMax = [189, 251, 255, 255]
+			m_ColorMin = [195, 242, 255, 255]
+		},
+		{
+			_class = "C_INIT_RandomAlpha"
+		},
+		{
+			_class = "C_INIT_RandomRotation"
+		},
+	]
+
+	m_Emitters = 
+	[
+		{
+			_class = "C_OP_ContinuousEmitter"
+			m_flEmitRate = 1000.0
+			m_flOpFadeOscillatePeriod = 3.0
+			m_flOpEndFadeOutTime = 0.05
+			m_flOpStartFadeOutTime = 0.05
+			m_flEmissionDuration = 1.0
+		},
+		{
+			_class = "C_OP_ContinuousEmitter"
+			m_flEmissionDuration = 1.0
+			m_flEmitRate = 5000.0
+			m_flOpFadeOscillatePeriod = 5.0
+			m_flOpEndFadeOutTime = 0.01
+			m_flOpStartFadeOutTime = 0.01
+		},
+	]
+
+	m_bPreventnamebasedlookup = false
+	m_nMaxParticles = 8
+}
