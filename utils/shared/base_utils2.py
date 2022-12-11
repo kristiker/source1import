@@ -116,6 +116,8 @@ STEAMVR: bool = False
 HLVR: bool = False
 SBOX: bool = False
 
+destmod: eS2Game = None
+
 def update_destmod(new_dest: eS2Game):
     global destmod
     destmod = new_dest
@@ -123,7 +125,7 @@ def update_destmod(new_dest: eS2Game):
         globals()[game.upper()] = False
     globals()[new_dest.value.upper()] = True
 
-destmod: eS2Game = eS2Game(args_known.branch if args_known.branch else "hlvr")
+update_destmod(eS2Game(args_known.branch if args_known.branch else "hlvr"))
 import_context: dict = None
 RemapTable: KVUtilFile = None
 
