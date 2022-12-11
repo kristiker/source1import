@@ -1,0 +1,32 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:source1imported:version{7412167c-06e9-4698-aff2-e63eb59037e7} -->
+{
+	default.null = 
+	{
+		type = "src1_3d"
+		vsnd_files = null
+	}
+	basecombatcharacter.stopweaponsounds = 
+	{
+		type = "src1_3d"
+		vsnd_files = null
+	}
+	player.swim = 
+	{
+		type = "src1_3d"
+		volume = 0.75
+		volume_rand_min = 0.35
+	}
+	player.death = null
+	player.deathfem = null
+	player.fallgib = 
+	{
+		type = "src1_3d"
+		vsnd_files = null
+	}
+	player.plasmadamage = 
+	{
+		type = "src1_3d"
+		vsnd_files = null
+	}
+	bounce.rifleshell = null
+}

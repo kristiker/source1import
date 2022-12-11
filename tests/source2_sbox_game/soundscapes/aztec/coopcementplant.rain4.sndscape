@@ -1,0 +1,14 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:source1imported:version{7412167c-06e9-4698-aff2-e63eb59037e7} -->
+{
+	data = 
+	{
+		dsp = 1
+		fadetime = 0.5
+		playlooping = 
+		{
+			volume = 1.0
+			pitch = 100
+			wave = "sounds/ambient/weather/rumble_rain.vsnd"
+		}
+	}
+}

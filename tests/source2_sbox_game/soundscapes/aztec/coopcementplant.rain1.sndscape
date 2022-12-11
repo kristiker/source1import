@@ -1,0 +1,29 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:source1imported:version{7412167c-06e9-4698-aff2-e63eb59037e7} -->
+{
+	data = 
+	{
+		dsp = 1
+		fadetime = 0.5
+		playlooping = 
+		{
+			volume = 0.1
+			pitch = 100
+			wave = "sounds/ambient/weather/aztec_rain_lp_01.vsnd"
+		}
+		playrandom = 
+		{
+			time = "10,25"
+			volume = "0.5,0.8"
+			pitch = "85,100"
+			rndwave = 
+			{
+				wave = "sounds/ambient/weather/thunder1.vsnd"
+				wave = "sounds/ambient/weather/thunder2.vsnd"
+				wave = "sounds/ambient/weather/thunder3.vsnd"
+				wave = "sounds/ambient/playonce/weather/thunder4.vsnd"
+				wave = "sounds/ambient/playonce/weather/thunder5.vsnd"
+				wave = "sounds/ambient/playonce/weather/thunder6.vsnd"
+			}
+		}
+	}
+}
