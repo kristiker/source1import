@@ -359,7 +359,7 @@ def formatNewTexturePath(vmtPath, textureType = TEXTURE_FILEEXT, noRename = Fals
         if (sheetdata:=texturePath.with_name(texturePath.stem + '.sheet.json')).is_file():
             vmat.KeyValues.update(sh.GetJson(sheetdata))
 
-    return str(texturePath.local)
+    return texturePath.local.as_posix()
 
 def getTexture(vtf_path):
     "get vtf source"

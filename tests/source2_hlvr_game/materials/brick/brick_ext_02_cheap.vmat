@@ -1,7 +1,7 @@
 "Layer0"
 {
 	shader	"vr_complex.vfx"
-	TextureColor	"materials\brick\brick_ext_02.tga"
+	TextureColor	"materials/brick/brick_ext_02.tga"
 	SystemAttributes
 	{
 		PhysicsSurfaceProperties	"brick"

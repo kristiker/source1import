@@ -1,11 +1,11 @@
 "Layer0"
 {
 	shader	"complex.vfx"
-	TextureColor	"materials\brick\brick_ext_03.tga"
+	TextureColor	"materials/brick/brick_ext_03.tga"
 	SystemAttributes
 	{
 		PhysicsSurfaceProperties	"brick"
 	}
-	TextureNormal	"materials\brick\brick_ext_03_height-ssbump.tga"
+	TextureNormal	"materials/brick/brick_ext_03_height-ssbump.tga"
 	TextureRoughness	"materials/default/default_rough_s1import.tga"
 }
