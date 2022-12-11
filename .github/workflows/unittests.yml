@@ -41,8 +41,8 @@ jobs:
           python utils/shared/material_proxies.py
           python utils/shared/qc.py
 
-      - name: Check imported files
+      - name: Check imported files for changes
         run: |
           python tests/import_results_update.py
-          git diff --quiet HEAD $REF -- tests || echo changed
+          git diff HEAD $REF -- tests
 
