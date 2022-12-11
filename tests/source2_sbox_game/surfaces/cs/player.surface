@@ -1,0 +1,30 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:source1imported:version{7412167c-06e9-4698-aff2-e63eb59037e7} -->
+{
+	data = 
+	{
+		Friction = 0.5
+		Elasticity = 0.001
+		Density = 1000
+		Thickness = 0.5
+		Dampening = 0.0
+		BounceThreshold = 0.0
+		ImpactEffects = 
+		{
+			Bullet = []
+			BulletDecal = []
+			Regular = []
+		}
+		Sounds = 
+		{
+			ImpactSoft = ""
+			ImpactHard = ""
+			RoughScrape = ""
+			FootLeft = ""
+			FootRight = ""
+			FootLaunch = ""
+			FootLand = ""
+		}
+		basesurface = "surfaces/default.surface"
+		description = ""
+	}
+}
