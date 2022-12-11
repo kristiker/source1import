@@ -40,4 +40,8 @@ jobs:
           python utils/shared/keyvalues3.py
           python utils/shared/material_proxies.py
           python utils/shared/qc.py
+        
+      - name: Check imported files
+        run: |
+          git diff --quiet HEAD $REF -- tests || echo changed
 
