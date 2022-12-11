@@ -20,7 +20,7 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
-      
+
       - name: Setup Python 3.10
         uses: actions/setup-python@v4.2.0
         with:
@@ -40,8 +40,9 @@ jobs:
           python utils/shared/keyvalues3.py
           python utils/shared/material_proxies.py
           python utils/shared/qc.py
-        
+
       - name: Check imported files
         run: |
+          python tests/import_results_update.py
           git diff --quiet HEAD $REF -- tests || echo changed
 
