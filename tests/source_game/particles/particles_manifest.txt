@@ -1,0 +1,7 @@
+particles_manifest
+{
+	"file"		"particles/error.pcf"
+	"file"		"!particles/explosions_fx.pcf"
+	"file"		"particles/critters/chicken.pcf"
+	"file"		"particles/noexist.pcf"
+}

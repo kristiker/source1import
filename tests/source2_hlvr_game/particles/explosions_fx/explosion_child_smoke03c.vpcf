@@ -1,0 +1,94 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf26:version{26288658-411e-4f14-b698-2e1e5d00dec6} -->
+{
+	m_nBehaviorVersion = 12
+	_class = "CParticleSystemDefinition"
+	m_Renderers = 
+	[
+		{
+			_class = "C_OP_RenderSprites"
+			m_hMaterial = resource:"materials/particle/particle_smokegrenade3.vmat"
+			m_flAnimationRate = 0.5
+		},
+	]
+
+	m_Operators = 
+	[
+		{
+			_class = "C_OP_InterpolateRadius"
+			m_flStartScale = 2.5
+			m_flEndScale = 2.3
+		},
+		{
+			_class = "C_OP_Decay"
+		},
+		{
+			_class = "C_OP_FadeIn"
+			m_bProportional = false
+			m_flFadeInTimeMax = 0.35
+			m_flFadeInTimeMin = 0.2
+		},
+		{
+			_class = "C_OP_FadeOut"
+			m_flFadeOutTimeMax = 5.0
+			m_flFadeOutTimeMin = 4.5
+			m_bProportional = false
+			m_bEaseInAndOut = false
+		},
+	]
+
+	m_Initializers = 
+	[
+		{
+			_class = "C_INIT_CreateWithinSphere"
+			m_fSpeedMax = 1.0
+			m_fSpeedMin = 0.1
+			m_fRadiusMax = 140.0
+			m_vecDistanceBiasAbs = [0.0, 0.0, 1.0]
+		},
+		{
+			_class = "C_INIT_RandomLifeTime"
+			m_fLifetimeMax = 20.0
+			m_fLifetimeMin = 20.0
+		},
+		{
+			_class = "C_INIT_RandomColor"
+			m_ColorMax = [65, 65, 65, 255]
+			m_ColorMin = [90, 90, 90, 255]
+			m_TintMin = [65, 65, 65, 255]
+			m_TintMax = [90, 90, 90, 255]
+			m_flTintPerc = 0.2
+			m_nTintBlendMode = 4
+		},
+		{
+			_class = "C_INIT_RandomRotation"
+		},
+		{
+			_class = "C_INIT_PositionOffset"
+			m_OffsetMax = [0.0, 0.0, 30.0]
+			m_OffsetMin = [0.0, 0.0, 30.0]
+		},
+	]
+
+	m_Emitters = 
+	[
+		{
+			_class = "C_OP_InstantaneousEmitter"
+			m_nParticlesToEmit = 20
+		},
+	]
+
+	m_ForceGenerators = 
+	[
+		{
+			_class = "C_OP_TwistAroundAxis"
+			m_fForceAmount = 2.0
+		},
+	]
+
+	m_bPreventnamebasedlookup = false
+	m_nMaxParticles = 25
+	m_BoundingBoxMin = [-18.0, -18.0, -32.0]
+	m_BoundingBoxMax = [18.0, 18.0, 20.0]
+	m_flConstantRadius = 50.0
+	m_bShouldSort = false
+}

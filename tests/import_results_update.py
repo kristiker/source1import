@@ -23,15 +23,29 @@ def workflow(*modules: tuple[ModuleType, dict[str, Any]]):
         return wrapper
     return inner
 
+import particles_import
 import scripts_import
 
+
+
 @workflow(
+    (particles_import, {
+        "OVERWRITE_PARTICLES": False,
+        "OVERWRITE_VSNAPS": False,
+        "BEHAVIOR_VERSION": 12,
+    }),
     (scripts_import, {
-        "OVERWRITE_ASSETS": True
+        "OVERWRITE_ASSETS": True,
+        "SOUNDSCAPES": True,
+        "GAMESOUNDS": True,
+        "SURFACES": True,
+        "MISCELLANEOUS": True,
     }),
 )
 def hlvr(module: ModuleType):
     module.main()
+
+
 
 @workflow(
     (scripts_import, {
@@ -45,6 +59,8 @@ def hlvr(module: ModuleType):
 def sbox(module: ModuleType):
     module.main()
 
+
+
 @workflow(
     (scripts_import, {
         "OVERWRITE_ASSETS": True,
@@ -56,6 +72,7 @@ def sbox(module: ModuleType):
 )
 def adj(module: ModuleType):
     module.main()
+
 
 hlvr()
 sbox()

@@ -1,0 +1,135 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf26:version{26288658-411e-4f14-b698-2e1e5d00dec6} -->
+{
+	m_nBehaviorVersion = 12
+	_class = "CParticleSystemDefinition"
+	m_Renderers = 
+	[
+		{
+			_class = "C_OP_RenderSprites"
+			m_hMaterial = resource:"materials/particle/smoke1/smoke1_nearcull.vmat"
+			m_flAnimationRate = 3.0
+		},
+	]
+
+	m_Operators = 
+	[
+		{
+			_class = "C_OP_Decay"
+		},
+		{
+			_class = "C_OP_BasicMovement"
+			m_fDrag = 0.1
+			m_Gravity = [0.0, 0.0, -200.0]
+		},
+		{
+			_class = "C_OP_FadeOut"
+			m_bEaseInAndOut = false
+			m_bProportional = false
+			m_flFadeOutTimeMin = 1.5
+			m_flFadeOutTimeMax = 2.0
+		},
+		{
+			_class = "C_OP_InterpolateRadius"
+			m_flEndScale = 1.5
+		},
+		{
+			_class = "C_OP_OscillateScalar"
+			m_FrequencyMax = 0.25
+			m_FrequencyMin = 0.25
+			m_RateMax = 0.5
+			m_RateMin = -0.5
+			m_nField = 4
+		},
+		{
+			_class = "C_OP_OscillateVector"
+			m_FrequencyMax = [0.25, 0.25, 0.25]
+			m_FrequencyMin = [0.125, 0.125, 0.125]
+			m_RateMax = [0.5, 0.5, 0.5]
+			m_RateMin = [-0.5, -0.5, -0.5]
+		},
+		{
+			_class = "C_OP_FadeIn"
+			m_flFadeInTimeMin = 0.1
+			m_flFadeInTimeMax = 0.125
+		},
+	]
+
+	m_Initializers = 
+	[
+		{
+			_class = "C_INIT_CreateWithinSphere"
+			m_LocalCoordinateSystemSpeedMax = [0.0, 0.0, 1.0]
+			m_LocalCoordinateSystemSpeedMin = [0.0, 0.0, 1.0]
+			m_fSpeedMax = 400.0
+			m_fSpeedMin = 400.0
+			m_vecDistanceBias = [1.0, 1.0, 0.0]
+			m_fRadiusMax = 8.0
+		},
+		{
+			_class = "C_INIT_RandomRotation"
+		},
+		{
+			_class = "C_INIT_RandomRadius"
+			m_flRadiusMin = 6.0
+			m_flRadiusMax = 6.5
+		},
+		{
+			_class = "C_INIT_RandomSequence"
+			m_nSequenceMax = 5
+		},
+		{
+			_class = "C_INIT_RandomColor"
+			m_nTintBlendMode = 4
+			m_TintMin = [0, 0, 0, 255]
+			m_flTintPerc = 0.5
+			m_ColorMax = [87, 79, 76, 255]
+			m_ColorMin = [117, 111, 104, 255]
+			m_TintMax = [89, 87, 81, 255]
+		},
+		{
+			_class = "C_INIT_RandomLifeTime"
+			m_fLifetimeMin = 2.0
+			m_fLifetimeMax = 2.4
+		},
+		{
+			_class = "C_INIT_RemapScalar"
+			m_flInputMax = 0.05
+			m_flOutputMin = 1.5
+			m_flOutputMax = 15.0
+			m_nSetMethod = "PARTICLE_SET_SCALE_CURRENT_VALUE"
+		},
+		{
+			_class = "C_INIT_RemapScalar"
+			m_flInputMax = 0.05
+			m_nFieldOutput = 7
+			m_flOutputMin = 1.0
+			m_flOutputMax = 0.5
+		},
+		{
+			_class = "C_INIT_PositionWarp"
+			m_vecWarpMin = [0.0, 0.0, 0.0]
+			m_vecWarpMax = [0.0, 0.0, 1000.0]
+			m_flWarpTime = 0.025
+			m_flWarpStartTime = 0.01
+		},
+		{
+			_class = "C_INIT_RandomAlpha"
+			m_nAlphaMax = 250
+			m_nAlphaMin = 240
+		},
+	]
+
+	m_Emitters = 
+	[
+		{
+			_class = "C_OP_ContinuousEmitter"
+			m_flEmissionDuration = 0.2
+			m_flEmitRate = 110.0
+		},
+	]
+
+	m_bPreventnamebasedlookup = false
+	m_nMaxParticles = 40
+	m_BoundingBoxMin = [-128.0, -128.0, -32.0]
+	m_BoundingBoxMax = [128.0, 128.0, 128.0]
+}

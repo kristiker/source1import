@@ -1,0 +1,128 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf26:version{26288658-411e-4f14-b698-2e1e5d00dec6} -->
+{
+	m_nBehaviorVersion = 12
+	_class = "CParticleSystemDefinition"
+	m_Renderers = 
+	[
+		{
+			_class = "C_OP_RenderSprites"
+			m_hMaterial = resource:"materials/particle/impact/fleks.vmat"
+			VisibilityInputs = 
+			{
+				m_flProxyRadius = 8.0
+				m_flRadiusScaleMin = 0.0
+			}
+		},
+	]
+
+	m_Operators = 
+	[
+		{
+			_class = "C_OP_BasicMovement"
+			m_Gravity = [0.0, 0.0, -500.0]
+		},
+		{
+			_class = "C_OP_Decay"
+		},
+		{
+			_class = "C_OP_FadeOut"
+		},
+		{
+			_class = "C_OP_Spin"
+			m_flOpStartFadeOutTime = 0.5
+			m_flOpEndFadeOutTime = 0.75
+			m_nSpinRateDegrees = 120
+		},
+		{
+			_class = "C_OP_VelocityDecay"
+		},
+	]
+
+	m_Initializers = 
+	[
+		{
+			_class = "C_INIT_RandomSequence"
+			m_nSequenceMin = 50
+			m_nSequenceMax = 54
+		},
+		{
+			_class = "C_INIT_RandomRotation"
+		},
+		{
+			_class = "C_INIT_RandomRadius"
+			m_flRadiusMin = 0.25
+			m_flRadiusMax = 0.75
+		},
+		{
+			_class = "C_INIT_RandomLifeTime"
+			m_fLifetimeMin = 0.4
+			m_fLifetimeMax = 1.5
+		},
+		{
+			_class = "C_INIT_RandomColor"
+			m_ColorMin = [117, 98, 80, 255]
+			m_ColorMax = [59, 62, 68, 255]
+			m_flTintPerc = 0.4
+			m_flUpdateThreshold = 128.0
+			m_nTintCP = 4
+			m_TintMin = [0, 0, 0, 255]
+			m_nTintBlendMode = 4
+		},
+		{
+			_class = "C_INIT_CreateWithinBox"
+			m_vecMax = [6.0, 6.0, 0.0]
+			m_vecMin = [-6.0, -6.0, 0.0]
+		},
+		{
+			_class = "C_INIT_VelocityRandom"
+			m_LocalCoordinateSystemSpeedMax = [25.0, 25.0, 100.0]
+			m_LocalCoordinateSystemSpeedMin = [-25.0, -25.0, 150.0]
+		},
+	]
+
+	m_Emitters = 
+	[
+		{
+			_class = "C_OP_ContinuousEmitter"
+			m_flEmissionDuration = 2.5
+			m_flEmitRate = 20.0
+		},
+	]
+
+	m_Children = 
+	[
+		{
+			m_ChildRef = resource:"particles/critters/chicken/chicken_crumble_dust.vpcf"
+		},
+		{
+			m_ChildRef = resource:"particles/critters/chicken/chicken_rez_dirt_child.vpcf"
+		},
+		{
+			m_ChildRef = resource:"particles/critters/chicken/chicken_rez_dirt_child_clumps.vpcf"
+			m_flDelay = 0.5
+		},
+		{
+			m_ChildRef = resource:"particles/critters/chicken/chicken_rez_dirt_smoke_puff.vpcf"
+		},
+	]
+
+	m_Constraints = 
+	[
+		{
+			_class = "C_OP_WorldTraceConstraint"
+			m_CollisionGroupName = "DEBRIS"
+			m_bBrushOnly = true
+			m_flRadiusScale = 0.5
+			m_flSlideAmount = 0.5
+		},
+	]
+
+	m_bPreventnamebasedlookup = false
+	m_nMaxParticles = 60
+	m_BoundingBoxMin = [-64.0, -64.0, -64.0]
+	m_BoundingBoxMax = [64.0, 64.0, 64.0]
+	m_flCullRadius = 80.0
+	m_flMaxDrawDistance = 1500.0
+	m_bShouldBatch = true
+	m_flAggregateRadius = 256.0
+}

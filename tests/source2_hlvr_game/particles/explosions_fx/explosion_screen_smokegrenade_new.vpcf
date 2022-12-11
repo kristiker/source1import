@@ -1,0 +1,105 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf26:version{26288658-411e-4f14-b698-2e1e5d00dec6} -->
+{
+	m_nBehaviorVersion = 12
+	_class = "CParticleSystemDefinition"
+	m_Renderers = 
+	[
+		{
+			_class = "C_OP_RenderSprites"
+			m_hMaterial = resource:"materials/particle/particle_flares/particle_flare_gray.vmat"
+			VisibilityInputs = 
+			{
+				m_flAlphaScaleMax = 0.0
+				m_flAlphaScaleMin = 1.0
+				m_flInputMin = 1.0
+				m_nCPin = 1
+				m_flDistanceInputMin = 130.0
+				m_flDistanceInputMax = 173.0
+				m_flProxyRadius = 0.0
+			}
+			m_flAnimationRate = 0.5
+			m_flAnimationRate2 = 0.01
+		},
+	]
+
+	m_Operators = 
+	[
+		{
+			_class = "C_OP_Decay"
+		},
+		{
+			_class = "C_OP_BasicMovement"
+		},
+		{
+			_class = "C_OP_FadeIn"
+			m_flFadeInTimeMax = 0.2
+			m_flFadeInTimeMin = 0.2
+			m_bProportional = false
+		},
+		{
+			_class = "C_OP_FadeOut"
+			m_flFadeOutTimeMin = 1.0
+			m_flFadeOutTimeMax = 1.0
+			m_bProportional = false
+			m_bEaseInAndOut = false
+		},
+		{
+			_class = "C_OP_SpinUpdate"
+		},
+	]
+
+	m_Initializers = 
+	[
+		{
+			_class = "C_INIT_RandomAlpha"
+		},
+		{
+			_class = "C_INIT_RandomLifeTime"
+			m_fLifetimeMin = 18.0
+			m_fLifetimeMax = 18.0
+		},
+		{
+			_class = "C_INIT_RandomColor"
+			m_nTintBlendMode = 4
+			m_TintMin = [20, 20, 20, 255]
+			m_flTintPerc = 0.2
+			m_ColorMin = [146, 146, 149, 255]
+			m_ColorMax = [121, 121, 123, 255]
+			m_TintMax = [184, 184, 184, 255]
+		},
+		{
+			_class = "C_INIT_CreateWithinBox"
+			m_vecMin = [0.0, 0.0, 1.0]
+			m_vecMax = [0.0, 0.0, 1.0]
+		},
+	]
+
+	m_Emitters = 
+	[
+		{
+			_class = "C_OP_InstantaneousEmitter"
+			m_nParticlesToEmit = 4
+			m_nMaxEmittedPerFrame = 4
+		},
+	]
+
+	m_Constraints = 
+	[
+		{
+			_class = "C_OP_ConstrainDistance"
+			m_fMaxDistance = 1.0
+			m_bGlobalCenter = true
+			m_CenterOffset = [0.0, 0.0, 32.0]
+		},
+	]
+
+	m_bPreventnamebasedlookup = false
+	m_nMaxParticles = 2
+	m_BoundingBoxMin = [-120.0, -120.0, -10.0]
+	m_BoundingBoxMax = [120.0, 120.0, 120.0]
+	m_flConstantRadius = 200.0
+	m_flMaxDrawDistance = 300.0
+	m_bViewModelEffect = true
+	m_bScreenSpaceEffect = true
+	m_flAggregateRadius = 256.0
+}

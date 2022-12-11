@@ -1,0 +1,93 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf26:version{26288658-411e-4f14-b698-2e1e5d00dec6} -->
+{
+	m_nBehaviorVersion = 12
+	_class = "CParticleSystemDefinition"
+	m_Renderers = 
+	[
+		{
+			_class = "C_OP_RenderTrails"
+			m_hMaterial = resource:"materials/particle/sparks/sparks.vmat"
+			m_flLengthFadeInTime = 0.05
+		},
+	]
+
+	m_Operators = 
+	[
+		{
+			_class = "C_OP_FadeOut"
+			m_flFadeOutTimeMax = 1.0
+			m_flFadeOutTimeMin = 1.0
+		},
+		{
+			_class = "C_OP_ColorInterpolate"
+			m_flFadeEndTime = 0.2
+		},
+		{
+			_class = "C_OP_InterpolateRadius"
+			m_flEndScale = 0.0
+		},
+		{
+			_class = "C_OP_Decay"
+		},
+	]
+
+	m_Initializers = 
+	[
+		{
+			_class = "C_INIT_RandomRadius"
+			m_flRadiusMax = 12.0
+		},
+		{
+			_class = "C_INIT_RandomAlpha"
+			m_nAlphaMin = 150
+		},
+		{
+			_class = "C_INIT_CreateWithinSphere"
+			m_vecDistanceBias = [1.0, 1.0, 0.0]
+			m_vecDistanceBiasAbs = [0.0, 0.0, 1.0]
+			m_bUseHighestEndCP = true
+			m_LocalCoordinateSystemSpeedMax = [200.0, 200.0, -100.0]
+			m_LocalCoordinateSystemSpeedMin = [-200.0, -200.0, -230.0]
+			m_flEndCPGrowthTime = 2.0
+		},
+		{
+			_class = "C_INIT_RandomColor"
+			m_ColorMin = [252, 254, 193, 255]
+		},
+		{
+			_class = "C_INIT_RandomLifeTime"
+			m_fLifetimeMax = 0.1
+			m_fLifetimeMin = 0.08
+		},
+		{
+			_class = "C_INIT_RandomSequence"
+			m_nSequenceMin = 3
+			m_nSequenceMax = 4
+		},
+		{
+			_class = "C_INIT_RandomTrailLength"
+			m_flMinLength = 0.05
+		},
+		{
+			_class = "C_INIT_PositionOffset"
+			m_OffsetMax = [12.0, 12.0, 9.0]
+			m_OffsetMin = [-12.0, -12.0, 0.0]
+		},
+	]
+
+	m_Emitters = 
+	[
+		{
+			_class = "C_OP_ContinuousEmitter"
+			m_flEmissionDuration = 2.5
+			m_flEmitRate = 170.0
+			m_flOpEndFadeInTime = 2.0
+			m_flEmissionScale = 1.0
+		},
+	]
+
+	m_bPreventnamebasedlookup = false
+	m_nMaxParticles = 400
+	m_flNoDrawTimeToGoToSleep = 0.1
+	m_bShouldSort = false
+}
