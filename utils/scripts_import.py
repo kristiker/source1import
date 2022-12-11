@@ -30,8 +30,8 @@ def main():
         if sh.SBOX:
             sh.import_context['dest'] = sh.EXPORT_CONTENT
             for soundscape_collection_path in itertools.chain(
-                (sh.src(scripts)).glob('**/soundscapes_*.vsc'),
-                (sh.src(scripts)).glob('**/soundscapes_*.txt')
+                sh.globsort((sh.src(scripts)).glob('**/soundscapes_*.vsc')),
+                sh.globsort((sh.src(scripts)).glob('**/soundscapes_*.txt'))
             ):
                 if soundscape_collection_path.name == SOUNDSCAPES_MANIFEST.name:
                     continue
@@ -52,7 +52,7 @@ def main():
     if GAMESOUNDS:
         print("- Game Sounds!") # game sounds: scripts -> soundevents
 
-        for file in (sh.src(scripts)).glob('**/game_sounds*.txt'):
+        for file in sh.globsort(sh.src(scripts).glob('**/game_sounds*.txt')):
             if file.name != 'game_sounds_manifest.txt':
                 ImportGameSounds(file)
 
@@ -63,7 +63,7 @@ def main():
         print("- Surfaces!") # surfaces: scripts -> surfaceproperties.vsurf
 
         manifest_handle = VsurfManifestHandler()
-        for surfprop_txt in (sh.src(scripts)).glob('**/surfaceproperties*.txt'):
+        for surfprop_txt in sh.globsort(sh.src(scripts).glob('**/surfaceproperties*.txt')):
             if surfprop_txt.name == SURFACEPROPERTIES_MANIFEST.name:
                 manifest_handle.read_manifest(surfprop_txt)
                 continue

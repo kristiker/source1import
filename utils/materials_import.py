@@ -359,7 +359,7 @@ def formatNewTexturePath(vmtPath, textureType = TEXTURE_FILEEXT, noRename = Fals
         if (sheetdata:=texturePath.with_name(texturePath.stem + '.sheet.json')).is_file():
             vmat.KeyValues.update(sh.GetJson(sheetdata))
 
-    return str(texturePath.local)
+    return texturePath.local.as_posix()
 
 def getTexture(vtf_path):
     "get vtf source"
@@ -379,7 +379,11 @@ def createMask(image_path, copySub = '_mask', channel = 'A', invert = False, que
 
     sh.msg(f"createMask{image_path.local.relative_to(materials).as_posix(), copySub, channel, invert, queue} -> {newMaskPath.local}")
 
-    if newMaskPath.exists(): #and not DEBUG:
+    if sh.MOCK:
+        newMaskPath.open('a').close()
+        return newMaskPath.local.as_posix()
+
+    if newMaskPath.exists():
         return newMaskPath.local.as_posix()
 
     if not image_path.is_file():

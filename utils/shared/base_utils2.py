@@ -5,7 +5,7 @@ from enum import Enum
 import fnmatch
 import subprocess
 from types import GeneratorType
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Iterable, Optional
 try:
     from keyvalues1 import KV
 except ImportError:
@@ -339,6 +339,11 @@ elif __name__ == '__main__':
     raise SystemExit(0)
 
 @add_method(Path)
+def as_posix(self) -> str:
+    """pathlib's as_posix replaces '/' with '/' on linux 🤦"""
+    return str(self).replace('\\', '/')
+
+@add_method(Path)
 def without_spaces(self, repl = '_') -> Path:
     return self.parent / self.name.replace(' ', repl)
 
@@ -378,7 +383,7 @@ def collect(root, inExt, outExt, existing:bool = False, outNameRule = None, sear
         if match is None:
             match = ('**/'*_recurse()) + '*' + inExt
 
-        for filePath in searchPath.glob(match):
+        for filePath in globsort(searchPath.glob(match)):
             skip_reason = ''
             if filter_ is not None:
                 if not fnmatch.fnmatch(filePath, filter_):
@@ -422,6 +427,12 @@ def source2namefixup(path: Path):
 
 def skip(skip_reason: str, path: Path):
     status(f"- skipping [{skip_reason}]: {path.local.as_posix()}")
+
+MOCK = False
+def globsort(iterable_files: Iterable[Path]) -> list[Path]:
+    if MOCK:
+        return sorted(iterable_files)
+    return iterable_files
 
 DEBUG = False
 def msg(*args, **kwargs):
