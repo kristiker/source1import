@@ -85,7 +85,14 @@ def sbox(module: ModuleType):
 def adj(module: ModuleType):
     module.main()
 
+@workflow(
+    (vtf_to_tga, {}),
+    (materials_import, {}),
+)
+def steamvr(module: ModuleType):
+    module.main()
 
 hlvr()
 sbox()
 adj()
+steamvr()
