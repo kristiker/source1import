@@ -6,7 +6,7 @@ from typing import Any, Callable, Literal
 from PIL import Image, ImageOps
 
 import shared.base_utils2 as sh
-from shared.base_utils2 import IMPORT_MOD, DOTA2, STEAMVR, HLVR, SBOX
+from shared.base_utils2 import IMPORT_MOD, DOTA2, STEAMVR, HLVR, SBOX, ADJ
 from shared.keyvalue_simple import getKV_tailored as getKeyValues
 from shared.keyvalues1 import KV
 from shared.material_proxies import ProxiesToDynamicParams
@@ -68,7 +68,7 @@ def main():
     print('\nSource 2 Material Converter!')
 
     # update branch conditionals
-    globals().update((k,v) for (k, v) in sh.__dict__.items() if k in ("IMPORT_MOD", "DOTA2", "STEAMVR", "HLVR", "SBOX"))
+    globals().update((k,v) for (k, v) in sh.__dict__.items() if k in ("IMPORT_MOD", "DOTA2", "STEAMVR", "HLVR", "SBOX", "ADJ"))
 
     # update translation table based on branch conditions
     global vmt_to_vmat
@@ -211,7 +211,7 @@ class VMAT(ValveMaterial):
 class core(str, Enum):
     """core shaders"""
     def __call__(self):
-        if HLVR:
+        if HLVR or ADJ:
             return "vr_" + self.name
         return self.name
     complex = auto()
