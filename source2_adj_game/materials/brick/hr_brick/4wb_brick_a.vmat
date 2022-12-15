@@ -1,6 +1,6 @@
 "Layer0"
 {
-	shader	"complex.vfx"
+	shader	"vr_complex.vfx"
 	TextureColor	"materials/brick/hr_brick/brick_c.tga"
 	TextureColorB	"materials/plaster/hr_p/plaster_a.tga"
 	TextureNormalB	"materials/plaster/hr_p/plaster_a_normals.tga"

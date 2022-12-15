@@ -1,6 +1,6 @@
 "Layer0"
 {
-	shader	"complex.vfx"
+	shader	"vr_complex.vfx"
 	TextureColor	"materials/brick/brick_ext_03.tga"
 	SystemAttributes
 	{
