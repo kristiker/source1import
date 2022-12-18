@@ -10,6 +10,6 @@
 		mapbuilder.nodraw	"1"
 		mapbuilder.passbullets	"1"
 		mapbuilder.playerclip	"1"
-		mapbuilder.tags	"playerclip nodraw passbullets"
+		mapbuilder.tags	"nodraw passbullets playerclip"
 	}
 }

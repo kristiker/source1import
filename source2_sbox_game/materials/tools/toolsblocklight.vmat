@@ -8,6 +8,6 @@
 		mapbuilder.nodraw	"1"
 		mapbuilder.nonsolid	"1"
 		mapbuilder.detail	"1"
-		mapbuilder.tags	"nonsolid detail nodraw"
+		mapbuilder.tags	"nonsolid nodraw detail"
 	}
 }
