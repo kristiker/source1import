@@ -563,33 +563,34 @@ def TextureFramesToSheet(frames: list[Path]):
 
     return grid_rows, grid_columns, sheet_path
 
+def set_texture_settings(local_texture_path: Path, **settings):
+    image_path = sh.output(local_texture_path)
+    if not image_path.exists():
+        return
+    if (settings_file := image_path.with_suffix(".txt")).is_file():
+        if not OVERWRITE_VMAT:
+            return
+        settKV = KV.FromFile(settings_file)
+        settKV.update(settings)
+    else:
+        settKV = KV("settings", settings)
+    settKV.save(settings_file)
+
 def flipNormalMap(localPath):
+    if NORMALMAP_G_VTEX_INVERT:
+        set_texture_settings(localPath, legacy_source1_inverted_normal = 1)
+        return
 
     image_path = sh.output(localPath)
-    if not image_path.exists(): return False
+    if not image_path.exists():
+        return
+    # Open the image and convert it to RGBA, just in case it was indexed
+    image = Image.open(image_path).convert('RGBA')
 
-    if NORMALMAP_G_VTEX_INVERT:
-        if (settings_file := image_path.with_suffix(".txt")).is_file():
-            if sh.get_crc(settings_file) != '69D57F2B':
-                settKV = KV.FromFile(settings_file)
-                if settKV.keyName != 'settings':
-                    settKV.keyName = 'settings'
-                settKV["legacy_source1_inverted_normal"] = 1
-                settKV.save(settings_file)
-        else:
-            with open(settings_file, 'w') as settingsFile:
-                #settingsFile.write('"settings"\n{\t"legacy_source1_inverted_normal"\t"1"\n}')
-                settingsFile.write('"settings"\n{\n\tlegacy_source1_inverted_normal\t"1"\n}\n')
-    else:
-        # Open the image and convert it to RGBA, just in case it was indexed
-        image = Image.open(image_path).convert('RGBA')
-
-        r,g,b,a = image.split()
-        g = ImageOps.invert(g)
-        final_transparent_image = Image.merge('RGBA', (r,g,b,a))
-        final_transparent_image.save(image_path)
-
-    return True
+    r,g,b,a = image.split()
+    g = ImageOps.invert(g)
+    final_transparent_image = Image.merge('RGBA', (r,g,b,a))
+    final_transparent_image.save(image_path)
 
 def fixVector(s, addAlpha = 1, returnList = False):
 
@@ -1033,8 +1034,8 @@ def convertVmtToVmat():
     for vmtKey, vmtVal in vmt.KeyValues.iteritems():
         outKey = outVal = ''
 
-        vmtKey = vmtKey.lower()
-        vmtVal = str(vmtVal).strip().strip('"' + "'").strip(' \n\t"')
+        vmtKey: str = vmtKey.lower()
+        vmtVal: str = str(vmtVal).strip().strip('"' + "'").strip(' \r\n\t"')
 
         # search through the dictionary above to find the appropriate replacement.
         for keyType, translate in vmt_to_vmat.items():
@@ -1080,6 +1081,10 @@ def convertVmtToVmat():
                 # Layer A
                 if vmtKey in ('$basetexture', '$hdrbasetexture', '$hdrcompressedtexture', '$normalmap'):
                     outKey = vmat_layered_param(vmatTranslation.replacement)
+
+                if vmtKey.startswith('$basetexture'):
+                    if (sh.ADJ or sh.DOTA2) and outVal != default("_color"):
+                        set_texture_settings(outVal, mip_algorithm="Nice")
 
                 if vmtKey in ('$normalmap', '$bumpmap2', '$normalmap2'):
                     if vmtVal == 'dev/flat_normal':
