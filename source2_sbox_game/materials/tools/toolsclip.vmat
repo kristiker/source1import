@@ -1,0 +1,19 @@
+"Layer0"
+{
+	shader	"generic.vfx"
+	F_TRANSLUCENT	"1"
+	TextureTranslucency	"materials/Tools/toolsclip_a_trans.tga"
+	TextureColor	"materials/Tools/toolsclip.tga"
+	SystemAttributes
+	{
+		PhysicsSurfaceProperties	"default_silent"
+	}
+	Attributes
+	{
+		tools.toolsmaterial	"1"
+		mapbuilder.nodraw	"1"
+		mapbuilder.playerclip	"1"
+		mapbuilder.npcclip	"1"
+		mapbuilder.tags	"npcclip playerclip"
+	}
+}
