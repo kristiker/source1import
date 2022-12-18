@@ -141,8 +141,8 @@ class VMT(ValveMaterial):
 
     __defaultkv = ('', {})  # unescaped, supports duplicates, keys case insensitive
 
-    shader = ValveMaterial.shader
-    KeyValues = ValveMaterial._KV
+    shader: str = ValveMaterial.shader
+    KeyValues: KV = ValveMaterial._KV
 
     def __init__(self, kv: KV = None):
 
@@ -154,6 +154,12 @@ class VMT(ValveMaterial):
         if bumpmap := kv['$bumpmap']:
             kv["$normalmap"] = bumpmap
             del kv['$bumpmap']
+        
+        if compileclip := kv['%compileclip']:
+            kv['%playerclip'] = compileclip
+            kv['%compilenpcclip'] = compileclip
+            del kv['%compileclip']
+        
 
         super().__init__(kv.keyName, kv)
 
@@ -185,6 +191,9 @@ class VMT(ValveMaterial):
         return cls(kv)
     def WriteToFile(self, file):
         ...
+    
+    def is_tool_material(self):
+        return self.path.local.is_relative_to("materials/tools") and self.path.name.startswith("tools")
 
 class VMAT(ValveMaterial):
 
@@ -295,6 +304,9 @@ def chooseShader():
         return core.black_unlit
 
     d[get_shader(shaderDict[vmt.shader])] += 1
+
+    if vmt.is_tool_material():
+        return "generic"
 
     if vmt.KeyValues['$beachfoam']:
         return "csgo_beachfoam"
@@ -1168,7 +1180,31 @@ def convertVmtToVmat():
 
             # dont break some keys have more than 1 translation (e.g. $selfillum)
 
-    if USE_SUGESTED_DEFAULT_ROUGHNESS:
+    if vmt.is_tool_material():
+        toolattributes = vmat.KeyValues.setdefault("Attributes", {})
+        toolattributes["tools.toolsmaterial"] = 1
+
+        # most of these need nodraw
+        if vmt.path.stem != "toolsblack":
+            toolattributes["mapbuilder.nodraw"] = 1
+        
+        if not vmt.path.stem.endswith("clip"):
+            toolattributes["mapbuilder.nonsolid"] = 1
+
+        tags = set()
+        for key, value in vmt.KeyValues.items():
+            if not key.startswith("%"):
+                continue
+            key = key.lstrip("%").removeprefix("compile")
+            if key == "keywords":
+                continue
+            toolattributes[f"mapbuilder.{key}"] = value
+            tags.add(key)
+            
+        if sh.SBOX:
+            toolattributes["mapbuilder.tags"] = " ".join(tags)
+
+    if USE_SUGESTED_DEFAULT_ROUGHNESS and not vmt.is_tool_material():
         # 2way blend has specular force enabled so maxing the rough should minimize specularity
         if not vmat.shader == "vr_simple_2way_blend":
             vmat.KeyValues.setdefault("TextureRoughness", default("_rough_s1import"))
