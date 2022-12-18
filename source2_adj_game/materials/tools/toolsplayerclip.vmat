@@ -1,9 +1,9 @@
 "Layer0"
 {
 	shader	"generic.vfx"
-	TextureColor	"materials/Tools/toolsplayerclip.tga"
+	TextureColor	"materials/tools/toolsplayerclip.tga"
 	F_TRANSLUCENT	"1"
-	TextureTranslucency	"materials/Tools/toolsplayerclip_a_trans.tga"
+	TextureTranslucency	"materials/tools/toolsplayerclip_a_trans.tga"
 	Attributes
 	{
 		tools.toolsmaterial	"1"

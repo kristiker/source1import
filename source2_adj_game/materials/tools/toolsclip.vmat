@@ -2,8 +2,8 @@
 {
 	shader	"generic.vfx"
 	F_TRANSLUCENT	"1"
-	TextureTranslucency	"materials/Tools/toolsclip_a_trans.tga"
-	TextureColor	"materials/Tools/toolsclip.tga"
+	TextureTranslucency	"materials/tools/toolsclip_a_trans.tga"
+	TextureColor	"materials/tools/toolsclip.tga"
 	SystemAttributes
 	{
 		PhysicsSurfaceProperties	"default_silent"

@@ -1,13 +1,13 @@
 "Layer0"
 {
 	shader	"generic.vfx"
-	TextureColor	"materials/Tools/toolsblocklight.tga"
+	TextureColor	"materials/tools/toolsblocklight.tga"
 	Attributes
 	{
 		tools.toolsmaterial	"1"
 		mapbuilder.nodraw	"1"
 		mapbuilder.nonsolid	"1"
 		mapbuilder.detail	"1"
-		mapbuilder.tags	"nonsolid nodraw detail"
+		mapbuilder.tags	"nonsolid detail nodraw"
 	}
 }

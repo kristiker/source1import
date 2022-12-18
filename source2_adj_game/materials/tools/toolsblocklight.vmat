@@ -1,7 +1,7 @@
 "Layer0"
 {
 	shader	"generic.vfx"
-	TextureColor	"materials/Tools/toolsblocklight.tga"
+	TextureColor	"materials/tools/toolsblocklight.tga"
 	Attributes
 	{
 		tools.toolsmaterial	"1"
