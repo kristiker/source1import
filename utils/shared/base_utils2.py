@@ -341,7 +341,7 @@ elif __name__ == '__main__':
 @add_method(Path)
 def as_posix(self) -> str:
     """pathlib's as_posix replaces '/' with '/' on linux 🤦"""
-    return str(self).replace('\\', '/')
+    return str(self).replace('\\', '/').lower()
 
 @add_method(Path)
 def without_spaces(self, repl = '_') -> Path:

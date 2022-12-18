@@ -1191,7 +1191,7 @@ def convertVmtToVmat():
         if not vmt.path.stem.endswith("clip"):
             toolattributes["mapbuilder.nonsolid"] = 1
 
-        tags = set()
+        tags = list()
         for key, value in vmt.KeyValues.items():
             if not key.startswith("%"):
                 continue
@@ -1199,7 +1199,7 @@ def convertVmtToVmat():
             if key == "keywords":
                 continue
             toolattributes[f"mapbuilder.{key}"] = value
-            tags.add(key)
+            tags.append(key)
             
         if sh.SBOX:
             toolattributes["mapbuilder.tags"] = " ".join(tags)
