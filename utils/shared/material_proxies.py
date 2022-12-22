@@ -12,7 +12,7 @@ class Proxies(VDFDict): pass
 
 def add(srcvar1, srcvar2, **_):         return f"{srcvar1} + {srcvar2}"
 def multiply(srcvar1, srcvar2, **_):    return f"{srcvar1} * {srcvar2}"
-def substract(srcvar1, srcvar2, **_):   return f"{srcvar1} - {srcvar2}"
+def subtract(srcvar1, srcvar2, **_):   return f"{srcvar1} - {srcvar2}"
 def divide(srcvar1, srcvar2, **_):      return f"{srcvar1} / {srcvar2}"
 
 def equals(srcvar1, **_):   return f"{srcvar1}"
@@ -278,7 +278,7 @@ if __name__ == "__main__":
                         "sineperiod": 8,
                         "resultvar": "$sinewaveoutput",
                     },
-                    "substract": {
+                    "subtract": {
                         "srcvar1": 5,
                         "srcvar2": 2,
                         "resultvar": "$alpha",
