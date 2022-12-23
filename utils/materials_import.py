@@ -560,6 +560,19 @@ def TextureFramesToSheet(frames: list[Path]):
     grid_rows = 2 ** math.ceil(grid_max_power/2)
     grid_columns = 2 ** math.floor(grid_max_power/2)
 
+    if sh.MOCK:
+        sheet_path = sh.output(frames[0].with_stem(frames[0].stem[:-3]))
+        sheet_path.open('a').close()
+    else:
+        sheet_path = save_atlas(frames, grid_rows, grid_columns)
+    print("+ Saved animated texture", sheet_path.local.as_posix())
+    sheet_path.with_name(sheet_path.stem + '.sheet.json').write_text(
+        f'{{"g_nNumAnimationCells":{len(frames)},"g_vAnimationGrid":"[{grid_rows} {grid_columns}]"}}'
+    )
+
+    return grid_rows, grid_columns, sheet_path
+
+def save_atlas(frames, grid_rows, grid_columns):
     sheet_image: Image = None
     sheet_path: Path = None
     for frame_no, frame in enumerate(frames):
@@ -576,12 +589,7 @@ def TextureFramesToSheet(frames: list[Path]):
         sheet_image.paste(frame_image, frame_position_in_sheet)
 
     sheet_image.save(sheet_path)
-    print("+ Saved animated texture", sheet_path.local.as_posix())
-    sheet_path.with_name(sheet_path.stem + '.sheet.json').write_text(
-        f'{{"g_nNumAnimationCells":{len(frames)},"g_vAnimationGrid":"[{grid_rows} {grid_columns}]"}}'
-    )
-
-    return grid_rows, grid_columns, sheet_path
+    return sheet_path
 
 def set_texture_settings(local_texture_path: Path, **settings):
     image_path = sh.output(local_texture_path)
