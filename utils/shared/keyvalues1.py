@@ -244,12 +244,12 @@ class KV(VDFDict):
 
     @classmethod
     def FromFile(cls, file: Union[str, bytes, Path], case_sensitive=False, escape=False, **params):
-        with open(file, 'r') as f:
+        with open(file, 'r', encoding="utf-8") as f:
             return cls.FromBuffer(f.read(), file, case_sensitive, escape, **params)
 
     @classmethod
     def CollectionFromFile(cls, file: Path, case_sensitive=False, escape=False, **params):
-        with open(file, 'r') as f:
+        with open(file, 'r', encoding="utf-8") as f:
             return cls.CollectionFromBuffer(f.read(), file, case_sensitive, escape, **params)
 
     @classmethod
