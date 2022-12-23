@@ -1,0 +1,8 @@
+DecalModulate
+{
+	$baseTexture "decals/Decals_bulletsheet"
+	$vertexcolor 1
+	$vertexalpha 1
+	$decal 1
+	$fogfadeend 0.5
+}

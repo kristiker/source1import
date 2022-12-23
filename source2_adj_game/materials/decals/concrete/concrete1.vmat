@@ -1,0 +1,9 @@
+"Layer0"
+{
+	shader	"vr_projected_decals.vfx"
+	F_BLEND_MODE	"1"
+	F_CUTOFF_ANGLE	"1"
+	TextureColor	"materials/decals/concrete/concrete1.tga"
+	F_OVERLAY	"1"
+	TextureRoughness	"materials/default/default_rough_s1import.tga"
+}

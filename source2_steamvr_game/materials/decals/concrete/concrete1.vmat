@@ -1,0 +1,8 @@
+"Layer0"
+{
+	shader	"projected_decal_modulate.vfx"
+	F_MODULATE_2X	"1"
+	F_BLEND_MODE	"3"
+	TextureColor	"materials/decals/concrete/concrete1.tga"
+	F_OVERLAY	"1"
+}

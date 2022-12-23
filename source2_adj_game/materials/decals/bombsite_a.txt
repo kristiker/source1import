@@ -1,0 +1,4 @@
+"settings"
+{
+	mip_algorithm	"Nice"
+}

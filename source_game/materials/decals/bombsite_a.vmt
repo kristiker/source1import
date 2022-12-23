@@ -1,0 +1,10 @@
+LightmappedGeneric
+{
+	"$basetexture"	"decals\bombsite_a"
+	"$translucent" "1"
+	"$decal" "1"
+	"$decalscale" "1.000"
+	"$vertexcolor" "1"
+	"$vertexalpha" "1"
+
+}
