@@ -1,0 +1,13 @@
+"UnlitGeneric"
+{
+    "$basetexture" "sprites/zerogxplode"
+    "$animatedtexturevar" "$basetexture"
+    "$animatedtextureframenumvar" "$frame"
+    "$animatedtextureframerate" 1.00
+    "Proxies"
+    {
+        "AnimatedTexture"
+        {
+        }
+    }
+}
