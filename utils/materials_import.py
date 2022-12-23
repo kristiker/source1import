@@ -7,7 +7,6 @@ from PIL import Image, ImageOps
 
 import shared.base_utils2 as sh
 from shared.base_utils2 import IMPORT_MOD, DOTA2, STEAMVR, HLVR, SBOX, ADJ
-from shared.keyvalue_simple import getKV_tailored as getKeyValues
 from shared.keyvalues1 import KV
 from shared.material_proxies import ProxiesToDynamicParams
 
@@ -1410,12 +1409,13 @@ def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False):
         if includePath := vmt.KeyValues["include"]:
             if includePath == r'materials\models\weapons\customization\paints\master.vmt':
                 return
-            includePath = Path(includePath).as_posix()
+            includePath = sh.src(includePath).as_posix()
             patchKeyValues = vmt.KeyValues.copy()
             vmt.KeyValues.clear()
             print("+ Retrieving material properties from include:", includePath, end=' ... ')
             try:
-                vmt.shader, vmt.KeyValues = getKeyValues(sh.src(includePath), ignoreList) # TODO: kv1read
+                vmt = VMT(KV.FromFile(includePath))
+                vmt.path = vmt_path
             except FileNotFoundError:
                 print("Did not find.")
                 failureList.add("Include not found", f'{vmt.path.local} -- {includePath}' )
