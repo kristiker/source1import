@@ -1,6 +1,6 @@
 patch
 {
-include "materials/models/props_foliage/tree_include_small.vmt"
+include "materials/models\props_foliage\tree_include_small.vmt"
 insert
 {
 $baseTexture "models\props_foliage/cane_field01_mip0"
