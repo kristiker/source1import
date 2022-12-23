@@ -230,14 +230,23 @@ class core(str, Enum):
     static_overlay = auto()
     projected_decals = auto()
 
+class hlvr(str, Enum):
+    __call__ = lambda self: self.name
+    vr_simple_2way_blend = auto()
+
+class steamvr(str, Enum):
+    __call__ = lambda self: self.name
+    vr_standard = auto()
+    projected_decal_modulate = auto()
+
 # keep everything lowercase !!!
 def main_ubershader():
-    if STEAMVR: return "vr_standard"
+    if STEAMVR: return steamvr.vr_standard()
     elif DOTA2: return "global_lit_simple"
     else: return core.complex()
 
 def main_blendable():
-    if HLVR: return "vr_simple_2way_blend"
+    if HLVR: return hlvr.vr_simple_2way_blend()
     elif SBOX: return "blendable"
     elif DOTA2: return "multiblend"
     else: return main_ubershader()
@@ -247,9 +256,9 @@ def main_water():
     elif DOTA2: return "water_dota"
     else: return "simple_water"
 
-def decal_solution():
+def static_decal_solution():
     if STEAMVR:
-        return core.projected_decals()
+        return main_ubershader()
     return core.static_overlay()
 
 shaderDict = {
@@ -314,18 +323,17 @@ def chooseShader():
     if vmt.shader == "decalmodulate":
         if STEAMVR:
             vmat.KeyValues["F_MODULATE_2X"] = 1
-            return "projected_decal_modulate"
+            return steamvr.projected_decal_modulate()
+        return core.projected_decals()
 
     if vmt.KeyValues['$decal'] == 1:
-        return decal_solution()
+        return static_decal_solution()
 
     if vmt.shader == "worldvertextransition":
         if vmt.KeyValues['$basetexture2']: d[main_blendable()] += 10
 
     elif vmt.shader == "lightmappedgeneric":
         if vmt.KeyValues['$newlayerblending'] == 1: d[main_blendable()] += 10
-
-    #if vmt.KeyValues['$decal'] == 1: sh[vr.projected_decals()] += 10
 
     return get_shader(max(d, key = d.get))
 
@@ -672,7 +680,7 @@ def uniform_vec2(v: str):
     return "[{:.6f} {:.6f}]".format(float(v), float(v))
 
 def vmat_layered_param(vmatKey, layer = 'A', force = False):
-    if vmat.shader in ("vr_simple_2way_blend", "blendable") or force:
+    if vmat.shader in (hlvr.vr_simple_2way_blend(), "blendable") or force:
         return vmatKey + layer
     return vmatKey
 
@@ -1204,17 +1212,16 @@ def convertVmtToVmat():
         if sh.SBOX:
             toolattributes["mapbuilder.tags"] = " ".join(tags)
 
-    if USE_SUGESTED_DEFAULT_ROUGHNESS and not vmt.is_tool_material():
+    if USE_SUGESTED_DEFAULT_ROUGHNESS and not vmt.is_tool_material() \
+        and not vmat.shader == steamvr.projected_decal_modulate():
         # 2way blend has specular force enabled so maxing the rough should minimize specularity
-        if not vmat.shader == "vr_simple_2way_blend":
-            vmat.KeyValues.setdefault("TextureRoughness", default("_rough_s1import"))
-        else:
-            default_rough = default("_rough_s1import")
+        if vmat.shader == hlvr.vr_simple_2way_blend():
             #if vmat.KeyValues['F_SPECULAR'] == 1:
             #    default_rough = "[1.000000 1.000000 1.000000 0.000000]"
-
-            vmat.KeyValues.setdefault("TextureRoughnessA", default_rough)
-            vmat.KeyValues.setdefault("TextureRoughnessB", default_rough)
+            vmat.KeyValues.setdefault("TextureRoughnessA", default("_rough_s1import"))
+            vmat.KeyValues.setdefault("TextureRoughnessB", default("_rough_s1import"))
+        else:
+            vmat.KeyValues.setdefault("TextureRoughness", default("_rough_s1import"))
 
 def convertSpecials():
 
