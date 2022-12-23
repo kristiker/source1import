@@ -1410,6 +1410,7 @@ def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False):
         if includePath := vmt.KeyValues["include"]:
             if includePath == r'materials\models\weapons\customization\paints\master.vmt':
                 return
+            includePath = Path(includePath).as_posix()
             patchKeyValues = vmt.KeyValues.copy()
             vmt.KeyValues.clear()
             print("+ Retrieving material properties from include:", includePath, end=' ... ')
