@@ -195,23 +195,23 @@ def ProxiesToDynamicParams(vmtProxies: VDFDict, known, KeyValues) -> tuple[dict,
     vmatKeyValues: dict = {}
 
     for proxy, proxyParams in vmtProxies.items():
-        if proxy == "animatedtexture":
-            # sequential animation, get framerate
-            if proxyParams["animatedtextureframenumvar"] != "$frame":
+        try:
+            if proxy == "animatedtexture":
+                # sequential animation, get framerate
+                if proxyParams["animatedtextureframenumvar"] != "$frame":
+                    continue
+                vmatKeyValues["F_TEXTURE_ANIMATION"] = 1
+                vmatKeyValues["g_flAnimationTimePerFrame"] = 1 / float(proxyParams["animatedtextureframerate"])
                 continue
-            vmatKeyValues["F_TEXTURE_ANIMATION"] = 1
-            vmatKeyValues["g_flAnimationTimePerFrame"] = 1 / float(proxyParams["animatedtextureframerate"])
-            continue
-        elif proxy == "texturescroll":
-            if proxyParams["texturescrollvar"] != "$basetexturetransform":
-                continue
-            try:
+            elif proxy == "texturescroll":
+                if proxyParams["texturescrollvar"] != "$basetexturetransform":
+                    continue
                 u = float(proxyParams["texturescrollrate"]) * cos(_int(proxyParams["texturescrollangle"]))
                 v = float(proxyParams["texturescrollrate"]) * sin(_int(proxyParams["texturescrollangle"]))
-            except (ValueError, KeyError):
-                # bad proxyParams
+                vmatKeyValues["g_vTexCoordScrollSpeed"] = f"[{u:.6f} {v:.6f}]"
                 continue
-            vmatKeyValues["g_vTexCoordScrollSpeed"] = f"[{u:.6f} {v:.6f}]"
+        except (ValueError, KeyError):
+            # bad proxyParams
             continue
         # resultvar needs to be a vmt $key that can be translated
         if (resultvar:=get_resultvar(proxyParams)) not in known:
