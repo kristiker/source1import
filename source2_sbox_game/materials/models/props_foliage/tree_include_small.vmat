@@ -1,0 +1,5 @@
+"Layer0"
+{
+	shader	"complex.vfx"
+	TextureRoughness	"materials/default/default_rough_s1import.tga"
+}

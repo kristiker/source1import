@@ -1,0 +1,11 @@
+"Layer0"
+{
+	shader	"vr_complex.vfx"
+	TextureColor	"materials/models/props_foliage/cane_field01_mip0.tga"
+	F_ALPHA_TEST	"1"
+	TextureTranslucency	"materials/models/props_foliage/cane_field01_mip0_a_trans.tga"
+	F_RENDER_BACKFACES	"1"
+	g_flAntiAliasedEdgeStrength	"1.0"
+	g_flAlphaTestReference	"0.250000"
+	TextureRoughness	"materials/default/default_rough_s1import.tga"
+}
