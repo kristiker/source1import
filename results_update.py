@@ -16,6 +16,11 @@ def workflow(*modules: tuple[ModuleType, dict[str, Any]]):
             if file.is_file():
                 if file.suffix == ".tga" and not WINDOWS:
                     continue
+                # delete the missed .tga (result of materials_import)
+                if file.name.endswith(".sheet.json") and not WINDOWS:
+                    atlas = Path(file.parent, file.name.removesuffix(".sheet.json") + ".tga")
+                    if atlas.is_file():
+                        atlas.unlink()
                 file.unlink()
 
         @functools.wraps(f)
