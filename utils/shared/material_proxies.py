@@ -216,6 +216,10 @@ def ProxiesToDynamicParams(vmtProxies: VDFDict, known, KeyValues) -> tuple[dict,
         # resultvar needs to be a vmt $key that can be translated
         if (resultvar:=get_resultvar(proxyParams)) not in known:
             continue
+
+        dpKey = known[resultvar] # g_vColorTint
+        if dpKey is None:
+            continue
         
         # scripted animation sequence
         if resultvar == "$frame":
@@ -223,8 +227,6 @@ def ProxiesToDynamicParams(vmtProxies: VDFDict, known, KeyValues) -> tuple[dict,
             vmatKeyValues["F_TEXTURE_ANIMATION_MODE"] = 2
 
         dynEx = FormDynamicExpression(proxy, proxyParams, resultvar, known, KeyValues, vmtProxies)
-
-        dpKey = known[resultvar] # g_vColorTint
         vmatDynamicParams[dpKey] = repr(dynEx).strip("'") # "clamp(random(1), 0.4, 0.6)"
 
     return vmatKeyValues, vmatDynamicParams
