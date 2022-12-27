@@ -75,7 +75,10 @@ def main():
 
     for d in vmt_to_vmat.values():
         for k, v in d.items():
-            if isinstance(v, tuple): v = v[0]
+            if isinstance(v, tuple):
+                v = v[0]
+            if v is None:
+                continue
             KNOWN[k] = v
 
     global total, import_total, import_invalid

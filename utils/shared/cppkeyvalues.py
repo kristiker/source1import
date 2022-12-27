@@ -515,6 +515,7 @@ class KeyValues:
                 value = tokenReader.ReadToken()
             if value == 0:
                 g_KeyValuesErrorStack.ReportError("RecursiveLoadFromBuffer:  got NULL key")
+                del self.value[-1]
                 break
 
 
