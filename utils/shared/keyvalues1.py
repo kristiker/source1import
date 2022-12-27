@@ -153,18 +153,18 @@ class VDFDict(dict):
         key = self.__omap[-1]
         return key[1], self.pop(key)
 
-    def update(self, data=None, **kwargs):
+    def update(self, data=None, overwrite=False):
         if isinstance(data, dict):
             data = data.items()
         elif not isinstance(data, list):
             raise TypeError("Expected data to be a list or dict, got %s" % type(data))
 
+        update_func = self.__setitem__ if overwrite else self.add
         for key, value in data:
             if isinstance(value, list):
-                #print(self.__class__)
-                self.add(key, VDFDict(value))
+                update_func(key, VDFDict(value))
             else:
-                self.add(key, value)
+                update_func(key, value)
 
     def iterkeys(self):
         return (key[1] for key in self.__omap)

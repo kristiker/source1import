@@ -600,8 +600,8 @@ def set_texture_settings(local_texture_path: Path, **settings):
     if (settings_file := image_path.with_suffix(".txt")).is_file():
         if not OVERWRITE_VMAT:
             return
-        settKV = KV.FromFile(settings_file)
-        settKV.update(settings)
+        settKV: KV = KV.FromFile(settings_file)
+        settKV.update(settings, overwrite=True)
     else:
         settKV = KV("settings", settings)
     settKV.save(settings_file)
