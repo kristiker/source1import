@@ -1,0 +1,8 @@
+"WorldVertexTransition"
+{
+    "$basetexture" "lostcoast/nature/rockwall021b"
+    "$basetexture2" "lostcoast/nature/grassweeds001a"
+    "%tooltexture" "lostcoast/nature/blendrockweeds001a_tooltexture"
+    "%keywords" "wasteland""
+    "$bumpmap" "lostcoast/nature/rockwall021b_normal"
+}

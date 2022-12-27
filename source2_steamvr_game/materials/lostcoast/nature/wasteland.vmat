@@ -1,0 +1,8 @@
+"Layer0"
+{
+	shader	"vr_standard.vfx"
+	F_BLEND	"1"
+	TextureColor	"materials/lostcoast/nature/rockwall021b.tga"
+	TextureLayer1Color	"materials/lostcoast/nature/grassweeds001a.tga"
+	TextureRoughness	"materials/default/default_rough_s1import.tga"
+}

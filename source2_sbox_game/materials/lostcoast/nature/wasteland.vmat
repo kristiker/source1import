@@ -1,0 +1,8 @@
+"Layer0"
+{
+	shader	"blendable.vfx"
+	F_MULTIBLEND	"1"
+	TextureColorA	"materials/lostcoast/nature/rockwall021b.tga"
+	TextureColorB	"materials/lostcoast/nature/grassweeds001a.tga"
+	TextureRoughness	"materials/default/default_rough_s1import.tga"
+}

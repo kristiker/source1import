@@ -1,0 +1,56 @@
+
+"unlitgeneric"
+
+{
+	"$spriteorientation" "4"
+	"$spriteorigin" "[ 0.50 0.50 ]"
+	"$basetexture" "FX/Glint/Glint01"
+	"$model" 1
+	//"$additive" "1"
+	"$vertexcolor" 1
+	"$vertexalpha" "1"
+	
+	"$translucent" 1
+	
+	"$rotate" 1
+	"$scale" 1
+
+	"$ignorez"	"1"
+	
+	"proxies"
+	
+	{
+		"sine"
+		{
+		"sineperiod"	.8
+		"sinemin"	1
+		"sinemax"	.3
+		"resultvar"	"$alpha"
+	
+		}
+			
+		"linearramp"
+		{
+			"rate"	260
+			"resultVar"	"$rotate"
+		}
+		
+		"sine"
+		{
+		"sineperiod"	.2
+		"sinemin"	.8
+		"sinemax"	3
+		"resultvar"	"$scale"
+	
+		}
+		
+		"texturetransform"
+		{
+			"rotatevar"	"$rotate"	
+			"scalevar" 	"$scale"	
+			"resultvar" 	"$basetexturetransform"
+		}	
+
+	}
+}
+

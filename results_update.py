@@ -31,6 +31,9 @@ def workflow(*modules: tuple[ModuleType, dict[str, Any]]):
                 module.sh.args_known.src1gameinfodir = "source_game"
                 module.sh.parse_in_path()
                 module.sh.parse_out_path(out)
+                if module == materials_import:
+                    #module.sh.filter_ = r"*materials/lostcoast/nature/badkv1key.vmt"
+                    ...
                 for name, value in options.items():
                     if hasattr(module, name):
                         setattr(module, name, value)
