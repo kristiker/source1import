@@ -623,20 +623,25 @@ def flipNormalMap(localPath):
     final_transparent_image.save(image_path)
 
 def fixVector(s, addAlpha = 1, returnList = False):
-
     s = str(s)
-    if('{' in s or '}' in s): likelyColorInt = True
-    else: likelyColorInt = False
+    likelyColorInt = False
+    if('{' in s or '}' in s):
+        likelyColorInt = True
 
     s = s.strip()  # TODO: remove letters
     s = s.replace('"', '').replace("'", "")
     s = s.strip().replace(",", "").strip('][}{').strip(')(')
 
-    try: originalValueList = [str(float(i)) for i in s.split(' ') if i != '']
-    except ValueError: return None #originalValueList =  [1.000000, 1.000000, 1.000000]
+    try:
+        originalValueList = [str(float(i)) for i in s.split(' ') if i != '']
+    except ValueError:
+        return None
 
     dimension = len(originalValueList)
-    if dimension < 3: likelyColorInt = False
+    if dimension == 0:
+        return None
+    elif dimension < 3:
+        likelyColorInt = False
 
     for strvalue in originalValueList:
         flvalue = float(strvalue)
@@ -1130,6 +1135,7 @@ def convertVmtToVmat():
                 if not vmatTranslation.replacement:
                     continue
                 transform = TexTransform(vmtVal)
+                outVal = None
                 # no rotation in source 2
                 #if(matrixList[MATRIX_ROTATE] != '0.000'):
                 #    if(matrixList[MATRIX_ROTATIONCENTER] != '[0.500 0.500]')
@@ -1141,12 +1147,13 @@ def convertVmtToVmat():
                 if(transform.scale != (1.000, 1.000)):
                     outKey = vmatTranslation.replacement + 'Scale'
                     outVal = fixVector(transform.scale, False)
-                    vmat.KeyValues[outKey] = outVal
 
                 # translate .5 2 -> g_vTexCoordOffset "[0.500 2.000]"
                 if(transform.translate != (0.000, 0.000)):
                     outKey = vmatTranslation.replacement + 'Offset'
                     outVal = fixVector(transform.translate, False)
+                
+                if outVal is not None:
                     vmat.KeyValues[outKey] = outVal
 
                 continue ## Skip default content write
