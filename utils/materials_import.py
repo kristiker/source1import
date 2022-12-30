@@ -21,7 +21,7 @@ OVERWRITE_SKYCUBES = False
 # True to let vtex handle the inverting of the normalmap.
 NORMALMAP_G_VTEX_INVERT = True
 
-MISSING_TEXTURE_SET_DEFAULT = True # valve uses dev/white
+REPLACE_MISSING_TEXTURES_WITH_DEFAULT = False # valve uses dev/white
 USE_SUGESTED_DEFAULT_ROUGHNESS = True
 SIMPLE_SHADER_WHERE_POSSIBLE = True
 PRINT_LEGACY_IMPORT = False  # Print vmt inside vmat as reference. Increases file size.
@@ -160,12 +160,12 @@ class VMT(ValveMaterial):
         if bumpmap := kv['$bumpmap']:
             kv["$normalmap"] = bumpmap
             del kv['$bumpmap']
-        
+
         if compileclip := kv['%compileclip']:
             kv['%playerclip'] = compileclip
             kv['%compilenpcclip'] = compileclip
             del kv['%compileclip']
-        
+
 
         super().__init__(kv.keyName, kv)
 
@@ -197,7 +197,7 @@ class VMT(ValveMaterial):
         return cls(kv)
     def WriteToFile(self, file):
         ...
-    
+
     def is_tool_material(self):
         return self.path.local.is_relative_to("materials/tools") and self.path.name.startswith("tools")
 
@@ -363,28 +363,36 @@ def fixVmtTextureDir(localPath, fileExt = TEXTURE_FILEEXT) -> str:
         return ""
     return (materials / localPath.lstrip('\\/')).with_suffix(fileExt).as_posix()
 
-def formatNewTexturePath(vmtPath, textureType = TEXTURE_FILEEXT, noRename = False, forReal = True):
-    #if USE_DEFAULT_FOR_MISSING_TEXTURE and not os.path.exists(vmtPath):
-    #    return default(textureType)
-
+def formatNewTexturePath(vmtPath: str, textureType: str) -> str:
     texturePath = sh.output(fixVmtTextureDir(vmtPath))
-    if not texturePath.is_file():
-        # it's an animated texture!
-        if (frame:=texturePath.with_stem(texturePath.stem + "000")).is_file():
-            frames = [frame]
-            for i in range(1, 1000):
-                frame = texturePath.with_stem(f"{texturePath.stem}{i:03}")
-                if not frame.is_file(): break
-                frames.append(frame)
-            grid_w, grid_h, texturePath = TextureFramesToSheet(frames)
-            vmat.KeyValues["g_nNumAnimationCells"] = len(frames)
-            #vmat.KeyValues["g_flAnimationTimePerFrame"] = 1 / fps
-            vmat.KeyValues["g_vAnimationGrid"] = f"[{grid_w} {grid_h}]"
-    else:
-        # animation sheet is already built
+    # check if texture exists on disk
+    if texturePath.is_file():
+        # check if this texture was generated from a previous run
         if (sheetdata:=texturePath.with_name(texturePath.stem + '.sheet.json')).is_file():
             vmat.KeyValues.update(sh.GetJson(sheetdata))
+        return texturePath.local.as_posix()
 
+    # texture was not found on disk, check for animated texture!
+    if (frame:=texturePath.with_stem(texturePath.stem + "000")).is_file():
+        frames = [frame]
+        for i in range(1, 1000):
+            frame = texturePath.with_stem(f"{texturePath.stem}{i:03}")
+            if not frame.is_file(): break
+            frames.append(frame)
+        # generate an animation sheet with the name we were looking for
+        grid_w, grid_h, texturePath = TextureFramesToSheet(frames)
+        vmat.KeyValues["g_nNumAnimationCells"] = len(frames)
+        #vmat.KeyValues["g_flAnimationTimePerFrame"] = 1 / fps
+        vmat.KeyValues["g_vAnimationGrid"] = f"[{grid_w} {grid_h}]"
+        return texturePath.local.as_posix()
+
+    # TODO: other textures like cubemaps, depths, etc
+
+    # couldn't find the texture
+    if REPLACE_MISSING_TEXTURES_WITH_DEFAULT:
+        return default(textureType)
+
+    # still add the name to the vmat
     return texturePath.local.as_posix()
 
 def getTexture(vtf_path):
@@ -1216,7 +1224,7 @@ def convertVmtToVmat():
         # most of these need nodraw
         if vmt.path.stem != "toolsblack":
             toolattributes["mapbuilder.nodraw"] = 1
-        
+
         if not vmt.path.stem.endswith("clip"):
             toolattributes["mapbuilder.nonsolid"] = 1
 
@@ -1229,7 +1237,7 @@ def convertVmtToVmat():
                 continue
             toolattributes[f"mapbuilder.{key}"] = value
             tags.append(key)
-            
+
         if sh.SBOX:
             toolattributes["mapbuilder.tags"] = " ".join(tags)
 
