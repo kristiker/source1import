@@ -152,6 +152,10 @@ class VMT(ValveMaterial):
             kv = KV(*self.__defaultkv)
         if kv.keyName == '':
             kv.keyName = 'Wireframe_DX9'
+        elif kv.keyName.startswith('sdk_'):
+            kv.keyName = kv.keyName[4:]
+        elif kv.keyName.endswith('_dx9'):
+            kv.keyName = kv.keyName[:-4]
 
         if bumpmap := kv['$bumpmap']:
             kv["$normalmap"] = bumpmap
@@ -312,7 +316,7 @@ def chooseShader():
     if vmt.shader not in shaderDict:
         if sh.DEBUG:
             failureList.add(f"{vmt.shader} unsupported shader", vmt.path)
-        return core.black_unlit
+        return core.black_unlit()
 
     d[get_shader(shaderDict[vmt.shader])] += 1
 
