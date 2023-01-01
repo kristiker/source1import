@@ -152,10 +152,10 @@ class VMT(ValveMaterial):
             kv = KV(*self.__defaultkv)
         if kv.keyName == '':
             kv.keyName = 'Wireframe_DX9'
-        elif kv.keyName.startswith('sdk_'):
-            kv.keyName = kv.keyName[4:]
-        elif kv.keyName.endswith('_dx9'):
-            kv.keyName = kv.keyName[:-4]
+        else:
+            kv.keyName = kv.keyName.removeprefix('sdk_')
+            kv.keyName = kv.keyName.removesuffix('_dx9')
+            kv.keyName = kv.keyName.removesuffix('_hdr')
 
         if bumpmap := kv['$bumpmap']:
             kv["$normalmap"] = bumpmap
@@ -176,10 +176,6 @@ class VMT(ValveMaterial):
             self._shader = n.keyName
         elif isinstance(n, dict):  # change body, keep shader (VMT.KeyValues = { })
             self._kv = KV(self._shader, n)
-        else:
-            try: n = KV(*n)  # FIXME shit shit
-            except Exception as ex:
-                raise ValueError("Can only assign `kv1`, `dict` or similar to VMT KeyValues, not %s" % type(n))
 
     @KeyValues.deleter
     def KeyValues(self):

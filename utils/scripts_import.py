@@ -124,7 +124,6 @@ class SoundscapeImporter:
 
     @staticmethod
     def FixedUp(file: Path):
-        kv = KV(file)
         soundscape_collection = KV.CollectionFromFile(file)
         SoundscapeImporter.recursively_fixup(soundscape_collection)  # change wav to vsnd
         return soundscape_collection

@@ -38,7 +38,7 @@ class KVUtilFile(KV):
                 WARN(f"Remap entry for '{s1Name}' -> '{s2Remap}' conflicts with existing value of '{exist}' (ignoring)")
 
         cls.remap = remap
-        rv = cls(keyName)
+        rv = cls(keyName, dict())
         if cls.path.is_file():
             rv.update(cls.FromFile(cls.path, case_sensitive=True))
         return rv
@@ -443,10 +443,16 @@ def warn(*args, **kwargs): print("WARNING:", *args, **kwargs)
 def WARN(*args, **kwargs):  # TODO: source1importwarnings_lastrun.txt
     print("*** WARNING:", *args, **kwargs)
 
+_print = print
+def print(*args, **kwargs):
+    # erase last status
+    _print(f'{" "*__last_status_len}', end='\r')
+    _print(*args, **kwargs)
+
 __last_status_len = 0
 def status(text):
     global __last_status_len
-    print(f'{" "*__last_status_len}\r{text}', end='\r')
+    print(text, end='\r')
     __last_status_len = len(text)
 
 from os import stat

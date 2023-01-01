@@ -267,8 +267,8 @@ class KV(VDFDict):
         cppkv.RecursiveLoadFromBuffer(resourceName, CKeyValuesTokenReader(CUtlBuffer(buf)), True)
         return cls(cppkv.keyName, cppkv.value.ToBuiltin())
 
-    def __init__(self, keyName, value = {}) -> None:
-        self.keyName = keyName
+    def __init__(self, keyName: str, value: dict) -> None:
+        self.keyName: str = keyName
         super().__init__(value)
 
     def __getitem__(self, key) -> Optional[Any]:

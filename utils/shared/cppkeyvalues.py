@@ -532,9 +532,11 @@ class KeyValues:
                     ...
             if value == 0:
                 g_KeyValuesErrorStack.ReportError("RecursiveLoadFromBuffer:  got NULL key" )
+                del self.value[-1]
                 break
             if vne and value[0] == '}' and not value.wasQuoted:
                 g_KeyValuesErrorStack.ReportError("RecursiveLoadFromBuffer:  got } in key")
+                del self.value[-1]
                 break
             if vne and value[0] == '{' and not value.wasQuoted:
                 # sub value list
