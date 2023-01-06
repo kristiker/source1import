@@ -1,0 +1,69 @@
+"VertexLitGeneric"
+{
+    "$basetexture" "fedio/models/laser_container_1"
+
+    "$surfaceprop" "metal"
+    "$model" 1
+    "$selfillum" 1
+    "$envmap" "env_cubemap"
+
+    "$envmaptint" "[1 1 1]"
+
+//    "$normalmapalphaenvmapmask" "1"
+
+    "$phong" 1
+    "$phongexponent" 1
+    "$phongfresnelranges"    "[0 0.5 1]"
+    "$phongwarptexture" "models/shared/phongwarp_metallic"
+
+    // Sets the value when Shader Detail is High or higher
+    "GPU>=2?$color" "[ 0 1 0 ]" // Quoted parameter because of equal sign.
+
+    GPU<2  // Sets the values in the block if Shader Detail is below High.
+    {
+        $envmap	env_cubemap
+        $color "[ 0 0 1 ]"
+    }
+
+    "LightmappedGeneric_DX9"
+    {
+        "$bumpmap" "metal/metalwall078a_normal"
+        "$normalmapalphaenvmapmask" 1
+        "$envmaptint" "[ .09 .1 .12]"
+    }
+
+    "LightmappedGeneric_DX8"
+    {
+        "$bumpmap" "metal/metalwall078a_normal"
+        "$nodiffusebumplighting" 1
+        "$normalmapalphaenvmapmask" 1
+    }
+
+    "LightmappedGeneric_NoBump_DX8"
+    {
+        "$basetexture" "metal/citadel_metalwall078a"
+        "$basealphaenvmapmask" 1
+    }
+
+    "LightmappedGeneric_hdr_dx9"
+    {
+        // put HDR override stuff here
+        "$envmaptint" "[ .09 .1 .12]"
+        "$bumpmap" "metal/metalwall078a_normal"
+        "$normalmapalphaenvmapmask" 1
+    }
+
+    >dx90
+    {
+//    "$phongexponenttexture" "fedio/models/laser_container_1_exp"
+    "$phongexponenttexture" "models/shared/nothing"
+
+    "$phongalbedotint" 1
+    "$phongboost"    "50"
+    }
+
+    //<=dx90
+    //{
+    //"$phongboost" "50"
+    //}
+}
