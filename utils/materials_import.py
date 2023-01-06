@@ -249,6 +249,17 @@ class steamvr(str, Enum):
     vr_standard = auto()
     projected_decal_modulate = auto()
 
+class sbox(str, Enum):
+    __call__ = lambda self: self.name
+    blendable = auto()
+
+class adj(str, Enum):
+    __call__ = lambda self: self.name
+    steampal_2way_blend_mask = auto()
+
+BLENDABLES = (hlvr.vr_simple_2way_blend(), adj.steampal_2way_blend_mask(), sbox.blendable())
+"""shaders that support 2-or-more-way blend"""
+
 # keep everything lowercase !!!
 def main_ubershader():
     if STEAMVR: return steamvr.vr_standard()
@@ -257,7 +268,8 @@ def main_ubershader():
 
 def main_blendable():
     if HLVR: return hlvr.vr_simple_2way_blend()
-    elif SBOX: return "blendable"
+    elif ADJ: return adj.steampal_2way_blend_mask()
+    elif SBOX: return sbox.blendable()
     elif DOTA2: return "multiblend"
     else: return main_ubershader()
 
@@ -711,7 +723,7 @@ def uniform_vec2(v: str):
     return "[{:.6f} {:.6f}]".format(float(v), float(v))
 
 def vmat_layered_param(vmatKey, layer = 'A', force = False):
-    if vmat.shader in (hlvr.vr_simple_2way_blend(), "blendable") or force:
+    if vmat.shader in BLENDABLES or force:
         return vmatKey + layer
     return vmatKey
 
@@ -1248,11 +1260,13 @@ def convertVmtToVmat():
     if USE_SUGESTED_DEFAULT_ROUGHNESS and not vmt.is_tool_material() \
         and not vmat.shader == steamvr.projected_decal_modulate():
         # 2way blend has specular force enabled so maxing the rough should minimize specularity
-        if vmat.shader == hlvr.vr_simple_2way_blend():
+        if vmat.shader in BLENDABLES:
             #if vmat.KeyValues['F_SPECULAR'] == 1:
             #    default_rough = "[1.000000 1.000000 1.000000 0.000000]"
-            vmat.KeyValues.setdefault("TextureRoughnessA", default("_rough_s1import"))
-            vmat.KeyValues.setdefault("TextureRoughnessB", default("_rough_s1import"))
+            for key in vmat.KeyValues:
+                if not key.startswith("TextureColor"):
+                    continue
+                vmat.KeyValues.setdefault(f"TextureRoughness{key.removeprefix('TextureColor')}", default("_rough_s1import"))
         else:
             vmat.KeyValues.setdefault("TextureRoughness", default("_rough_s1import"))
 
