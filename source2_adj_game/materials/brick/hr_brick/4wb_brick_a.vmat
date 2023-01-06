@@ -1,7 +1,7 @@
 "Layer0"
 {
-	shader	"vr_complex.vfx"
-	TextureColor	"materials/brick/hr_brick/brick_c.tga"
+	shader	"steampal_2way_blend_mask.vfx"
+	TextureColorA	"materials/brick/hr_brick/brick_c.tga"
 	TextureColorB	"materials/plaster/hr_p/plaster_a.tga"
 	TextureNormalB	"materials/plaster/hr_p/plaster_a_normals.tga"
 	TextureLayer2Color	"materials/brick/hr_brick/brick_c1.tga"
@@ -14,5 +14,7 @@
 	F_SPECULAR_CUBE_MAP	"1"
 	F_SPECULAR	"1"
 	g_vEnvironmentMapTint	"[0.030000 0.030000 0.030000 1.000000]"
-	TextureNormal	"materials/brick/hr_brick/brick_c_normals.tga"
+	TextureNormalA	"materials/brick/hr_brick/brick_c_normals.tga"
+	TextureRoughnessA	"materials/default/default_rough_s1import.tga"
+	TextureRoughnessB	"materials/default/default_rough_s1import.tga"
 }

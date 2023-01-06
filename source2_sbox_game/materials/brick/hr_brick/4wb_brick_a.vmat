@@ -16,4 +16,8 @@
 	F_SPECULAR	"1"
 	g_vEnvironmentMapTint	"[0.030000 0.030000 0.030000 1.000000]"
 	TextureNormalA	"materials/brick/hr_brick/brick_c_normals.tga"
+	TextureRoughnessA	"materials/default/default_rough_s1import.tga"
+	TextureRoughnessB	"materials/default/default_rough_s1import.tga"
+	TextureRoughnessC	"materials/default/default_rough_s1import.tga"
+	TextureRoughnessD	"materials/default/default_rough_s1import.tga"
 }
