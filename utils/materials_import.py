@@ -166,6 +166,13 @@ class VMT(ValveMaterial):
             kv['%compilenpcclip'] = compileclip
             del kv['%compileclip']
 
+        for key, value in kv.items():
+            if "?" in key:
+                del kv[key]
+                #if isinstance(value, dict):
+                #    kv.update(value, overwrite=True)
+                kv[key.split('?')[1]] = value
+
 
         super().__init__(kv.keyName, kv)
 
