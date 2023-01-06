@@ -14,6 +14,7 @@
 	g_flSpecularExponent	"1.000000"
 	F_SPECULAR_WARP	"1"
 	TextureSpecularWarp	"materials/models/shared/phongwarp_metallic.tga"
+	g_vColorTint	"[0.000000 1.000000 0.000000 1.000000]"
 	TextureGlossiness	"materials/default/default_gloss.tga"
 	TextureRoughness	"materials/default/default_rough_s1import.tga"
 }
