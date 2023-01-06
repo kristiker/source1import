@@ -872,9 +872,10 @@ vmt_to_vmat_pre: Callable[[], dict[ str, dict[str, tuple | None] ]] = lambda: {
 
     ## Layer blend mask
     '$blendmodulatetexture':\
-                        ('TextureMask',             '_mask',   [createMask, 'G', False], ('F_BLEND', 1)) if HLVR else \
+                        ('TextureMask',             '_mask',   [createMask, 'G', False], ('F_BLEND', 1)) if HLVR or ADJ else \
                         ('TextureLayer1RevealMask', '_blend',  [createMask, 'G', False], ('F_BLEND', 1)) if STEAMVR else \
-                        ('TextureBlendMaskB',      '_blend',  [createMask, 'G', False]) if SBOX else \
+                        ('TextureBlendMaskB',       '_blend',  [createMask, 'G', False]) if SBOX else \
+                        ('TextureRevealMask1',      '_blend',  [createMask, 'G', False]) if DOTA2 else \
                         None,
     ## Layer 1
     '$basetexture2':    ('TextureColorB' if not STEAMVR else 'TextureLayer1Color',  '_color',  [formatNewTexturePath]),
