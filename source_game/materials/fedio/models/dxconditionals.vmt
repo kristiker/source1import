@@ -14,7 +14,7 @@
     "$phong" 1
     "$phongexponent" 1
     "$phongfresnelranges"    "[0 0.5 1]"
-    "$phongwarptexture" "models/shared/phongwarp_metallic"
+    "$phongwarptexture" "fedio/models/phongwarp_metallic"
 
     // Sets the value when Shader Detail is High or higher
     "GPU>=2?$color" "[ 0 1 0 ]" // Quoted parameter because of equal sign.
@@ -25,38 +25,38 @@
         $color "[ 0 0 1 ]"
     }
 
-    "LightmappedGeneric_DX9"
+    "VertexLitGeneric_DX9"
     {
-        "$bumpmap" "metal/metalwall078a_normal"
+        "$bumpmap" "fedio/models/metalwall078a_normal"
         "$normalmapalphaenvmapmask" 1
         "$envmaptint" "[ .09 .1 .12]"
     }
 
-    "LightmappedGeneric_DX8"
+    "VertexLitGeneric_DX8"
     {
-        "$bumpmap" "metal/metalwall078a_normal"
+        "$bumpmap" "fedio/models/metalwall078a_normal"
         "$nodiffusebumplighting" 1
         "$normalmapalphaenvmapmask" 1
     }
 
-    "LightmappedGeneric_NoBump_DX8"
+    "VertexLitGeneric_NoBump_DX8"
     {
-        "$basetexture" "metal/citadel_metalwall078a"
+        "$basetexture" "fedio/models/citadel_metalwall078a"
         "$basealphaenvmapmask" 1
     }
 
-    "LightmappedGeneric_hdr_dx9"
+    "VertexLitGeneric_hdr_dx9"
     {
         // put HDR override stuff here
         "$envmaptint" "[ .09 .1 .12]"
-        "$bumpmap" "metal/metalwall078a_normal"
+        "$bumpmap" "fedio/models/metalwall078a_normal"
         "$normalmapalphaenvmapmask" 1
     }
 
     >dx90
     {
 //    "$phongexponenttexture" "fedio/models/laser_container_1_exp"
-    "$phongexponenttexture" "models/shared/nothing"
+    "$phongexponenttexture" "fedio/models/nothing"
 
     "$phongalbedotint" 1
     "$phongboost"    "50"
