@@ -443,17 +443,8 @@ def warn(*args, **kwargs): print("WARNING:", *args, **kwargs)
 def WARN(*args, **kwargs):  # TODO: source1importwarnings_lastrun.txt
     print("*** WARNING:", *args, **kwargs)
 
-_print = print
-def print(*args, **kwargs):
-    # erase last status
-    _print(f'{" "*__last_status_len}', end='\r')
-    _print(*args, **kwargs)
-
-__last_status_len = 0
 def status(text):
-    global __last_status_len
-    print(text, end='\r')
-    __last_status_len = len(text)
+    print(text, end='\x1b[1K\r')
 
 from os import stat
 from zlib import crc32
