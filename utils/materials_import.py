@@ -157,6 +157,15 @@ class VMT(ValveMaterial):
             kv.keyName = kv.keyName.removesuffix('_dx9')
             kv.keyName = kv.keyName.removesuffix('_hdr')
 
+        for key, value in kv.items():
+            if "?" in key:
+                del kv[key]
+                kv[key.split('?')[1]] = value
+
+            elif key.endswith('_dx9') and isinstance(value, dict):
+                del kv[key]
+                kv.update(value, overwrite=True)
+
         if bumpmap := kv['$bumpmap']:
             kv["$normalmap"] = bumpmap
             del kv['$bumpmap']
@@ -165,14 +174,6 @@ class VMT(ValveMaterial):
             kv['%playerclip'] = compileclip
             kv['%compilenpcclip'] = compileclip
             del kv['%compileclip']
-
-        for key, value in kv.items():
-            if "?" in key:
-                del kv[key]
-                #if isinstance(value, dict):
-                #    kv.update(value, overwrite=True)
-                kv[key.split('?')[1]] = value
-
 
         super().__init__(kv.keyName, kv)
 
