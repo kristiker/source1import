@@ -1,3 +1,5 @@
+import itertools
+import shutil
 from typing import Literal, Type, Union
 import shared.base_utils2 as sh
 from pathlib import Path
@@ -12,7 +14,7 @@ Import Source Engine models to Source 2
     * This method has the highest compatibility and is fastest.
     * The model won't be editable until its decompiled from vmdl_c via ModelDoc.
     * Some complex models might crash the compiler i.e. L4D characters and cs animstates.
-    * Some less important parameters like $keyvalues are ignored.
+    * Some less important parameters like $keyvalues are ignored with current compilers.
     * The format for `models/example.vmdl` is:
         <!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:generic:version{7412167c-06e9-4698-aff2-e63eb59037e7} -->
         {
@@ -20,19 +22,8 @@ Import Source Engine models to Source 2
         }
 
 * Generates (poorly) translated VMDL files based on QC.
-    * VMDL is the equivalent of QC but the formats differ a lot.
-
-In contrast to the other scripts, models_import will search for files to
-convert at *output* (e.g. Source2 content), and src1 input is ignored.
-Reason is that Source 2 can *right away* accept both MDL and SMD files
-as CONTENT, and it's more efficient for the user to move
-those to Source 2 CONTENT than for the script to copy stuff around.
-
-So: move your Source1 GAME `models` to Source2 CONTENT `models`.
-If you're converting QC files (aka `modelsrc`), you can put those in S2 `models` as well,
-or anywhere inside it (like `models/legacy_qc/`, recommended) since QC files don't need to have
-the same name the mdl. Source2 will happily read Source1 SMD, DMX, and MDL+PHY+VVD files as long as
-they are placed somewhere inside Source2 CONTENT `models`.
+    * This method is less stable. The VMDL files are in ModelDoc format.
+    * Instead of decompiling, original fbx/dmx/smd files are used.
 """
 
 # mdl import
@@ -45,12 +36,27 @@ IGNORE_BBOX = False
 
 SHOULD_OVERWRITE = False
 SAMPBOX = False
+COPY_FROM_SRC1_DIR = False
 
 models = Path('models')
+modelsrc = Path('modelsrc')
 
 def main():
     print('Source 2 VMDL Generator!')
+    
     if IMPORT_MDL:
+        if COPY_FROM_SRC1_DIR:
+            print(' - Copying MDL files from src1 dir!')
+            for s1_model_resource in itertools.chain(
+                sh.src(models).rglob('*.mdl'),
+                sh.src(models).rglob('*.phy'),
+                sh.src(models).rglob('*.vvd'),
+                sh.src(models).rglob('*.dx90.vtx'),
+            ):
+                output_path = sh.output(s1_model_resource)
+                output_path.parent.MakeDir()
+                shutil.copy(s1_model_resource, output_path)
+
         print('- Generating VMDL from MDL!')
         mdl_files = sh.collect(models, '.mdl', '.vmdl', SHOULD_OVERWRITE, searchPath=sh.output(models))
 
@@ -58,6 +64,21 @@ def main():
             ImportMDLtoVMDL(mdl)
 
     if IMPORT_QC:
+        if COPY_FROM_SRC1_DIR:
+            print(' - Copying model sources from src1 dir!')
+            for s1_model_resource in itertools.chain(
+                sh.src(modelsrc).rglob('*.qc'),
+                sh.src(modelsrc).rglob('*.qci'),
+                sh.src(modelsrc).rglob('*.smd'),
+                sh.src(modelsrc).rglob('*.dmx'),
+                sh.src(modelsrc).rglob('*.fbx'),
+                sh.src(modelsrc).rglob('*.vta'),
+            ):
+                output_path = sh.output(models/s1_model_resource.local.relative_to(modelsrc))
+                output_path.parent.MakeDir()
+                shutil.copyfile(s1_model_resource, output_path)
+                sh.status(f"Copied {s1_model_resource.local}")
+
         print('- Generating VMDL from QC!')
         qci_files = sh.collect(models, '.qci', '.vmdl', True, searchPath=sh.output(models))
         qc_files = sh.collect(models, '.qc', '.vmdl', True, searchPath=sh.output(models))
@@ -123,17 +144,23 @@ def ImportQCtoVMDL(qc_path: Path):
         return add_rendermesh_from_body(body)
         
     def add_rendermesh_from_body(body: QC.body):
-        smd_file = sh.EXPORT_CONTENT / fixup_filepath(body.mesh_filename)
-        if smd_file.is_file():
-            with open(smd_file, "rb") as fp:
-                ref = smd.Mesh.parse_smd(fp)
-                for tri in ref.triangles:
-                    material_names.add(tri.mat)
+        rendermesh_file = sh.EXPORT_CONTENT / fixup_filepath(body.mesh_filename)
+        if rendermesh_file.is_file():
+            if rendermesh_file.suffix == ".smd":
+                with open(rendermesh_file, "rb") as fp:
+                    ref = smd.Mesh.parse_smd(fp)
+                    for tri in ref.triangles:
+                        material_names.add(tri.mat)
+            elif rendermesh_file.suffix == ".dmx":
+                #import shared.datamodel as dmx
+                #dmx.load(rendermesh_file)
+                ...
+
         else:
-            sh.status(f"missing-mesh {smd_file}")
+            sh.status(f"missing-mesh {rendermesh_file}")
         rendermeshfile = ModelDoc.RenderMeshFile(
             name = body.name,
-            filename = smd_file.local.as_posix(),
+            filename = rendermesh_file.local.as_posix(),
             import_scale = body.scale,
         )
         return vmdl.add_to_appropriate_list(rendermeshfile)
@@ -570,7 +597,7 @@ def ImportQCtoVMDL(qc_path: Path):
     if bIsIncludeFile:
         out_vmdl_path = sh.output(qc_path, '.vmdl_prefab')
     else:
-        out_vmdl_path = sh.EXPORT_CONTENT / (models / model_name.lower()).with_suffix('.vmdl')
+        out_vmdl_path = sh.EXPORT_CONTENT / (models / model_name.lower()).with_suffix('.vmdl').as_posix()
     
     if not SHOULD_OVERWRITE and out_vmdl_path.exists():
         sh.skip("already-exist", out_vmdl_path)

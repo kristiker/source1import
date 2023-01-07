@@ -21,6 +21,7 @@
 #  THE SOFTWARE.
 
 from math import isclose
+from pathlib import Path
 import struct, array, io, binascii, collections, uuid
 from typing import Iterable, Optional
 from struct import unpack,calcsize
@@ -786,6 +787,16 @@ class DataModel:
 			if encoding == 'keyvalues2': dm = dm.encode('utf-8')
 			file.write(dm)
 
+def remove_ids(kv2_path: Path):
+    """For lack of keyvalues2_noids"""
+    with open(kv2_path, "r+") as fp:
+        lines = fp.readlines()
+        fp.seek(0)
+        for line in lines:
+            if '"id" "elementid" "' in line:
+                continue
+            fp.write(line)
+        fp.truncate()
 
 class DatamodelParseError(Exception):
 	pass

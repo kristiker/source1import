@@ -56,6 +56,8 @@ def ImportVMFEntitiesToVMAP(vmf_path):
 
     out_vmap = convert_vmf_entities(vmf)
     out_vmap.write(vmap_path, "keyvalues2", 4)
+    if sh.MOCK:
+        dmx.remove_ids(vmap_path)
     print("+ Generated", vmap_path.local)
     return vmap_path
 

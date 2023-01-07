@@ -253,6 +253,7 @@ class SampleApp(Tk):
             ("SHOULD_OVERWRITE", "Overwrite Existing VMDLs"),
         ).add_toggles(
             ("IMPORT_MDL", "Generate from MDL files"),
+            ("COPY_FROM_SRC1_DIR", "Search for files in Source 1 directory"),
             ("SAMPBOX", "Temporary s&box path fix (append ../)"),
             ("IMPORT_QC", "Import from QC (experimental)"),
         )
