@@ -4,6 +4,6 @@ ResourceManifest_t
     string name = "Scenes Manifest"
     string[] resourceFileNameList =
     [
-        "scenes/_root.vcdlist"
+        "scenes/npc_alyx.vcdlist"
     ]
 }
