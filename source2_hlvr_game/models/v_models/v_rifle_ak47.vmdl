@@ -1,0 +1,858 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:source1imported:version{fb63b6ca-f435-4aa0-a2c7-c66ddc651dca} -->
+{
+	rootNode = 
+	{
+		_class = "RootNode"
+		note = ""
+		children = 
+		[
+			{
+				_class = "MaterialGroupList"
+				note = ""
+				children = 
+				[
+					{
+						_class = "DefaultMaterialGroup"
+						note = ""
+						children = []
+						name = ""
+						remaps = []
+						use_global_default = false
+						global_default_material = ""
+					},
+				]
+
+			},
+			{
+				_class = "RenderMeshList"
+				note = ""
+				children = 
+				[
+					{
+						_class = "RenderMeshFile"
+						note = ""
+						children = []
+						name = "v_rifle_ak47"
+						filename = "models/v_models/dmx/rifle_ak47_ref.dmx"
+						import_translation = [0, 0, 0]
+						import_rotation = [0, 0, 0]
+						import_scale = 1
+						align_origin_x_type = "None"
+						align_origin_y_type = "None"
+						align_origin_z_type = "None"
+						parent_bone = ""
+						import_filter = 
+						{
+							exclude_by_default = false
+							exception_list = []
+						}
+					},
+				]
+
+			},
+			{
+				_class = "PrefabList"
+				note = ""
+				children = 
+				[
+					{
+						_class = "Prefab"
+						note = ""
+						children = []
+						name = ""
+						target_file = "models/v_models/bones_scripts/definebones.vmdl_prefab"
+					},
+					{
+						_class = "Prefab"
+						note = ""
+						children = []
+						name = ""
+						target_file = "models/v_models/bones_scripts/bonemerge.vmdl_prefab"
+					},
+				]
+
+			},
+			{
+				_class = "AttachmentList"
+				note = ""
+				children = 
+				[
+					{
+						_class = "Attachment"
+						note = ""
+						children = []
+						name = "fowardnode"
+						parent_bone = "ValveBiped_weapon_bone"
+						relative_origin = [0.0, 0.0, 0.0]
+						relative_angles = [0, 0, 0]
+						weight = 1.0
+						ignore_rotation = false
+					},
+				]
+
+			},
+			{
+				_class = "WeightListList"
+				note = ""
+				children = 
+				[
+					{
+						_class = "WeightList"
+						note = ""
+						children = []
+						name = "VIEWARMS"
+						default_weight = 0.0
+						weights = 
+						[
+							{
+								bone = "Valvebiped_Bip01"
+								weight = "1.0"
+							},
+						]
+
+						master_morph_weight = -1.0
+						morph_weights = []
+					},
+					{
+						_class = "WeightList"
+						note = ""
+						children = []
+						name = "Sniper_ARM"
+						default_weight = 0.0
+						weights = 
+						[
+							{
+								bone = "Valvebiped_Bip01"
+								weight = "1.0"
+							},
+						]
+
+						master_morph_weight = -1.0
+						morph_weights = []
+					},
+				]
+
+			},
+			{
+				_class = "AnimationList"
+				note = ""
+				children = 
+				[
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "look_poses"
+						activity_name = ""
+						activity_weight = 1
+						weight_list_name = ""
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = false
+						delta = true
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/look_down"
+						start_frame = -1
+						end_frame = -1
+						framerate = -1.0
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "idle_raw"
+						activity_name = ""
+						activity_weight = 1
+						weight_list_name = ""
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = false
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/ak47_idle.dmx"
+						start_frame = -1
+						end_frame = -1
+						framerate = -1.0
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "idle"
+						activity_name = "ACT_VM_IDLE"
+						activity_weight = "1"
+						weight_list_name = ""
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = false
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/a_run"
+						start_frame = -1
+						end_frame = -1
+						framerate = -1.0
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "deploy"
+						activity_name = "ACT_VM_DEPLOY"
+						activity_weight = "1"
+						weight_list_name = ""
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = false
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/ak47_deploy.dmx"
+						start_frame = -1
+						end_frame = -1
+						framerate = -1.0
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "deploy_layer"
+						activity_name = "ACT_VM_DEPLOY_LAYER"
+						activity_weight = "1"
+						weight_list_name = ""
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = false
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/ak47_deploy.dmx"
+						start_frame = -1
+						end_frame = -1
+						framerate = -1.0
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = 
+						[
+							{
+								_class = "AnimEvent"
+								note = "1"
+								children = []
+								name = ""
+								event_class = "AE_MUZZLEFLASH"
+								event_frame = "0"
+								event_keys = 
+								{
+								}
+							},
+						]
+
+						name = "fire"
+						activity_name = "ACT_VM_PRIMARYATTACK"
+						activity_weight = "1"
+						weight_list_name = ""
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = false
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/ak47_fire.dmx"
+						start_frame = -1
+						end_frame = -1
+						framerate = -1.0
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = 
+						[
+							{
+								_class = "AnimEvent"
+								note = "1"
+								children = []
+								name = ""
+								event_class = "AE_MUZZLEFLASH"
+								event_frame = "0"
+								event_keys = 
+								{
+								}
+							},
+						]
+
+						name = "fire_layer"
+						activity_name = "ACT_VM_PRIMARYATTACK_LAYER"
+						activity_weight = "1"
+						weight_list_name = ""
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = false
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/ak47_fire.dmx"
+						start_frame = -1
+						end_frame = -1
+						framerate = -1.0
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = 
+						[
+							{
+								_class = "AnimEvent"
+								note = "AK47.ClipOut"
+								children = []
+								name = ""
+								event_class = "AE_CL_PLAYSOUND"
+								event_frame = "21"
+								event_keys = 
+								{
+									name = "AK47.ClipOut"
+								}
+							},
+							{
+								_class = "AnimEvent"
+								note = "AK47.ClipIn"
+								children = []
+								name = ""
+								event_class = "AE_CL_PLAYSOUND"
+								event_frame = "42"
+								event_keys = 
+								{
+									name = "AK47.ClipIn"
+								}
+							},
+							{
+								_class = "AnimEvent"
+								note = "AK47.ClipLocked"
+								children = []
+								name = ""
+								event_class = "AE_CL_PLAYSOUND"
+								event_frame = "49"
+								event_keys = 
+								{
+									name = "AK47.ClipLocked"
+								}
+							},
+							{
+								_class = "AnimEvent"
+								note = "AK47.SlideBack"
+								children = []
+								name = ""
+								event_class = "AE_CL_PLAYSOUND"
+								event_frame = "69"
+								event_keys = 
+								{
+									name = "AK47.SlideBack"
+								}
+							},
+							{
+								_class = "AnimEvent"
+								note = "AK47.SlideForward"
+								children = []
+								name = ""
+								event_class = "AE_CL_PLAYSOUND"
+								event_frame = "76"
+								event_keys = 
+								{
+									name = "AK47.SlideForward"
+								}
+							},
+						]
+
+						name = "reload"
+						activity_name = "ACT_VM_RELOAD"
+						activity_weight = "1"
+						weight_list_name = ""
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = false
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/ak47_reload.dmx"
+						start_frame = -1
+						end_frame = -1
+						framerate = "42"
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = 
+						[
+							{
+								_class = "AnimEvent"
+								note = "AK47.ClipOut"
+								children = []
+								name = ""
+								event_class = "AE_CL_PLAYSOUND"
+								event_frame = "21"
+								event_keys = 
+								{
+									name = "AK47.ClipOut"
+								}
+							},
+							{
+								_class = "AnimEvent"
+								note = "AK47.ClipIn"
+								children = []
+								name = ""
+								event_class = "AE_CL_PLAYSOUND"
+								event_frame = "42"
+								event_keys = 
+								{
+									name = "AK47.ClipIn"
+								}
+							},
+							{
+								_class = "AnimEvent"
+								note = "AK47.ClipLocked"
+								children = []
+								name = ""
+								event_class = "AE_CL_PLAYSOUND"
+								event_frame = "49"
+								event_keys = 
+								{
+									name = "AK47.ClipLocked"
+								}
+							},
+							{
+								_class = "AnimEvent"
+								note = "AK47.SlideBack"
+								children = []
+								name = ""
+								event_class = "AE_CL_PLAYSOUND"
+								event_frame = "69"
+								event_keys = 
+								{
+									name = "AK47.SlideBack"
+								}
+							},
+							{
+								_class = "AnimEvent"
+								note = "AK47.SlideForward"
+								children = []
+								name = ""
+								event_class = "AE_CL_PLAYSOUND"
+								event_frame = "76"
+								event_keys = 
+								{
+									name = "AK47.SlideForward"
+								}
+							},
+						]
+
+						name = "reload_layer"
+						activity_name = "ACT_VM_RELOAD_LAYER"
+						activity_weight = "1"
+						weight_list_name = ""
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = false
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/ak47_reload.dmx"
+						start_frame = -1
+						end_frame = -1
+						framerate = "42"
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "melee"
+						activity_name = "ACT_VM_MELEE"
+						activity_weight = "1"
+						weight_list_name = ""
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = false
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/ak47_melee.dmx"
+						start_frame = -1
+						end_frame = -1
+						framerate = -1.0
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "melee_layer"
+						activity_name = "ACT_VM_MELEE_LAYER"
+						activity_weight = "1"
+						weight_list_name = ""
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = false
+						delta = true
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/ak47_melee.dmx"
+						start_frame = -1
+						end_frame = -1
+						framerate = -1.0
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "helping_hand_extend"
+						activity_name = "ACT_VM_HELPINGHAND_EXTEND"
+						activity_weight = "1"
+						weight_list_name = ""
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = false
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/ak47_helpinghand_extend.dmx"
+						start_frame = -1
+						end_frame = -1
+						framerate = -1.0
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "helping_hand_extend_layer"
+						activity_name = "ACT_VM_HELPINGHAND_EXTEND_LAYER"
+						activity_weight = "1"
+						weight_list_name = ""
+						fade_in_time = 0.2
+						fade_out_time = "0.0"
+						looping = false
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/ak47_helpinghand_extend.dmx"
+						start_frame = -1
+						end_frame = -1
+						framerate = -1.0
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "helping_hand_loop"
+						activity_name = "ACT_VM_HELPINGHAND_LOOP"
+						activity_weight = "1"
+						weight_list_name = ""
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = true
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/ak47_helpinghand_loop.dmx"
+						start_frame = -1
+						end_frame = -1
+						framerate = -1.0
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "helping_hand_loop_layer"
+						activity_name = "ACT_VM_HELPINGHAND_LOOP_LAYER"
+						activity_weight = "1"
+						weight_list_name = ""
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = true
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/ak47_helpinghand_loop.dmx"
+						start_frame = -1
+						end_frame = -1
+						framerate = -1.0
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "helping_hand_retract"
+						activity_name = "ACT_VM_HELPINGHAND_RETRACT"
+						activity_weight = "1"
+						weight_list_name = ""
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = false
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/ak47_helpinghand_retract.dmx"
+						start_frame = -1
+						end_frame = -1
+						framerate = -1.0
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "helping_hand_retract_layer"
+						activity_name = "ACT_VM_HELPINGHAND_RETRACT_LAYER"
+						activity_weight = "1"
+						weight_list_name = ""
+						fade_in_time = "0.0"
+						fade_out_time = 0.2
+						looping = false
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/ak47_helpinghand_retract.dmx"
+						start_frame = -1
+						end_frame = -1
+						framerate = -1.0
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "item_extend"
+						activity_name = "ACT_VM_ITEMPICKUP_EXTEND"
+						activity_weight = "1"
+						weight_list_name = ""
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = false
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/ak47_itempickup_extend.dmx"
+						start_frame = -1
+						end_frame = -1
+						framerate = -1.0
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "item_extend_layer"
+						activity_name = "ACT_VM_ITEMPICKUP_EXTEND_LAYER"
+						activity_weight = "1"
+						weight_list_name = ""
+						fade_in_time = 0.2
+						fade_out_time = "0.0"
+						looping = false
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/ak47_itempickup_extend.dmx"
+						start_frame = -1
+						end_frame = -1
+						framerate = -1.0
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "item_loop"
+						activity_name = "ACT_VM_ITEMPICKUP_LOOP"
+						activity_weight = "1"
+						weight_list_name = ""
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = true
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/ak47_itempickup_loop.dmx"
+						start_frame = -1
+						end_frame = -1
+						framerate = -1.0
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "item_loop_layer"
+						activity_name = "ACT_VM_ITEMPICKUP_LOOP_LAYER"
+						activity_weight = "1"
+						weight_list_name = ""
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = true
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/ak47_itempickup_loop.dmx"
+						start_frame = -1
+						end_frame = -1
+						framerate = -1.0
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "item_retract"
+						activity_name = "ACT_VM_ITEMPICKUP_RETRACT"
+						activity_weight = "1"
+						weight_list_name = ""
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = false
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/ak47_itempickup_retract.dmx"
+						start_frame = -1
+						end_frame = -1
+						framerate = -1.0
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "item_retract_layer"
+						activity_name = "ACT_VM_ITEMPICKUP_RETRACT_LAYER"
+						activity_weight = "1"
+						weight_list_name = ""
+						fade_in_time = "0.0"
+						fade_out_time = 0.2
+						looping = false
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/ak47_itempickup_retract.dmx"
+						start_frame = -1
+						end_frame = -1
+						framerate = -1.0
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+				]
+
+				default_root_bone_name = ""
+			},
+		]
+
+		model_archetype = ""
+		primary_associated_entity = ""
+		anim_graph_name = ""
+		base_model_name = ""
+	}
+}

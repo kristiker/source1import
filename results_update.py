@@ -2,6 +2,7 @@ import sys, os
 from types import ModuleType
 from typing import Any, Callable
 from pathlib import Path
+import itertools
 
 WINDOWS = os.name == "nt"
 
@@ -42,6 +43,18 @@ def workflow(*modules: tuple[ModuleType, dict[str, Any]]):
                 if module == vtf_to_tga and not WINDOWS:
                     continue
                 f(module)
+                if module == models_import:
+                    # delete these copied files that have no changes
+                    # in smd the bone names are changed
+                    for file in itertools.chain(
+                        module.sh.output("models").rglob('*.qc'),
+                        module.sh.output("models").rglob('*.qci'),
+                        module.sh.output("models").rglob('*.smd'),
+                        module.sh.output("models").rglob('*.dmx'),
+                        module.sh.output("models").rglob('*.fbx'),
+                        module.sh.output("models").rglob('*.vta'),
+                    ):
+                        file.unlink()
         return wrapper
     return inner
 
@@ -50,6 +63,7 @@ import particles_import
 import scripts_import
 import scenes_import
 import maps_import
+import models_import
 import vtf_to_tga
 
 
@@ -69,6 +83,11 @@ import vtf_to_tga
         "MISCELLANEOUS": True,
     }),
     (maps_import, {}),
+    (models_import, {
+        "IMPORT_MDL": True,
+        "IMPORT_QC": True,
+        "COPY_FROM_SRC1_DIR": True,
+    }),
     (scenes_import, {}),
 )
 def hlvr(module: ModuleType):

@@ -1,0 +1,660 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:source1imported:version{fb63b6ca-f435-4aa0-a2c7-c66ddc651dca} -->
+{
+	rootNode = 
+	{
+		_class = "RootNode"
+		note = ""
+		children = 
+		[
+			{
+				_class = "PrefabList"
+				note = ""
+				children = 
+				[
+					{
+						_class = "Prefab"
+						note = ""
+						children = []
+						name = ""
+						target_file = "models/v_models/qcis/definebones.vmdl_prefab"
+					},
+					{
+						_class = "Prefab"
+						note = ""
+						children = []
+						name = ""
+						target_file = "models/v_models/qcis/bonemerge.vmdl_prefab"
+					},
+				]
+
+			},
+			{
+				_class = "WeightListList"
+				note = ""
+				children = 
+				[
+					{
+						_class = "WeightList"
+						note = ""
+						children = []
+						name = "VIEWARMS"
+						default_weight = 0.0
+						weights = 
+						[
+							{
+								bone = "Valvebiped_Bip01"
+								weight = "1.0"
+							},
+						]
+
+						master_morph_weight = -1.0
+						morph_weights = []
+					},
+				]
+
+			},
+			{
+				_class = "AnimationList"
+				note = ""
+				children = 
+				[
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "a_molotov_arms_vaims"
+						activity_name = ""
+						activity_weight = 1
+						weight_list_name = ""
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = false
+						delta = true
+						worldSpace = false
+						hidden = true
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/a_molotov_arms_trans_down"
+						start_frame = -1
+						end_frame = -1
+						framerate = -1.0
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "molotov_idle"
+						activity_name = "ACT_VM_IDLE_MOLOTOV"
+						activity_weight = "1"
+						weight_list_name = ""
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = true
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/ta_molotov_run_trans_run"
+						start_frame = -1
+						end_frame = -1
+						framerate = -1.0
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "molotov_deploy"
+						activity_name = "ACT_VM_DEPLOY_MOLOTOV"
+						activity_weight = "1"
+						weight_list_name = ""
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = false
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/v_eq_molotov_namvet_deploy"
+						start_frame = "0"
+						end_frame = "40"
+						framerate = "50"
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "molotov_deploy_layer"
+						activity_name = "ACT_VM_DEPLOY_MOLOTOV_LAYER"
+						activity_weight = "1"
+						weight_list_name = "VIEWARMS"
+						fade_in_time = "0"
+						fade_out_time = "0.6"
+						looping = false
+						delta = true
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/molotov_anim_deploy_layer"
+						start_frame = -1
+						end_frame = -1
+						framerate = -1.0
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "molotov_pullpin"
+						activity_name = "ACT_VM_PULLPIN_MOLOTOV"
+						activity_weight = "1"
+						weight_list_name = ""
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = false
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/v_eq_molotov_namvet_pullback"
+						start_frame = "0"
+						end_frame = "20"
+						framerate = "40"
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "molotov_pullpin_layer"
+						activity_name = "ACT_VM_PULLPIN_MOLOTOV_LAYER"
+						activity_weight = "1"
+						weight_list_name = ""
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = false
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/v_eq_molotov_namvet_pullback"
+						start_frame = "0"
+						end_frame = "20"
+						framerate = "40"
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "molotov_throw"
+						activity_name = "ACT_VM_THROW_MOLOTOV"
+						activity_weight = "1"
+						weight_list_name = ""
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = false
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/v_eq_molotov_namvet_throw"
+						start_frame = "0"
+						end_frame = "40"
+						framerate = "40"
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "molotov_throw_layer"
+						activity_name = "ACT_VM_THROW_MOLOTOV_LAYER"
+						activity_weight = "1"
+						weight_list_name = "VIEWARMS"
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = false
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/v_eq_molotov_namvet_throw"
+						start_frame = "0"
+						end_frame = "30"
+						framerate = "40"
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "molotov_melee"
+						activity_name = "ACT_VM_MELEE_MOLOTOV"
+						activity_weight = "1"
+						weight_list_name = ""
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = false
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/v_eq_molotov_namvet_melee"
+						start_frame = "0"
+						end_frame = "40"
+						framerate = "40"
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "molotov_melee_layer"
+						activity_name = "ACT_VM_MELEE_MOLOTOV_LAYER"
+						activity_weight = "1"
+						weight_list_name = "VIEWARMS"
+						fade_in_time = "0.1"
+						fade_out_time = "0.4"
+						looping = false
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/v_eq_molotov_namvet_melee"
+						start_frame = "0"
+						end_frame = "40"
+						framerate = "40"
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "eq_molotov_ItemPickup_idle"
+						activity_name = "ACT_VM_ITEMPICKUP_LOOP_MOLOTOV"
+						activity_weight = "1"
+						weight_list_name = ""
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = true
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/v_eq_molotov_namvet_itempickup"
+						start_frame = "30"
+						end_frame = "90"
+						framerate = "30"
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "eq_molotov_ItemPickup_idle_layer"
+						activity_name = "ACT_VM_ITEMPICKUP_LOOP_MOLOTOV_LAYER"
+						activity_weight = "1"
+						weight_list_name = "VIEWARMS"
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = true
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/v_eq_molotov_namvet_itempickup"
+						start_frame = "30"
+						end_frame = "90"
+						framerate = "30"
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "eq_molotov_ItemPickup_extend"
+						activity_name = "ACT_VM_ITEMPICKUP_EXTEND_MOLOTOV"
+						activity_weight = "1"
+						weight_list_name = ""
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = false
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/v_eq_molotov_namvet_itempickup"
+						start_frame = "0"
+						end_frame = "30"
+						framerate = "80"
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = 
+						[
+							{
+								_class = "AnimEvent"
+								note = "Molotov.ItemPickupExtend"
+								children = []
+								name = ""
+								event_class = "AE_CL_PLAYSOUND"
+								event_frame = "1"
+								event_keys = 
+								{
+									name = "Molotov.ItemPickupExtend"
+								}
+							},
+						]
+
+						name = "eq_molotov_ItemPickup_extend_layer"
+						activity_name = "ACT_VM_ITEMPICKUP_EXTEND_MOLOTOV_LAYER"
+						activity_weight = "1"
+						weight_list_name = "VIEWARMS"
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = false
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/v_eq_molotov_namvet_itempickup"
+						start_frame = "0"
+						end_frame = "50"
+						framerate = "80"
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "eq_molotov_ItemPickup_retract"
+						activity_name = "ACT_VM_ITEMPICKUP_RETRACT_MOLOTOV"
+						activity_weight = "1"
+						weight_list_name = ""
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = false
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/v_eq_molotov_namvet_itempickup"
+						start_frame = "90"
+						end_frame = "120"
+						framerate = "80"
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = 
+						[
+							{
+								_class = "AnimEvent"
+								note = "Molotov.ItemPickupRetract"
+								children = []
+								name = ""
+								event_class = "AE_CL_PLAYSOUND"
+								event_frame = "1"
+								event_keys = 
+								{
+									name = "Molotov.ItemPickupRetract"
+								}
+							},
+						]
+
+						name = "eq_molotov_ItemPickup_retract_layer"
+						activity_name = "ACT_VM_ITEMPICKUP_RETRACT_MOLOTOV_LAYER"
+						activity_weight = "1"
+						weight_list_name = "VIEWARMS"
+						fade_in_time = "0.0"
+						fade_out_time = "0.3"
+						looping = false
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/v_eq_molotov_namvet_itempickup"
+						start_frame = "90"
+						end_frame = "140"
+						framerate = "80"
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "eq_molotov_HelpingHand_idle"
+						activity_name = "ACT_VM_HELPINGHAND_LOOP_MOLOTOV"
+						activity_weight = "1"
+						weight_list_name = ""
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = true
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/v_eq_molotov_namvet_helpinghand"
+						start_frame = "30"
+						end_frame = "90"
+						framerate = "30"
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "eq_molotov_HelpingHand_idle_layer"
+						activity_name = "ACT_VM_HELPINGHAND_LOOP_MOLOTOV_LAYER"
+						activity_weight = "1"
+						weight_list_name = "VIEWARMS"
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = true
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/v_eq_molotov_namvet_helpinghand"
+						start_frame = "30"
+						end_frame = "90"
+						framerate = "30"
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "eq_molotov_HelpingHand_extend"
+						activity_name = "ACT_VM_HELPINGHAND_EXTEND_MOLOTOV"
+						activity_weight = "1"
+						weight_list_name = ""
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = false
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/v_eq_molotov_namvet_helpinghand"
+						start_frame = "0"
+						end_frame = "30"
+						framerate = "80"
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = 
+						[
+							{
+								_class = "AnimEvent"
+								note = "Molotov.HelpingHandExtend"
+								children = []
+								name = ""
+								event_class = "AE_CL_PLAYSOUND"
+								event_frame = "1"
+								event_keys = 
+								{
+									name = "Molotov.HelpingHandExtend"
+								}
+							},
+						]
+
+						name = "eq_molotov_HelpingHand_extend_layer"
+						activity_name = "ACT_VM_HELPINGHAND_EXTEND_MOLOTOV_LAYER"
+						activity_weight = "1"
+						weight_list_name = "VIEWARMS"
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = false
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/v_eq_molotov_namvet_helpinghand"
+						start_frame = "0"
+						end_frame = "50"
+						framerate = "80"
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = []
+						name = "eq_molotov_HelpingHand_retract"
+						activity_name = "ACT_VM_HELPINGHAND_RETRACT_MOLOTOV"
+						activity_weight = "1"
+						weight_list_name = ""
+						fade_in_time = 0.2
+						fade_out_time = 0.2
+						looping = false
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/v_eq_molotov_namvet_helpinghand"
+						start_frame = "90"
+						end_frame = "120"
+						framerate = "80"
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+					{
+						_class = "AnimFile"
+						note = ""
+						children = 
+						[
+							{
+								_class = "AnimEvent"
+								note = "Molotov.HelpingHandRetract"
+								children = []
+								name = ""
+								event_class = "AE_CL_PLAYSOUND"
+								event_frame = "1"
+								event_keys = 
+								{
+									name = "Molotov.HelpingHandRetract"
+								}
+							},
+						]
+
+						name = "eq_molotov_HelpingHand_retract_layer"
+						activity_name = "ACT_VM_HELPINGHAND_RETRACT_MOLOTOV_LAYER"
+						activity_weight = "1"
+						weight_list_name = "VIEWARMS"
+						fade_in_time = "0.0"
+						fade_out_time = "0.3"
+						looping = false
+						delta = false
+						worldSpace = false
+						hidden = false
+						anim_markup_ordered = false
+						disable_compression = false
+						source_filename = "models/v_models/dmx/animation/v_eq_molotov_namvet_helpinghand"
+						start_frame = "90"
+						end_frame = "140"
+						framerate = "80"
+						take = 0
+						reverse = false
+						anim_hold_list = []
+					},
+				]
+
+				default_root_bone_name = ""
+			},
+		]
+
+		model_archetype = ""
+		primary_associated_entity = ""
+		anim_graph_name = ""
+		base_model_name = ""
+	}
+}

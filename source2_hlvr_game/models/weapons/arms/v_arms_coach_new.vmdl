@@ -1,0 +1,75 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:source1imported:version{fb63b6ca-f435-4aa0-a2c7-c66ddc651dca} -->
+{
+	rootNode = 
+	{
+		_class = "RootNode"
+		note = ""
+		children = 
+		[
+			{
+				_class = "MaterialGroupList"
+				note = ""
+				children = 
+				[
+					{
+						_class = "DefaultMaterialGroup"
+						note = ""
+						children = []
+						name = ""
+						remaps = []
+						use_global_default = false
+						global_default_material = ""
+					},
+				]
+
+			},
+			{
+				_class = "PrefabList"
+				note = ""
+				children = 
+				[
+					{
+						_class = "Prefab"
+						note = ""
+						children = []
+						name = ""
+						target_file = "models/weapons/bonemerge.vmdl_prefab"
+					},
+				]
+
+			},
+			{
+				_class = "RenderMeshList"
+				note = ""
+				children = 
+				[
+					{
+						_class = "RenderMeshFile"
+						note = ""
+						children = []
+						name = "arms"
+						filename = "models/weapons/v_arms_coach_new.dmx"
+						import_translation = [0, 0, 0]
+						import_rotation = [0, 0, 0]
+						import_scale = 1
+						align_origin_x_type = "None"
+						align_origin_y_type = "None"
+						align_origin_z_type = "None"
+						parent_bone = ""
+						import_filter = 
+						{
+							exclude_by_default = false
+							exception_list = []
+						}
+					},
+				]
+
+			},
+		]
+
+		model_archetype = ""
+		primary_associated_entity = ""
+		anim_graph_name = ""
+		base_model_name = ""
+	}
+}

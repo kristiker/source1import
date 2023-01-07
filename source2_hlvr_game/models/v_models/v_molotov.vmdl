@@ -1,0 +1,101 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:source1imported:version{fb63b6ca-f435-4aa0-a2c7-c66ddc651dca} -->
+{
+	rootNode = 
+	{
+		_class = "RootNode"
+		note = ""
+		children = 
+		[
+			{
+				_class = "MaterialGroupList"
+				note = ""
+				children = 
+				[
+					{
+						_class = "DefaultMaterialGroup"
+						note = ""
+						children = []
+						name = ""
+						remaps = []
+						use_global_default = false
+						global_default_material = ""
+					},
+				]
+
+			},
+			{
+				_class = "PrefabList"
+				note = ""
+				children = 
+				[
+					{
+						_class = "Prefab"
+						note = ""
+						children = []
+						name = ""
+						target_file = "models/v_models/qcis/definebones.vmdl_prefab"
+					},
+					{
+						_class = "Prefab"
+						note = ""
+						children = []
+						name = ""
+						target_file = "models/v_models/qcis/bonemerge.vmdl_prefab"
+					},
+				]
+
+			},
+			{
+				_class = "AttachmentList"
+				note = ""
+				children = 
+				[
+					{
+						_class = "Attachment"
+						note = ""
+						children = []
+						name = "Wick"
+						parent_bone = "valvebiped_Wick"
+						relative_origin = [0.0, 0.0, 0.0]
+						relative_angles = [0, 0, 0]
+						weight = 1.0
+						ignore_rotation = false
+					},
+				]
+
+			},
+			{
+				_class = "RenderMeshList"
+				note = ""
+				children = 
+				[
+					{
+						_class = "RenderMeshFile"
+						note = ""
+						children = []
+						name = "molotov"
+						filename = "models/v_models/dmx/v_eq_molotov_reference.smd"
+						import_translation = [0, 0, 0]
+						import_rotation = [0, 0, 0]
+						import_scale = 1
+						align_origin_x_type = "None"
+						align_origin_y_type = "None"
+						align_origin_z_type = "None"
+						parent_bone = ""
+						import_filter = 
+						{
+							exclude_by_default = false
+							exception_list = []
+						}
+					},
+				]
+
+			},
+		]
+
+		model_archetype = ""
+		primary_associated_entity = ""
+		anim_graph_name = ""
+		base_model_name = "models/v_models/anim_v_molotov.vmdl"
+	}
+}
