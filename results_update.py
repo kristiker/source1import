@@ -49,6 +49,7 @@ import materials_import
 import particles_import
 import scripts_import
 import scenes_import
+import maps_import
 import vtf_to_tga
 
 
@@ -67,6 +68,7 @@ import vtf_to_tga
         "SURFACES": True,
         "MISCELLANEOUS": True,
     }),
+    (maps_import, {}),
     (scenes_import, {}),
 )
 def hlvr(module: ModuleType):

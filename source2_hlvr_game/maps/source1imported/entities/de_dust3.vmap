@@ -1,0 +1,3170 @@
+<!-- dmx encoding keyvalues2 4 format vmap 29 -->
+"$prefix_element$"
+{
+	"name" "string" ""
+	"map_asset_references" "string_array" [ ]
+}
+"CMapRootElement"
+{
+	"name" "string" "None"
+	"isprefab" "bool" "1"
+	"editorbuild" "int" "8632"
+	"editorversion" "int" "400"
+	"showgrid" "bool" "1"
+	"snaprotationangle" "int" "15"
+	"gridspacing" "float" "128.0"
+	"show3dgrid" "bool" "1"
+	"itemFile" "string" ""
+	"defaultcamera" "CStoredCamera"
+	{
+		"name" "string" "None"
+		"position" "vector3" "0 -1000 1000"
+		"lookat" "vector3" "0 0 0"
+	}
+	"3dcameras" "CStoredCameras"
+	{
+		"name" "string" "None"
+		"activecamera" "int" "-1"
+		"cameras" "element_array" [ ]
+	}
+	"world" "CMapWorld"
+	{
+		"name" "string" "None"
+		"origin" "vector3" "0 0 0"
+		"angles" "qangle" "0 0 0"
+		"scales" "vector3" "1 1 1"
+		"nodeID" "int" "1"
+		"referenceID" "uint64" "0x0"
+		"children" "element_array" 
+		[
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-1408 392 -115.818"
+				"angles" "qangle" "0 90 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "299061"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "info_player_spawn"
+					"color" "string" "220 30 220"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[0 4000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-1344 392 -115.818"
+				"angles" "qangle" "0 90 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "299070"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "info_player_spawn"
+					"color" "string" "220 30 220"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[0 4000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-1280 392 -115.818"
+				"angles" "qangle" "0 90 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "299076"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "info_player_spawn"
+					"color" "string" "220 30 220"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[0 4000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-1216 392 -115.818"
+				"angles" "qangle" "0 90 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "299078"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "info_player_spawn"
+					"color" "string" "220 30 220"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[0 4000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-1152 392 -115.818"
+				"angles" "qangle" "0 90 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "299080"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "info_player_spawn"
+					"color" "string" "220 30 220"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[0 4000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-1408 456 -116"
+				"angles" "qangle" "0 90 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "299230"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "info_player_spawn"
+					"color" "string" "220 30 220"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[0 4000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-1344 456 -116"
+				"angles" "qangle" "0 90 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "299232"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "info_player_spawn"
+					"color" "string" "220 30 220"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[0 4000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-1280 456 -116"
+				"angles" "qangle" "0 90 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "299234"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "info_player_spawn"
+					"color" "string" "220 30 220"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[0 4000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-1216 456 -116"
+				"angles" "qangle" "0 90 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "299236"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "info_player_spawn"
+					"color" "string" "220 30 220"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[0 4000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-1152 456 -116"
+				"angles" "qangle" "0 90 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "299238"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "info_player_spawn"
+					"color" "string" "220 30 220"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[0 4000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-177.179 2144.7 1696.61"
+				"angles" "qangle" "60 43 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "300991"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "shadow_control"
+					"color" "string" "220 30 220"
+					"distance" "string" "75"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[0 -13268]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-229.895 2107.43 1715.03"
+				"angles" "qangle" "0 43 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "300993"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "light_environment"
+					"_ambient" "string" "241 228 190 500"
+					"_ambientHDR" "string" "-1 -1 -1 1"
+					"_AmbientScaleHDR" "string" "1"
+					"_light" "string" "233 225 201 700"
+					"_lightHDR" "string" "-1 -1 -1 1"
+					"_lightscaleHDR" "string" "1"
+					"pitch" "string" "-60"
+					"color" "string" "220 30 220"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[0 -13768]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-167.295 2168 1726.55"
+				"angles" "qangle" "0 0 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "300995"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "env_fog_controller"
+					"farz" "string" "-1"
+					"fogblend" "string" "0"
+					"fogcolor" "string" "197 196 165"
+					"fogcolor2" "string" "255 255 255"
+					"fogdir" "string" "1 0 0"
+					"fogenable" "string" "1"
+					"fogend" "string" "4000"
+					"fogmaxdensity" "string" "1"
+					"fogstart" "string" "500.0"
+					"maxdxlevel" "string" "0"
+					"mindxlevel" "string" "0"
+					"color" "string" "255 255 255"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[0 -14768]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-226.6 2112.09 1768"
+				"angles" "qangle" "0 0 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "300997"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "env_sun"
+					"HDRColorScale" "string" "1.0"
+					"material" "string" "sprites/light_glow02_add_noz"
+					"overlaycolor" "string" "0 0 0"
+					"overlaymaterial" "string" "sprites/light_glow02_add_noz"
+					"overlaysize" "string" "-1"
+					"rendercolor" "string" "249 232 172"
+					"size" "string" "16"
+					"target" "string" "sun"
+					"color" "string" "255 0 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[0 -14268]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-576 1944 -119.122"
+				"angles" "qangle" "0 0 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "301041"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-456 1464 -103.122"
+				"angles" "qangle" "0 84 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "301064"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-608 1312 -103.122"
+				"angles" "qangle" "0 0 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "301142"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-426 1927.05 -103.122"
+				"angles" "qangle" "0 135 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "301146"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-448 1456 -57.5138"
+				"angles" "qangle" "0 61.5 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "301252"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-428.356 1916 -57.5138"
+				"angles" "qangle" "0 135 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "301260"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-236 1156.85 -107.207"
+				"angles" "qangle" "0 102.5 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "301264"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-283.341 1342.05 -107.206"
+				"angles" "qangle" "0 102.5 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "301268"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-300.214 1544 -115.205"
+				"angles" "qangle" "0 90 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "301272"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-255.791 1185.25 -61.5993"
+				"angles" "qangle" "0 102.5 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "301276"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-290.41 1360 -61.5986"
+				"angles" "qangle" "0 102.5 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "301280"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-316 1546.86 -61.5972"
+				"angles" "qangle" "0 90 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "301284"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-314.741 1456 -16"
+				"angles" "qangle" "0 90 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "301288"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-270.716 1265.92 -20"
+				"angles" "qangle" "0 102.5 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "301292"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-286 1736 -103.202"
+				"angles" "qangle" "0 90 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "301304"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-301.786 1738.86 -57.5938"
+				"angles" "qangle" "0 90 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "301308"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-848.722 1395.84 -60.6469"
+				"angles" "qangle" "0 90 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "301845"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-832.936 1392.97 -106.255"
+				"angles" "qangle" "0 90 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "301849"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-720 1636 -106.251"
+				"angles" "qangle" "0 90 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "301853"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-735.786 1638.87 -60.6436"
+				"angles" "qangle" "0 90 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "301857"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-943.018 1386.02 -60.4835"
+				"angles" "qangle" "0 90 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "301861"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-927.232 1383.16 -106.091"
+				"angles" "qangle" "0 90 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "301865"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-941.018 1575.16 -106.088"
+				"angles" "qangle" "0 90 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "301869"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-956.804 1578.02 -60.4802"
+				"angles" "qangle" "0 90 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "301873"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-1026.21 1382.86 -60.2969"
+				"angles" "qangle" "0 90 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "301909"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-1010.43 1380 -105.905"
+				"angles" "qangle" "0 90 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "301913"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-1024.21 1572 -105.901"
+				"angles" "qangle" "0 90 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "301917"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-1040 1574.86 -60.2935"
+				"angles" "qangle" "0 90 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "301921"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-1128.23 1484.19 -57.8892"
+				"angles" "qangle" "-30 0 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "302151"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-400 1616 -72.5645"
+				"angles" "qangle" "-30 0 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "302251"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-400 1776 -72.5645"
+				"angles" "qangle" "-30 15 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "302259"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-264.239 1978.61 -111.205"
+				"angles" "qangle" "0 78 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "302357"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-279.085 1984.69 -65.5972"
+				"angles" "qangle" "0 78 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "302361"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-544 2016 -96"
+				"angles" "qangle" "-15 345 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "302365"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-237.804 2169.28 -111.202"
+				"angles" "qangle" "0 78 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "302369"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-252.651 2175.36 -65.5938"
+				"angles" "qangle" "0 78 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "302373"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-336 2320 -80.5645"
+				"angles" "qangle" "-30 15 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "302377"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-253.262 2391.33 -111.122"
+				"angles" "qangle" "0 123 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "302381"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-235.63 2332.39 -65.5138"
+				"angles" "qangle" "0 123 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "302385"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-924.734 2133.14 -60.6469"
+				"angles" "qangle" "0 274.5 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "302529"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-940.697 2134.76 -106.255"
+				"angles" "qangle" "0 274.5 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "302533"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-847.461 2151.94 -106.091"
+				"angles" "qangle" "0 274.5 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "302537"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-831.499 2150.33 -60.4835"
+				"angles" "qangle" "0 274.5 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "302541"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-764.769 2161.62 -105.905"
+				"angles" "qangle" "0 274.5 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "302545"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-748.808 2160 -60.2969"
+				"angles" "qangle" "0 274.5 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "302549"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-735.962 1971.29 -105.901"
+				"angles" "qangle" "0 274.5 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "302553"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-680 1960 -76.2935"
+				"angles" "qangle" "1.16357 274.347 -14.9558"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "302557"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-818.653 1961.61 -106.088"
+				"angles" "qangle" "0 274.5 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "302561"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-802.692 1960 -60.4802"
+				"angles" "qangle" "0 274.5 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "302565"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-259.72 2075.79 -40"
+				"angles" "qangle" "0 78 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "302613"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-239.761 2169.69 -8"
+				"angles" "qangle" "0 78 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "302617"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-301.702 1357.38 12"
+				"angles" "qangle" "0 102.5 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "302621"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "prop_static"
+					"fademindist" "string" "-1"
+					"fadescale" "string" "1"
+					"model" "string" "models/props_vehicles/car004b.vmdl"
+					"skin" "string" "0"
+					"solid" "string" "6"
+					"color" "string" "255 255 0"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[500 8000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-539.718 3632.96 -122.482"
+				"angles" "qangle" "0 270 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "303910"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "info_player_spawn"
+					"color" "string" "220 30 220"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[0 4000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-605.34 3625.82 -122.482"
+				"angles" "qangle" "0 270 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "303912"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "info_player_spawn"
+					"color" "string" "220 30 220"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[0 4000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-665.808 3625.12 -122.482"
+				"angles" "qangle" "0 270 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "303914"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "info_player_spawn"
+					"color" "string" "220 30 220"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[0 4000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-736.454 3618.79 -122.482"
+				"angles" "qangle" "0 270 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "303916"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "info_player_spawn"
+					"color" "string" "220 30 220"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[0 4000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-807.803 3621.98 -122.482"
+				"angles" "qangle" "0 270 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "303918"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "info_player_spawn"
+					"color" "string" "220 30 220"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[0 4000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-547.915 3686.17 -122.482"
+				"angles" "qangle" "0 270 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "303930"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "info_player_spawn"
+					"color" "string" "220 30 220"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[0 4000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-613.537 3679.03 -122.482"
+				"angles" "qangle" "0 270 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "303932"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "info_player_spawn"
+					"color" "string" "220 30 220"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[0 4000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-674.005 3678.33 -122.482"
+				"angles" "qangle" "0 270 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "303934"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "info_player_spawn"
+					"color" "string" "220 30 220"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[0 4000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-744.651 3672 -122.482"
+				"angles" "qangle" "0 270 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "303936"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "info_player_spawn"
+					"color" "string" "220 30 220"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[0 4000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "-816 3675.19 -122.482"
+				"angles" "qangle" "0 270 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "303938"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "info_player_spawn"
+					"color" "string" "220 30 220"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[0 4000]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "0 0 0"
+				"angles" "qangle" "0 0 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "303988"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "func_bomb_target"
+					"color" "string" "220 30 220"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[2500 -12268]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "0 0 0"
+				"angles" "qangle" "0 0 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "303992"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "func_buyzone"
+					"TeamNum" "string" "2"
+					"color" "string" "220 30 220"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[2500 -12768]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			},
+			"CMapEntity"
+			{
+				"name" "string" ""
+				"origin" "vector3" "0 0 0"
+				"angles" "qangle" "0 0 0"
+				"scales" "vector3" "1 1 1"
+				"nodeID" "int" "303998"
+				"referenceID" "uint64" "0x0"
+				"children" "element_array" [ ]
+				"editorOnly" "bool" "0"
+				"force_hidden" "bool" "0"
+				"transformLocked" "bool" "0"
+				"variableTargetKeys" "string_array" [ ]
+				"variableNames" "string_array" [ ]
+				"relayPlugData" "DmePlugList"
+				{
+					"name" "string" ""
+					"names" "string_array" [ ]
+					"dataTypes" "int_array" [ ]
+					"plugTypes" "int_array" [ ]
+					"descriptions" "string_array" [ ]
+				}
+				"connectionsData" "element_array" [ ]
+				"entity_properties" "EditGameClassProps"
+				{
+					"name" "string" ""
+					"classname" "string" "func_buyzone"
+					"TeamNum" "string" "3"
+					"color" "string" "220 30 220"
+					"visgroupshown" "string" "1"
+					"visgroupautoshown" "string" "1"
+					"logicalpos" "string" "[2500 -12768]"
+				}
+				"hitNormal" "vector3" "0 0 1"
+				"isProceduralEntity" "bool" "0"
+			}
+		]
+		"editorOnly" "bool" "0"
+		"force_hidden" "bool" "0"
+		"transformLocked" "bool" "0"
+		"variableTargetKeys" "string_array" [ ]
+		"variableNames" "string_array" [ ]
+		"relayPlugData" "DmePlugList"
+		{
+			"name" "string" "None"
+			"names" "string_array" [ ]
+			"dataTypes" "int_array" [ ]
+			"plugTypes" "int_array" [ ]
+			"descriptions" "string_array" [ ]
+		}
+		"connectionsData" "element_array" [ ]
+		"entity_properties" "EditGameClassProps"
+		{
+			"name" "string" "None"
+			"classname" "string" "worldspawn"
+			"targetname" "string" ""
+			"skyname" "string" "sky_day01_01"
+			"startdark" "string" "0"
+			"startcolor" "string" "0 0 0"
+			"pvstype" "string" "10"
+			"newunit" "string" "0"
+			"maxpropscreenwidth" "string" "-1"
+			"minpropscreenwidth" "string" "0"
+			"vrchaperone" "string" "0"
+			"vrmovement" "string" "0"
+			"baked_light_index_min" "string" "0"
+			"baked_light_index_max" "string" "256"
+			"max_lightmap_resolution" "string" "0"
+			"lightmap_queries" "string" "1"
+		}
+		"nextDecalID" "int" "0"
+		"fixupEntityNames" "bool" "1"
+		"mapUsageType" "string" "standard"
+	}
+	"visbility" "CVisibilityMgr"
+	{
+		"name" "string" "None"
+		"origin" "vector3" "0 0 0"
+		"angles" "qangle" "0 0 0"
+		"scales" "vector3" "1 1 1"
+		"nodeID" "int" "0"
+		"referenceID" "uint64" "0x0"
+		"children" "element_array" [ ]
+		"editorOnly" "bool" "0"
+		"force_hidden" "bool" "0"
+		"transformLocked" "bool" "0"
+		"variableTargetKeys" "string_array" [ ]
+		"variableNames" "string_array" [ ]
+		"nodes" "element_array" [ ]
+		"hiddenFlags" "int_array" [ ]
+	}
+	"mapVariables" "CMapVariableSet"
+	{
+		"name" "string" "None"
+		"variableNames" "string_array" [ ]
+		"variableValues" "string_array" [ ]
+		"variableTypeNames" "string_array" [ ]
+		"variableTypeParameters" "string_array" [ ]
+		"m_ChoiceGroups" "element_array" [ ]
+	}
+	"rootSelectionSet" "CMapSelectionSet"
+	{
+		"name" "string" "None"
+		"children" "element_array" [ ]
+		"selectionSetName" "string" ""
+		"selectionSetData" "element" ""
+	}
+	"m_ReferencedMeshSnapshots" "element_array" [ ]
+	"m_bIsCordoning" "bool" "0"
+	"m_bCordonsVisible" "bool" "0"
+	"nodeInstanceData" "element_array" [ ]
+}
+
