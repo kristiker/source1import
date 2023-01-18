@@ -12,7 +12,7 @@ class Proxies(VDFDict): pass
 
 def add(srcvar1, srcvar2, **_):         return f"{srcvar1} + {srcvar2}"
 def multiply(srcvar1, srcvar2, **_):    return f"{srcvar1} * {srcvar2}"
-def substract(srcvar1, srcvar2, **_):   return f"{srcvar1} - {srcvar2}"
+def subtract(srcvar1, srcvar2, **_):   return f"{srcvar1} - {srcvar2}"
 def divide(srcvar1, srcvar2, **_):      return f"{srcvar1} / {srcvar2}"
 
 def equals(srcvar1, **_):   return f"{srcvar1}"
@@ -195,26 +195,30 @@ def ProxiesToDynamicParams(vmtProxies: VDFDict, known, KeyValues) -> tuple[dict,
     vmatKeyValues: dict = {}
 
     for proxy, proxyParams in vmtProxies.items():
-        if proxy == "animatedtexture":
-            # sequential animation, get framerate
-            if proxyParams["animatedtextureframenumvar"] != "$frame":
+        try:
+            if proxy == "animatedtexture":
+                # sequential animation, get framerate
+                if proxyParams["animatedtextureframenumvar"] != "$frame":
+                    continue
+                vmatKeyValues["F_TEXTURE_ANIMATION"] = 1
+                vmatKeyValues["g_flAnimationTimePerFrame"] = 1 / float(proxyParams["animatedtextureframerate"])
                 continue
-            vmatKeyValues["F_TEXTURE_ANIMATION"] = 1
-            vmatKeyValues["g_flAnimationTimePerFrame"] = 1 / float(proxyParams["animatedtextureframerate"])
-            continue
-        elif proxy == "texturescroll":
-            if proxyParams["texturescrollvar"] != "$basetexturetransform":
-                continue
-            try:
+            elif proxy == "texturescroll":
+                if proxyParams["texturescrollvar"] != "$basetexturetransform":
+                    continue
                 u = float(proxyParams["texturescrollrate"]) * cos(_int(proxyParams["texturescrollangle"]))
                 v = float(proxyParams["texturescrollrate"]) * sin(_int(proxyParams["texturescrollangle"]))
-            except (ValueError, KeyError):
-                # bad proxyParams
+                vmatKeyValues["g_vTexCoordScrollSpeed"] = f"[{u:.6f} {v:.6f}]"
                 continue
-            vmatKeyValues["g_vTexCoordScrollSpeed"] = f"[{u:.6f} {v:.6f}]"
+        except (ValueError, KeyError):
+            # bad proxyParams
             continue
         # resultvar needs to be a vmt $key that can be translated
         if (resultvar:=get_resultvar(proxyParams)) not in known:
+            continue
+
+        dpKey = known[resultvar] # g_vColorTint
+        if dpKey is None:
             continue
         
         # scripted animation sequence
@@ -223,8 +227,6 @@ def ProxiesToDynamicParams(vmtProxies: VDFDict, known, KeyValues) -> tuple[dict,
             vmatKeyValues["F_TEXTURE_ANIMATION_MODE"] = 2
 
         dynEx = FormDynamicExpression(proxy, proxyParams, resultvar, known, KeyValues, vmtProxies)
-
-        dpKey = known[resultvar] # g_vColorTint
         vmatDynamicParams[dpKey] = repr(dynEx).strip("'") # "clamp(random(1), 0.4, 0.6)"
 
     return vmatKeyValues, vmatDynamicParams
@@ -278,7 +280,7 @@ if __name__ == "__main__":
                         "sineperiod": 8,
                         "resultvar": "$sinewaveoutput",
                     },
-                    "substract": {
+                    "subtract": {
                         "srcvar1": 5,
                         "srcvar2": 2,
                         "resultvar": "$alpha",

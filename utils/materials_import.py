@@ -6,8 +6,7 @@ from typing import Any, Callable, Literal
 from PIL import Image, ImageOps
 
 import shared.base_utils2 as sh
-from shared.base_utils2 import IMPORT_MOD, DOTA2, STEAMVR, HLVR, SBOX
-from shared.keyvalue_simple import getKV_tailored as getKeyValues
+from shared.base_utils2 import IMPORT_MOD, DOTA2, STEAMVR, HLVR, SBOX, ADJ
 from shared.keyvalues1 import KV
 from shared.material_proxies import ProxiesToDynamicParams
 
@@ -16,17 +15,17 @@ from shared import PFM
 
 # Set this to True if you wish to overwrite your old vmat files.
 OVERWRITE_VMAT = False
-OVERWRITE_SKYBOX_VMATS = False
 OVERWRITE_MODIFIED = False
 OVERWRITE_SKYCUBES = False
 
 # True to let vtex handle the inverting of the normalmap.
 NORMALMAP_G_VTEX_INVERT = True
 
-MISSING_TEXTURE_SET_DEFAULT = True # valve uses dev/white
+REPLACE_MISSING_TEXTURES_WITH_DEFAULT = False # valve uses dev/white
 USE_SUGESTED_DEFAULT_ROUGHNESS = True
 SIMPLE_SHADER_WHERE_POSSIBLE = True
 PRINT_LEGACY_IMPORT = False  # Print vmt inside vmat as reference. Increases file size.
+IGNORE_PROXIES = False
 
 sh.DEBUG = False
 
@@ -68,7 +67,7 @@ def main():
     print('\nSource 2 Material Converter!')
 
     # update branch conditionals
-    globals().update((k,v) for (k, v) in sh.__dict__.items() if k in ("IMPORT_MOD", "DOTA2", "STEAMVR", "HLVR", "SBOX"))
+    globals().update((k,v) for (k, v) in sh.__dict__.items() if k in ("IMPORT_MOD", "DOTA2", "STEAMVR", "HLVR", "SBOX", "ADJ"))
 
     # update translation table based on branch conditions
     global vmt_to_vmat
@@ -76,7 +75,10 @@ def main():
 
     for d in vmt_to_vmat.values():
         for k, v in d.items():
-            if isinstance(v, tuple): v = v[0]
+            if isinstance(v, tuple):
+                v = v[0]
+            if v is None:
+                continue
             KNOWN[k] = v
 
     global total, import_total, import_invalid
@@ -103,7 +105,7 @@ def main():
     print("\nSkybox materials...")
 
     for skyfaces_json in sh.collect(
-            None, '.json', OUT_EXT, OVERWRITE_SKYBOX_VMATS,
+            None, '.json', OUT_EXT, OVERWRITE_VMAT,
             outNameRule=OutName_Sky, searchPath=sh.EXPORT_CONTENT/legacy_skyfaces):
         ImportSkyJSONtoVMAT(skyfaces_json)
 
@@ -141,8 +143,8 @@ class VMT(ValveMaterial):
 
     __defaultkv = ('', {})  # unescaped, supports duplicates, keys case insensitive
 
-    shader = ValveMaterial.shader
-    KeyValues = ValveMaterial._KV
+    shader: str = ValveMaterial.shader
+    KeyValues: KV = ValveMaterial._KV
 
     def __init__(self, kv: KV = None):
 
@@ -150,10 +152,28 @@ class VMT(ValveMaterial):
             kv = KV(*self.__defaultkv)
         if kv.keyName == '':
             kv.keyName = 'Wireframe_DX9'
+        else:
+            kv.keyName = kv.keyName.removeprefix('sdk_')
+            kv.keyName = kv.keyName.removesuffix('_dx9')
+            kv.keyName = kv.keyName.removesuffix('_hdr')
+
+        for key, value in kv.items():
+            if "?" in key:
+                del kv[key]
+                kv[key.split('?')[1]] = value
+
+            elif key.endswith('_dx9') and isinstance(value, dict):
+                del kv[key]
+                kv.update(value, overwrite=True)
 
         if bumpmap := kv['$bumpmap']:
             kv["$normalmap"] = bumpmap
             del kv['$bumpmap']
+
+        if compileclip := kv['%compileclip']:
+            kv['%playerclip'] = compileclip
+            kv['%compilenpcclip'] = compileclip
+            del kv['%compileclip']
 
         super().__init__(kv.keyName, kv)
 
@@ -164,10 +184,6 @@ class VMT(ValveMaterial):
             self._shader = n.keyName
         elif isinstance(n, dict):  # change body, keep shader (VMT.KeyValues = { })
             self._kv = KV(self._shader, n)
-        else:
-            try: n = KV(*n)  # FIXME shit shit
-            except Exception as ex:
-                raise ValueError("Can only assign `kv1`, `dict` or similar to VMT KeyValues, not %s" % type(n))
 
     @KeyValues.deleter
     def KeyValues(self):
@@ -185,6 +201,9 @@ class VMT(ValveMaterial):
         return cls(kv)
     def WriteToFile(self, file):
         ...
+
+    def is_tool_material(self):
+        return self.path.local.is_relative_to("materials/tools") and self.path.name.startswith("tools")
 
 class VMAT(ValveMaterial):
 
@@ -211,7 +230,7 @@ class VMAT(ValveMaterial):
 class core(str, Enum):
     """core shaders"""
     def __call__(self):
-        if HLVR:
+        if HLVR or ADJ:
             return "vr_" + self.name
         return self.name
     complex = auto()
@@ -221,15 +240,36 @@ class core(str, Enum):
     static_overlay = auto()
     projected_decals = auto()
 
+class hlvr(str, Enum):
+    __call__ = lambda self: self.name
+    vr_simple_2way_blend = auto()
+
+class steamvr(str, Enum):
+    __call__ = lambda self: self.name
+    vr_standard = auto()
+    projected_decal_modulate = auto()
+
+class sbox(str, Enum):
+    __call__ = lambda self: self.name
+    blendable = auto()
+
+class adj(str, Enum):
+    __call__ = lambda self: self.name
+    steampal_2way_blend_mask = auto()
+
+BLENDABLES = (hlvr.vr_simple_2way_blend(), adj.steampal_2way_blend_mask(), sbox.blendable())
+"""shaders that support 2-or-more-way blend"""
+
 # keep everything lowercase !!!
 def main_ubershader():
-    if STEAMVR: return "vr_standard"
+    if STEAMVR: return steamvr.vr_standard()
     elif DOTA2: return "global_lit_simple"
     else: return core.complex()
 
 def main_blendable():
-    if HLVR: return "vr_simple_2way_blend"
-    elif SBOX: return "blendable"
+    if HLVR: return hlvr.vr_simple_2way_blend()
+    elif ADJ: return adj.steampal_2way_blend_mask()
+    elif SBOX: return sbox.blendable()
     elif DOTA2: return "multiblend"
     else: return main_ubershader()
 
@@ -238,9 +278,9 @@ def main_water():
     elif DOTA2: return "water_dota"
     else: return "simple_water"
 
-def decal_solution():
+def static_decal_solution():
     if STEAMVR:
-        return core.projected_decals()
+        return main_ubershader()
     return core.static_overlay()
 
 shaderDict = {
@@ -292,9 +332,12 @@ def chooseShader():
     if vmt.shader not in shaderDict:
         if sh.DEBUG:
             failureList.add(f"{vmt.shader} unsupported shader", vmt.path)
-        return core.black_unlit
+        return core.black_unlit()
 
     d[get_shader(shaderDict[vmt.shader])] += 1
+
+    if vmt.is_tool_material():
+        return "generic"
 
     if vmt.KeyValues['$beachfoam']:
         return "csgo_beachfoam"
@@ -302,18 +345,17 @@ def chooseShader():
     if vmt.shader == "decalmodulate":
         if STEAMVR:
             vmat.KeyValues["F_MODULATE_2X"] = 1
-            return "projected_decal_modulate"
+            return steamvr.projected_decal_modulate()
+        return core.projected_decals()
 
     if vmt.KeyValues['$decal'] == 1:
-        return decal_solution()
+        return static_decal_solution()
 
     if vmt.shader == "worldvertextransition":
         if vmt.KeyValues['$basetexture2']: d[main_blendable()] += 10
 
     elif vmt.shader == "lightmappedgeneric":
         if vmt.KeyValues['$newlayerblending'] == 1: d[main_blendable()] += 10
-
-    #if vmt.KeyValues['$decal'] == 1: sh[vr.projected_decals()] += 10
 
     return get_shader(max(d, key = d.get))
 
@@ -337,29 +379,37 @@ def fixVmtTextureDir(localPath, fileExt = TEXTURE_FILEEXT) -> str:
         return ""
     return (materials / localPath.lstrip('\\/')).with_suffix(fileExt).as_posix()
 
-def formatNewTexturePath(vmtPath, textureType = TEXTURE_FILEEXT, noRename = False, forReal = True):
-    #if USE_DEFAULT_FOR_MISSING_TEXTURE and not os.path.exists(vmtPath):
-    #    return default(textureType)
-
+def formatNewTexturePath(vmtPath: str, textureType: str) -> str:
     texturePath = sh.output(fixVmtTextureDir(vmtPath))
-    if not texturePath.is_file():
-        # it's an animated texture!
-        if (frame:=texturePath.with_stem(texturePath.stem + "000")).is_file():
-            frames = [frame]
-            for i in range(1, 1000):
-                frame = texturePath.with_stem(f"{texturePath.stem}{i:03}")
-                if not frame.is_file(): break
-                frames.append(frame)
-            grid_w, grid_h, texturePath = TextureFramesToSheet(frames)
-            vmat.KeyValues["g_nNumAnimationCells"] = len(frames)
-            #vmat.KeyValues["g_flAnimationTimePerFrame"] = 1 / fps
-            vmat.KeyValues["g_vAnimationGrid"] = f"[{grid_w} {grid_h}]"
-    else:
-        # animation sheet is already built
+    # check if texture exists on disk
+    if texturePath.is_file():
+        # check if this texture was generated from a previous run
         if (sheetdata:=texturePath.with_name(texturePath.stem + '.sheet.json')).is_file():
             vmat.KeyValues.update(sh.GetJson(sheetdata))
+        return texturePath.local.as_posix()
 
-    return str(texturePath.local)
+    # texture was not found on disk, check for animated texture!
+    if (frame:=texturePath.with_stem(texturePath.stem + "000")).is_file():
+        frames = [frame]
+        for i in range(1, 1000):
+            frame = texturePath.with_stem(f"{texturePath.stem}{i:03}")
+            if not frame.is_file(): break
+            frames.append(frame)
+        # generate an animation sheet with the name we were looking for
+        grid_w, grid_h, texturePath = TextureFramesToSheet(frames)
+        vmat.KeyValues["g_nNumAnimationCells"] = len(frames)
+        #vmat.KeyValues["g_flAnimationTimePerFrame"] = 1 / fps
+        vmat.KeyValues["g_vAnimationGrid"] = f"[{grid_w} {grid_h}]"
+        return texturePath.local.as_posix()
+
+    # TODO: other textures like cubemaps, depths, etc
+
+    # couldn't find the texture
+    if REPLACE_MISSING_TEXTURES_WITH_DEFAULT:
+        return default(textureType)
+
+    # still add the name to the vmat
+    return texturePath.local.as_posix()
 
 def getTexture(vtf_path):
     "get vtf source"
@@ -379,7 +429,11 @@ def createMask(image_path, copySub = '_mask', channel = 'A', invert = False, que
 
     sh.msg(f"createMask{image_path.local.relative_to(materials).as_posix(), copySub, channel, invert, queue} -> {newMaskPath.local}")
 
-    if newMaskPath.exists(): #and not DEBUG:
+    if sh.MOCK:
+        newMaskPath.open('a').close()
+        return newMaskPath.local.as_posix()
+
+    if newMaskPath.exists():
         return newMaskPath.local.as_posix()
 
     if not image_path.is_file():
@@ -536,6 +590,19 @@ def TextureFramesToSheet(frames: list[Path]):
     grid_rows = 2 ** math.ceil(grid_max_power/2)
     grid_columns = 2 ** math.floor(grid_max_power/2)
 
+    if sh.MOCK:
+        sheet_path = sh.output(frames[0].with_stem(frames[0].stem[:-3]))
+        sheet_path.open('a').close()
+    else:
+        sheet_path = save_atlas(frames, grid_rows, grid_columns)
+    print("+ Saved animated texture", sheet_path.local.as_posix())
+    sheet_path.with_name(sheet_path.stem + '.sheet.json').write_text(
+        f'{{"g_nNumAnimationCells":{len(frames)},"g_vAnimationGrid":"[{grid_rows} {grid_columns}]"}}'
+    )
+
+    return grid_rows, grid_columns, sheet_path
+
+def save_atlas(frames, grid_rows, grid_columns):
     sheet_image: Image = None
     sheet_path: Path = None
     for frame_no, frame in enumerate(frames):
@@ -552,56 +619,57 @@ def TextureFramesToSheet(frames: list[Path]):
         sheet_image.paste(frame_image, frame_position_in_sheet)
 
     sheet_image.save(sheet_path)
-    print("+ Saved animated texture", sheet_path.local.as_posix())
-    sheet_path.with_name(sheet_path.stem + '.sheet.json').write_text(
-        f'{{"g_nNumAnimationCells":{len(frames)},"g_vAnimationGrid":"[{grid_rows} {grid_columns}]"}}'
-    )
+    return sheet_path
 
-    return grid_rows, grid_columns, sheet_path
+def set_texture_settings(local_texture_path: Path, **settings):
+    image_path = sh.output(local_texture_path)
+    if not image_path.exists():
+        return
+    if (settings_file := image_path.with_suffix(".txt")).is_file():
+        if not OVERWRITE_VMAT:
+            return
+        settKV: KV = KV.FromFile(settings_file)
+        settKV.update(settings, overwrite=True)
+    else:
+        settKV = KV("settings", settings)
+    settKV.save(settings_file)
 
 def flipNormalMap(localPath):
+    if NORMALMAP_G_VTEX_INVERT:
+        set_texture_settings(localPath, legacy_source1_inverted_normal = 1)
+        return
 
     image_path = sh.output(localPath)
-    if not image_path.exists(): return False
+    if not image_path.exists():
+        return
+    # Open the image and convert it to RGBA, just in case it was indexed
+    image = Image.open(image_path).convert('RGBA')
 
-    if NORMALMAP_G_VTEX_INVERT:
-        if (settings_file := image_path.with_suffix(".txt")).is_file():
-            if sh.get_crc(settings_file) != '69D57F2B':
-                settKV = KV.FromFile(settings_file)
-                if settKV.keyName != 'settings':
-                    settKV.keyName = 'settings'
-                settKV["legacy_source1_inverted_normal"] = 1
-                settKV.save(settings_file)
-        else:
-            with open(settings_file, 'w') as settingsFile:
-                #settingsFile.write('"settings"\n{\t"legacy_source1_inverted_normal"\t"1"\n}')
-                settingsFile.write('"settings"\n{\n\tlegacy_source1_inverted_normal\t"1"\n}\n')
-    else:
-        # Open the image and convert it to RGBA, just in case it was indexed
-        image = Image.open(image_path).convert('RGBA')
-
-        r,g,b,a = image.split()
-        g = ImageOps.invert(g)
-        final_transparent_image = Image.merge('RGBA', (r,g,b,a))
-        final_transparent_image.save(image_path)
-
-    return True
+    r,g,b,a = image.split()
+    g = ImageOps.invert(g)
+    final_transparent_image = Image.merge('RGBA', (r,g,b,a))
+    final_transparent_image.save(image_path)
 
 def fixVector(s, addAlpha = 1, returnList = False):
-
     s = str(s)
-    if('{' in s or '}' in s): likelyColorInt = True
-    else: likelyColorInt = False
+    likelyColorInt = False
+    if('{' in s or '}' in s):
+        likelyColorInt = True
 
     s = s.strip()  # TODO: remove letters
     s = s.replace('"', '').replace("'", "")
     s = s.strip().replace(",", "").strip('][}{').strip(')(')
 
-    try: originalValueList = [str(float(i)) for i in s.split(' ') if i != '']
-    except ValueError: return None #originalValueList =  [1.000000, 1.000000, 1.000000]
+    try:
+        originalValueList = [str(float(i)) for i in s.split(' ') if i != '']
+    except ValueError:
+        return None
 
     dimension = len(originalValueList)
-    if dimension < 3: likelyColorInt = False
+    if dimension == 0:
+        return None
+    elif dimension < 3:
+        likelyColorInt = False
 
     for strvalue in originalValueList:
         flvalue = float(strvalue)
@@ -655,7 +723,7 @@ def uniform_vec2(v: str):
     return "[{:.6f} {:.6f}]".format(float(v), float(v))
 
 def vmat_layered_param(vmatKey, layer = 'A', force = False):
-    if vmat.shader in ("vr_simple_2way_blend", "blendable") or force:
+    if vmat.shader in BLENDABLES or force:
         return vmatKey + layer
     return vmatKey
 
@@ -804,9 +872,10 @@ vmt_to_vmat_pre: Callable[[], dict[ str, dict[str, tuple | None] ]] = lambda: {
 
     ## Layer blend mask
     '$blendmodulatetexture':\
-                        ('TextureMask',             '_mask',   [createMask, 'G', False], ('F_BLEND', 1)) if HLVR else \
+                        ('TextureMask',             '_mask',   [createMask, 'G', False], ('F_BLEND', 1)) if HLVR or ADJ else \
                         ('TextureLayer1RevealMask', '_blend',  [createMask, 'G', False], ('F_BLEND', 1)) if STEAMVR else \
-                        ('TextureBlendMaskB',      '_blend',  [createMask, 'G', False]) if SBOX else \
+                        ('TextureBlendMaskB',       '_blend',  [createMask, 'G', False]) if SBOX else \
+                        ('TextureRevealMask1',      '_blend',  [createMask, 'G', False]) if DOTA2 else \
                         None,
     ## Layer 1
     '$basetexture2':    ('TextureColorB' if not STEAMVR else 'TextureLayer1Color',  '_color',  [formatNewTexturePath]),
@@ -1029,8 +1098,8 @@ def convertVmtToVmat():
     for vmtKey, vmtVal in vmt.KeyValues.iteritems():
         outKey = outVal = ''
 
-        vmtKey = vmtKey.lower()
-        vmtVal = str(vmtVal).strip().strip('"' + "'").strip(' \n\t"')
+        vmtKey: str = vmtKey.lower()
+        vmtVal: str = str(vmtVal).strip().strip('"' + "'").strip(' \r\n\t"')
 
         # search through the dictionary above to find the appropriate replacement.
         for keyType, translate in vmt_to_vmat.items():
@@ -1077,6 +1146,10 @@ def convertVmtToVmat():
                 if vmtKey in ('$basetexture', '$hdrbasetexture', '$hdrcompressedtexture', '$normalmap'):
                     outKey = vmat_layered_param(vmatTranslation.replacement)
 
+                if vmtKey.startswith('$basetexture'):
+                    if (sh.ADJ or sh.DOTA2) and outVal != default("_color"):
+                        set_texture_settings(outVal, mip_algorithm="Nice")
+
                 if vmtKey in ('$normalmap', '$bumpmap2', '$normalmap2'):
                     if vmtVal == 'dev/flat_normal':
                         outVal = vmatTranslation.default_texture
@@ -1102,13 +1175,15 @@ def convertVmtToVmat():
                 if(transform.scale != (1.000, 1.000)):
                     outKey = vmatTranslation.replacement + 'Scale'
                     outVal = fixVector(transform.scale, False)
-                    vmat.KeyValues[outKey] = outVal
+                    if outVal is not None:
+                        vmat.KeyValues[outKey] = outVal
 
                 # translate .5 2 -> g_vTexCoordOffset "[0.500 2.000]"
                 if(transform.translate != (0.000, 0.000)):
                     outKey = vmatTranslation.replacement + 'Offset'
                     outVal = fixVector(transform.translate, False)
-                    vmat.KeyValues[outKey] = outVal
+                    if outVal is not None:
+                        vmat.KeyValues[outKey] = outVal
 
                 continue ## Skip default content write
 
@@ -1159,17 +1234,42 @@ def convertVmtToVmat():
 
             # dont break some keys have more than 1 translation (e.g. $selfillum)
 
-    if USE_SUGESTED_DEFAULT_ROUGHNESS:
+    if vmt.is_tool_material():
+        toolattributes = vmat.KeyValues.setdefault("Attributes", {})
+        toolattributes["tools.toolsmaterial"] = 1
+
+        # most of these need nodraw
+        if vmt.path.stem != "toolsblack":
+            toolattributes["mapbuilder.nodraw"] = 1
+
+        if not vmt.path.stem.endswith("clip"):
+            toolattributes["mapbuilder.nonsolid"] = 1
+
+        tags = list()
+        for key, value in vmt.KeyValues.items():
+            if not key.startswith("%"):
+                continue
+            key = key.lstrip("%").removeprefix("compile")
+            if key == "keywords":
+                continue
+            toolattributes[f"mapbuilder.{key}"] = value
+            tags.append(key)
+
+        if sh.SBOX:
+            toolattributes["mapbuilder.tags"] = " ".join(tags)
+
+    if USE_SUGESTED_DEFAULT_ROUGHNESS and not vmt.is_tool_material() \
+        and not vmat.shader == steamvr.projected_decal_modulate():
         # 2way blend has specular force enabled so maxing the rough should minimize specularity
-        if not vmat.shader == "vr_simple_2way_blend":
-            vmat.KeyValues.setdefault("TextureRoughness", default("_rough_s1import"))
-        else:
-            default_rough = default("_rough_s1import")
+        if vmat.shader in BLENDABLES:
             #if vmat.KeyValues['F_SPECULAR'] == 1:
             #    default_rough = "[1.000000 1.000000 1.000000 0.000000]"
-
-            vmat.KeyValues.setdefault("TextureRoughnessA", default_rough)
-            vmat.KeyValues.setdefault("TextureRoughnessB", default_rough)
+            for key in vmat.KeyValues:
+                if not key.startswith("TextureColor"):
+                    continue
+                vmat.KeyValues.setdefault(f"TextureRoughness{key.removeprefix('TextureColor')}", default("_rough_s1import"))
+        else:
+            vmat.KeyValues.setdefault("TextureRoughness", default("_rough_s1import"))
 
 def convertSpecials():
 
@@ -1259,7 +1359,7 @@ def collectSkybox(name:str, face: str, vmt: VMT):
 
     if (texture:= hdr_tex or hdr_compressed_tex or ldr_tex) is not None:
         face_collect_path = sh.output(legacy_skyfaces/name).with_suffix(".json")
-        if face_collect_path.is_file() and not OVERWRITE_SKYBOX_VMATS:
+        if face_collect_path.is_file() and not OVERWRITE_VMAT:
             return sh.skip('already-collected', face_collect_path)
         Collect = sh.GetJson(face_collect_path, bCreate = True)
 
@@ -1350,11 +1450,13 @@ def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False):
         if includePath := vmt.KeyValues["include"]:
             if includePath == r'materials\models\weapons\customization\paints\master.vmt':
                 return
+            includePath = sh.src(includePath).as_posix()
             patchKeyValues = vmt.KeyValues.copy()
             vmt.KeyValues.clear()
             print("+ Retrieving material properties from include:", includePath, end=' ... ')
             try:
-                vmt.shader, vmt.KeyValues = getKeyValues(sh.src(includePath), ignoreList) # TODO: kv1read
+                vmt = VMT(KV.FromFile(includePath))
+                vmt.path = vmt_path
             except FileNotFoundError:
                 print("Did not find.")
                 failureList.add("Include not found", f'{vmt.path.local} -- {includePath}' )
@@ -1396,7 +1498,7 @@ def ImportVMTtoVMAT(vmt_path: Path, preset_vmat = False):
     convertSpecials()
     convertVmtToVmat()
 
-    if proxies:= vmt.KeyValues["proxies"]:
+    if (not IGNORE_PROXIES) and (proxies:= vmt.KeyValues["proxies"]):
         kvalues, vmat.KeyValues['DynamicParams'] = ProxiesToDynamicParams(proxies, KNOWN, vmt.KeyValues)
         vmat.KeyValues.update(kvalues)
 

@@ -153,18 +153,18 @@ class VDFDict(dict):
         key = self.__omap[-1]
         return key[1], self.pop(key)
 
-    def update(self, data=None, **kwargs):
+    def update(self, data=None, overwrite=False):
         if isinstance(data, dict):
             data = data.items()
         elif not isinstance(data, list):
             raise TypeError("Expected data to be a list or dict, got %s" % type(data))
 
+        update_func = self.__setitem__ if overwrite else self.add
         for key, value in data:
             if isinstance(value, list):
-                #print(self.__class__)
-                self.add(key, VDFDict(value))
+                update_func(key, VDFDict(value))
             else:
-                self.add(key, value)
+                update_func(key, value)
 
     def iterkeys(self):
         return (key[1] for key in self.__omap)
@@ -244,12 +244,12 @@ class KV(VDFDict):
 
     @classmethod
     def FromFile(cls, file: Union[str, bytes, Path], case_sensitive=False, escape=False, **params):
-        with open(file, 'r') as f:
+        with open(file, 'r', encoding="utf-8") as f:
             return cls.FromBuffer(f.read(), file, case_sensitive, escape, **params)
 
     @classmethod
     def CollectionFromFile(cls, file: Path, case_sensitive=False, escape=False, **params):
-        with open(file, 'r') as f:
+        with open(file, 'r', encoding="utf-8") as f:
             return cls.CollectionFromBuffer(f.read(), file, case_sensitive, escape, **params)
 
     @classmethod
@@ -267,8 +267,8 @@ class KV(VDFDict):
         cppkv.RecursiveLoadFromBuffer(resourceName, CKeyValuesTokenReader(CUtlBuffer(buf)), True)
         return cls(cppkv.keyName, cppkv.value.ToBuiltin())
 
-    def __init__(self, keyName, value = {}) -> None:
-        self.keyName = keyName
+    def __init__(self, keyName: str, value: dict) -> None:
+        self.keyName: str = keyName
         super().__init__(value)
 
     def __getitem__(self, key) -> Optional[Any]:

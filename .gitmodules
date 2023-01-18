@@ -1,3 +1,7 @@
+[submodule "sample"]
+	path = sample
+	url = https://github.com/kristiker/source1import
+	branch = sample
 [submodule "utils/shared/keyvalues3"]
 	path = utils/shared/keyvalues3
 	url = https://github.com/kristiker/keyvalues3

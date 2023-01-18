@@ -30,8 +30,8 @@ def main():
         if sh.SBOX:
             sh.import_context['dest'] = sh.EXPORT_CONTENT
             for soundscape_collection_path in itertools.chain(
-                (sh.src(scripts)).glob('**/soundscapes_*.vsc'),
-                (sh.src(scripts)).glob('**/soundscapes_*.txt')
+                sh.globsort((sh.src(scripts)).glob('**/soundscapes_*.vsc')),
+                sh.globsort((sh.src(scripts)).glob('**/soundscapes_*.txt'))
             ):
                 if soundscape_collection_path.name == SOUNDSCAPES_MANIFEST.name:
                     continue
@@ -52,7 +52,7 @@ def main():
     if GAMESOUNDS:
         print("- Game Sounds!") # game sounds: scripts -> soundevents
 
-        for file in (sh.src(scripts)).glob('**/game_sounds*.txt'):
+        for file in sh.globsort(sh.src(scripts).glob('**/game_sounds*.txt')):
             if file.name != 'game_sounds_manifest.txt':
                 ImportGameSounds(file)
 
@@ -63,7 +63,7 @@ def main():
         print("- Surfaces!") # surfaces: scripts -> surfaceproperties.vsurf
 
         manifest_handle = VsurfManifestHandler()
-        for surfprop_txt in (sh.src(scripts)).glob('**/surfaceproperties*.txt'):
+        for surfprop_txt in sh.globsort(sh.src(scripts).glob('**/surfaceproperties*.txt')):
             if surfprop_txt.name == SURFACEPROPERTIES_MANIFEST.name:
                 manifest_handle.read_manifest(surfprop_txt)
                 continue
@@ -124,7 +124,6 @@ class SoundscapeImporter:
 
     @staticmethod
     def FixedUp(file: Path):
-        kv = KV(file)
         soundscape_collection = KV.CollectionFromFile(file)
         SoundscapeImporter.recursively_fixup(soundscape_collection)  # change wav to vsnd
         return soundscape_collection
@@ -442,6 +441,7 @@ def ImportSurfaceProperties(asset_path: Path):
         if not OVERWRITE_ASSETS and surface_file.exists():
             sh.status(f"Skipping {surface_file.local} [already-exist]")
             continue
+        # Sbox
         surface_data = CaseInsensitiveDict({
             CaseInsensitiveKey("Friction"): 0.5,
             CaseInsensitiveKey("Elasticity"): 0.5,
@@ -513,7 +513,7 @@ class VsurfManifestHandler:
     * source only reads files listed in manifest
     * source2 only reads a single `surfaceproperties.vsurf` file.
     -
-    --> write surfaces to main file as per rules of manifest
+    --> so collect these split surfaces to main file as per rules of manifest
     """
     def __init__(self):
         self.manifest_files = []
@@ -524,7 +524,7 @@ class VsurfManifestHandler:
 
     def retrieve_surfaces(self, rv: tuple[Path, list]):
         if rv is not None:
-            self.all_surfaces.__setitem__(*rv)
+            self.all_surfaces[rv[0]] = rv[1]
 
     def after_all_converted(self):
         # Only include surfaces from files that are on manifest.
@@ -539,14 +539,15 @@ class VsurfManifestHandler:
                 if not surfaceproperty:
                     break
                 # ignore if this surface is already defined
-                if not any(
-                    surfaceproperty2['surfacePropertyName'].lower() == surfaceproperty['surfacePropertyName'].lower()
-                        for surfaceproperty2 in vsurf['SurfacePropertiesList']):
-                    vsurf['SurfacePropertiesList'].append(surfaceproperty)
+                if any(surfaceproperty2['surfacePropertyName'].lower() == surfaceproperty['surfacePropertyName'].lower()
+                        for surfaceproperty2 in vsurf['SurfacePropertiesList']
+                    ):
+                    continue
+                vsurf['SurfacePropertiesList'].append(surfaceproperty)
 
         vsurf_path.write_text(vsurf.ToString())
         print("+ Saved", vsurf_path.local)
 
 if __name__ == '__main__':
-    sh.parse_argv()
+    sh.parse_argv(globals())
     main()

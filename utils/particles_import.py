@@ -17,7 +17,7 @@ BEHAVIOR_VERSION = 8
 
 def main():
     print("Importing Particles!")
-    for pcf_path in (sh.IMPORT_GAME/particles).glob('**/*.pcf'):
+    for pcf_path in sh.globsort((sh.IMPORT_GAME/particles).glob('**/*.pcf')):
         ImportPCFtoVPCF(pcf_path, OVERWRITE_PARTICLES)
 
     for psf_path in sh.collect(particles, '.pcf', '.vsnap', OVERWRITE_VSNAPS):

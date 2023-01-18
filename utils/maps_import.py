@@ -7,6 +7,7 @@ import shared.base_utils2 as sh
 import vdf
 import bsp_tool
 import shared.keyvalues3 as kv3
+import itertools
 from pathlib import Path
 import shared.datamodel as dmx
 from shared.datamodel import (
@@ -27,9 +28,11 @@ IMPORT_BSP_ENTITIES = False
 IMPORT_BSP_TO_VMAP_C = True
 
 maps = Path("maps")
+mapsrc = Path("mapsrc")
 
 def out_vmap_name(in_vmf: Path) -> Path:
-    return sh.EXPORT_CONTENT / maps / "source1imported" / "entities" / in_vmf.local.relative_to(maps).with_suffix(".vmap")
+    root = mapsrc if in_vmf.local.is_relative_to(mapsrc) else maps
+    return sh.EXPORT_CONTENT / maps / "source1imported" / "entities" / in_vmf.local.relative_to(root).with_suffix(".vmap")
 
 def out_vmap_c_name(in_vmf: Path) -> Path:
     return sh.EXPORT_GAME / in_vmf.local.with_suffix(".vmap_c")
@@ -38,7 +41,10 @@ def main():
 
     if IMPORT_VMF_ENTITIES:
         print("Importing vmf entities!")
-        for vmf_path in sh.collect(maps, ".vmf", ".vmap", OVERWRITE_MAPS, out_vmap_name):
+        for vmf_path in itertools.chain(
+            sh.collect(mapsrc, ".vmf", ".vmap", OVERWRITE_MAPS, out_vmap_name),
+            sh.collect(maps, ".vmf", ".vmap", OVERWRITE_MAPS, out_vmap_name)
+        ):
             ImportVMFEntitiesToVMAP(vmf_path)
 
     if IMPORT_BSP_ENTITIES:
@@ -356,6 +362,8 @@ def ImportVMFEntitiesToVMAP(vmf_path):
 
     out_vmap = convert_vmf_entities(vmf)
     out_vmap.write(vmap_path, "keyvalues2", 4)
+    if sh.MOCK:
+        dmx.remove_ids(vmap_path)
     print("+ Generated", vmap_path.local)
     return vmap_path
 

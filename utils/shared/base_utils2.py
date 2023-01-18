@@ -5,7 +5,7 @@ from enum import Enum
 import fnmatch
 import subprocess
 from types import GeneratorType
-from typing import Callable, Optional
+from typing import Any, Callable, Iterable, Optional
 try:
     from keyvalues1 import KV
 except ImportError:
@@ -38,7 +38,7 @@ class KVUtilFile(KV):
                 WARN(f"Remap entry for '{s1Name}' -> '{s2Remap}' conflicts with existing value of '{exist}' (ignoring)")
 
         cls.remap = remap
-        rv = cls(keyName)
+        rv = cls(keyName, dict())
         if cls.path.is_file():
             rv.update(cls.FromFile(cls.path, case_sensitive=True))
         return rv
@@ -117,6 +117,8 @@ STEAMVR: bool = False
 HLVR: bool = False
 SBOX: bool = False
 
+destmod: eS2Game = None
+
 def update_destmod(new_dest: eS2Game):
     global destmod
     destmod = new_dest
@@ -124,7 +126,7 @@ def update_destmod(new_dest: eS2Game):
         globals()[game.upper()] = False
     globals()[new_dest.value.upper()] = True
 
-destmod: eS2Game = eS2Game(args_known.branch if args_known.branch else "hlvr")
+update_destmod(eS2Game(args_known.branch if args_known.branch else "hlvr"))
 import_context: dict = None
 RemapTable: KVUtilFile = None
 
@@ -274,13 +276,36 @@ def parse_out_path(source2_mod: Path):
             return out.with_suffix(out_ext)
         return out
 
-def parse_argv():
+def parse_unknowns(submodule_globals: dict[str, Any]):
+    def try_assign():
+        for arg in args_unknown:
+            arg = arg.lstrip('-').upper()
+            if not arg.startswith(var):
+                continue
+            value = arg[len(var):].lstrip('= ')
+            if value.isnumeric():
+                value = int(value)
+            elif value.lower() in ('true', 'false'):
+                value = value.lower() == 'true'
+            submodule_globals[var] = value
+            break
+
+
+    for var in submodule_globals:
+        if not var.isupper():
+            continue
+        try_assign()
+
+
+def parse_argv(submodule_globals: None | dict[str, Any] = None):
     if not args_known.src1gameinfodir:
         argv_error(f"Missing required argument: -i | --src1gameinfodir")
     parse_in_path()
     if not args_known.game:
         argv_error(f"Missing required argument: -e | --game")
     parse_out_path(Path(args_known.game))
+    if submodule_globals:
+        parse_unknowns(submodule_globals)
 
 importing = Path()
 filter_=args_known.filter
@@ -313,6 +338,11 @@ elif __name__ == '__main__':
     
     unittest.main()
     raise SystemExit(0)
+
+@add_method(Path)
+def as_posix(self) -> str:
+    """pathlib's as_posix replaces '/' with '/' on linux 🤦"""
+    return str(self).replace('\\', '/').lower()
 
 @add_method(Path)
 def without_spaces(self, repl = '_') -> Path:
@@ -354,7 +384,7 @@ def collect(root, inExt, outExt, existing:bool = False, outNameRule = None, sear
         if match is None:
             match = ('**/'*_recurse()) + '*' + inExt
 
-        for filePath in searchPath.glob(match):
+        for filePath in globsort(searchPath.glob(match)):
             skip_reason = ''
             if filter_ is not None:
                 if not fnmatch.fnmatch(filePath, filter_):
@@ -399,6 +429,12 @@ def source2namefixup(path: Path):
 def skip(skip_reason: str, path: Path):
     status(f"- skipping [{skip_reason}]: {path.local.as_posix()}")
 
+MOCK = False
+def globsort(iterable_files: Iterable[Path]) -> list[Path]:
+    if MOCK:
+        return sorted(iterable_files)
+    return iterable_files
+
 DEBUG = False
 def msg(*args, **kwargs):
     if DEBUG:
@@ -408,11 +444,8 @@ def warn(*args, **kwargs): print("WARNING:", *args, **kwargs)
 def WARN(*args, **kwargs):  # TODO: source1importwarnings_lastrun.txt
     print("*** WARNING:", *args, **kwargs)
 
-__last_status_len = 0
 def status(text):
-    global __last_status_len
-    print(f'{" "*__last_status_len}\r{text}', end='\r')
-    __last_status_len = len(text)
+    print(text, end='\x1b[1K\r')
 
 from os import stat
 from zlib import crc32
