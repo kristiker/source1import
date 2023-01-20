@@ -3,6 +3,7 @@ python -m PyInstaller ^
     -F ^
     -p utils ^
     --distpath=./ ^
+    --add-data=utils/shared/empty.vmap.txt;utils/shared ^
     --add-data=utils/shared/import_blacklist.json;utils/shared ^
     --add-data=utils/shared/icon.ico;utils/shared ^
     --icon=utils/shared/icon.ico ^
