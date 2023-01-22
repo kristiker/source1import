@@ -1,8 +1,9 @@
 
+from functools import cache
 import shutil
 import struct
 from dataclassy import dataclass, factory
-from dataclasses import asdict
+
 import shared.base_utils2 as sh
 import vdf
 import bsp_tool
@@ -121,9 +122,8 @@ def ImportBSPToVPK(bsp_path: Path):
         worldnode000.add_to_layer(prop_sceneobject, "world_layer_base")
         
 
-    worldnode000_path = Path(r"D:\Games\steamapps\common\Half-Life Alyx\game\hlvr_addons\csgo\maps\compile\maps\ar_lunacy\worldnodes") / "node000.vwnod_c"
+    worldnode000_path = Path(r"D:\Users\kristi\Documents\s&box projects\cs\maps\ar_lunacy\worldnodes") / "node000.vwnod_c"
     worldnode000_path.parent.MakeDir()
-    #worldnode000_path.with_suffix('.vwnod').write_text(kv3.KV3File(worldnode000).ToString())
 
     def write_resource_data_by_template(data: object, template_path: Path, resurce_path: Path):
         # TODO: Resource external references
@@ -138,7 +138,7 @@ def ImportBSPToVPK(bsp_path: Path):
         resurce_path.write_bytes(resource)
 
     default_ents = entities.Ents()
-    default_ents_path = Path(r"D:\Games\steamapps\common\Half-Life Alyx\game\hlvr_addons\csgo\maps\compile\maps\ar_lunacy\entities") / "default_ents.vents_c"
+    default_ents_path = Path(r"D:\Users\kristi\Documents\s&box projects\cs\maps\ar_lunacy\entities") / "default_ents.vents_c"
     default_ents_path.parent.MakeDir()
     
     for entity in bsp.ENTITIES:
@@ -164,7 +164,7 @@ def ImportBSPToVPK(bsp_path: Path):
         default_ents.m_entityKeyValues.append(entities.Entity(kvData, []))
 
     world_physics = physics.PhysX()
-    world_physics_path = Path(r"D:\Games\steamapps\common\Half-Life Alyx\game\hlvr_addons\csgo\maps\compile\maps\ar_lunacy") / "world_physics.vphys_c"
+    world_physics_path = Path(r"D:\Users\kristi\Documents\s&box projects\cs\maps\ar_lunacy") / "world_physics.vphys_c"
     world_physics_path.parent.MakeDir()
 
     a = bsp.PHYSICS_DISPLACEMENT
@@ -193,75 +193,74 @@ def ImportBSPToVPK(bsp_path: Path):
             # COLLIDE_POLY
             if collide_header.model_type != 0:
                 continue
-            # https://github.com/Joshua-Ashton/VPhysics-Jolt/blob/067cc7eb4e5a145f4c3be6629f597809a5ca1317/vphysics_jolt/vjolt_collide.cpp#L559
-            surface = solid.data
+            surface = compactsurface_t.FromBytes(solid.data[:compactsurface_t.size])
+            root_ledge = compactledgenode_t.FromBytes(solid.data[surface.offset_ledgetree_root:surface.offset_ledgetree_root+compactledgenode_t.size])
+            root_ledge.address = surface.offset_ledgetree_root
+            #Path("solid.bin").write_bytes(solid.data)
+            def get_all_ivp_edges(node: compactledgenode_t, ledges: list[compactledge_t]):
+                if node is None:
+                    return
+                if not node.is_terminal:
+                    left = compactledgenode_t.FromBytes(solid.data[node.address+compactledgenode_t.size:node.address+compactledgenode_t.size+compactledgenode_t.size])
+                    left.address = node.address+compactledgenode_t.size
+                    get_all_ivp_edges(left, ledges)
+                    right = compactledgenode_t.FromBytes(solid.data[node.address+node.offset_right_node:node.address+node.offset_right_node + compactledgenode_t.size])
+                    right.address = node.address+node.offset_right_node
+                    get_all_ivp_edges(right, ledges)
+                else:
+                    p = node.address+node.offset_compact_ledge
+                    ledge = compactledge_t.FromBytes(solid.data[p:p+compactledge_t.size])
+                    ledge.address = p
+                    ledges.append(ledge)
 
+            ledges: list[compactledge_t] = []
+            get_all_ivp_edges(root_ledge, ledges)
 
-    part = physics.Part()
+            for ledge in ledges:
+                address_vertices = ledge.address + ledge.c_point_offset
+                vert_count = ledge.n_triangles * 3
+                verts: list[vector3] = [None] * vert_count
+                for i in range(ledge.n_triangles):
+                    tri_p = ledge.address+ledge.size+(i*compacttriangle_t.size)
+                    tri = compacttriangle_t.FromBytes(solid.data[tri_p:tri_p+compacttriangle_t.size])
+                    p = address_vertices + (tri.compact_edge_0_start_point_index * 16)
+                    verts[(i*3) + 0] = vector3(struct.unpack('<fff', solid.data[p:p+12]))
+                    p = address_vertices + (tri.compact_edge_1_start_point_index * 16)
+                    verts[(i*3) + 1] = vector3(struct.unpack('<fff', solid.data[p:p+12]))
+                    p = address_vertices + (tri.compact_edge_2_start_point_index * 16)
+                    verts[(i*3) + 2] = vector3(struct.unpack('<fff', solid.data[p:p+12]))
+                pass
 
-    def write_world():
-        resource = bytearray(Path("shared/maps/node000.vwnod_c.template").read_bytes())
-        world = wrld.World(
-            m_builderParams=wrld.BuilderParams(
-                m_nSizeBytesPerVoxel=1_000_000_000,
-                m_flMinDrawVolumeSize=128.0,
-                m_flMinDistToCamera=1024.0,
-                m_flMinAtlasDist = 1000.0,
-                m_flMinSimplifiedDist = 8192.0,
-                m_flHorzFOV = 1.570796,
-                m_flHalfScreenWidth = 960.0,
-                m_nAtlasTextureSizeX = 2048,
-                m_nAtlasTextureSizeY = 2048,
-                m_nUniqueTextureSizeX = 1024,
-                m_nUniqueTextureSizeY = 1024,
-                m_nCompressedAtlasSize = 0,
-                m_flGutterSize = 8.0,
-                m_flUVMapThreshold = 0.3,
-                m_vWorldUnitsPerTile = [ 10000.0, 10000.0, 1000.0 ],
-                m_nMaxTexScaleSlots = 128,
-                m_bWrapInAtlas = False,
-                m_bBuildBakedLighting = True,
-                m_vLightmapUvScale = [ 1.000000, 1.000000 ],
-                m_nCompileTimestamp = 1657194806,
-                m_nCompileFingerprint = 8654431948308770350
-            )
-        )
-        world.m_worldNodes.append(
-            wrld.Node(m_Flags=192, m_nParent=-1, m_worldNodePrefix=f"maps/{compiled_lumps_folder.name}/worldnodes/node000")
-        )
-
-        world.m_worldLightingInfo.m_bHasLightmaps = False
-
-        DATA = bytes(kv3.binarywriter.BinaryV1UncompressedWriter(kv3.KV3File(world)))
-        resource += DATA
-        # adjust file size bytes
-        resource = struct.pack("<I", len(resource))  + resource[4:]
-        (compiled_lumps_folder / "world.vwrld_c").write_bytes(resource)
+    shape = physics.Shape()
+    
+    world_physics.m_parts.append(physics.Part(2, 0.0, shape))
 
     bsp.file.close()
     write_resource_data_by_template(worldnode000, Path("shared/maps/node000.vwnod_c.template"), worldnode000_path)
     write_resource_data_by_template(default_ents, Path("shared/maps/default_ents.vents_c.template"), default_ents_path)
+    write_resource_data_by_template(world_physics, Path("shared/maps/world_physics.vphys_c.template"), world_physics_path)
 
     #write_node_resource(worldnode000, worldnode000_path)
     #write_node_manifest()
     #write_world()
     # TODO: pack to vpk
 
-    if sh.eEngineUtils.vpk.avaliable():
-        r = sh.eEngineUtils.vpk([
-            "-?",
-        ])
+    shutil.copytree(compiled_lumps_folder, Path(r"D:\Users\kristi\Documents\s&box projects\compile\maps\ar_lunacy"), dirs_exist_ok=True)
 
-        # map
-        import os
-        os.system(r'"D:\Games\steamapps\common\Half-Life Alyx\game\hlvr_addons\csgo\maps\compilemap.bat"')
-        
-        # rename compile.vpk to mapname.vpk
-        shutil.copyfile(r"D:\Games\steamapps\common\Half-Life Alyx\game\hlvr_addons\csgo\maps\compile.vpk", r"D:\Users\kristi\Documents\s&box projects\cs\maps\ar_lunacy.vpk")
-        # copy to
-        
+    #if sh.eEngineUtils.vpk.avaliable():
+    #    r = sh.eEngineUtils.vpk([
+    #        "-?",
+    #    ])
 
-        print(r.stdout)
+    # map
+    import os
+    os.system('cd "D:/Users/kristi/Documents/s&box projects/cs/maps" && compilemap.bat')
+    
+    # rename compile.vpk to mapname.vpk
+    shutil.copyfile(r"D:\Users\kristi\Documents\s&box projects\compile.vpk", r"D:\Users\kristi\Documents\s&box projects\cs\maps\ar_lunacy.vpk")
+    # copy to
+
+        
     print("Saved map ", compiled_lumps_folder.name)
 
 import ctypes
@@ -294,34 +293,13 @@ class sprp:
         pos += 4
         self.static_props = []
         for _ in range(self.static_prop_count):
-            self.static_props.append(StaticPropV11.FromBytes(data[pos:pos+StaticPropV11.size()]))
-            pos += StaticPropV11.size()
+            self.static_props.append(StaticPropV11.FromBytes(data[pos:pos+StaticPropV11.size]))
+            pos += StaticPropV11.size
 
-@dataclass
-class StaticPropV11:
-    # https://developer.valvesoftware.com/wiki/Source_BSP_File_Format#Static_props:~:text=struct%20StaticPropLump_t
-    Origin: vector3
-    Angles: qangle
-    PropType: ctypes.c_uint16
-    FirstLeaf: ctypes.c_uint16
-    LeafCount: ctypes.c_uint16
-    Solid: ctypes.c_uint8
-    Flags: ctypes.c_int
-    Skin: ctypes.c_int
-    FadeMinDist: ctypes.c_float
-    FadeMaxDist: ctypes.c_float
-    LightingOrigin: vector3
-    ForcedFadeScale: ctypes.c_float
-    MinCPULevel: ctypes.c_uint8
-    MaxCPULevel: ctypes.c_uint8
-    MinGPULevel: ctypes.c_uint8
-    MaxGPULevel: ctypes.c_uint8
-    DiffuseModulation: ctypes.c_int # color32
-    DisableX360: ctypes.c_bool
-    FlagsEx: ctypes.c_int32
-    UniformScale: ctypes.c_float
-
+class _common_struct:
     @classmethod
+    @property
+    @cache
     def size(cls):
         total = 0
         for type in cls.__annotations__.values():
@@ -350,6 +328,96 @@ class StaticPropV11:
 
         assert pos == len(data)
         return cls(**kwargs)
+
+@dataclass
+class StaticPropV11(_common_struct):
+    # https://developer.valvesoftware.com/wiki/Source_BSP_File_Format#Static_props:~:text=struct%20StaticPropLump_t
+    Origin: vector3
+    Angles: qangle
+    PropType: ctypes.c_uint16
+    FirstLeaf: ctypes.c_uint16
+    LeafCount: ctypes.c_uint16
+    Solid: ctypes.c_uint8
+    Flags: ctypes.c_int
+    Skin: ctypes.c_int
+    FadeMinDist: ctypes.c_float
+    FadeMaxDist: ctypes.c_float
+    LightingOrigin: vector3
+    ForcedFadeScale: ctypes.c_float
+    MinCPULevel: ctypes.c_uint8
+    MaxCPULevel: ctypes.c_uint8
+    MinGPULevel: ctypes.c_uint8
+    MaxGPULevel: ctypes.c_uint8
+    DiffuseModulation: ctypes.c_int # color32
+    DisableX360: ctypes.c_bool
+    FlagsEx: ctypes.c_int32
+    UniformScale: ctypes.c_float
+
+@dataclass
+class compactsurface_t(_common_struct):
+    mass_center: vector3
+    rotation_inertia: vector3
+    upper_limit_radius: ctypes.c_float
+    
+    #max_factor_surface_deviation: ctypes.c_uint | Literal[8]
+    #byte_size: ctypes.c_int | Literal[24]
+    bitfield0: ctypes.c_int
+    offset_ledgetree_root: ctypes.c_int
+    dummy: vector3
+
+    @property
+    def max_factor_surface_deviation(self):
+        return self.bitfield0 & 0xFF
+    
+    @property
+    def byte_size(self):
+        return (self.bitfield0 >> 8) & 0xFFFFFF
+
+
+@dataclass
+class compactledgenode_t(_common_struct):
+    offset_right_node: ctypes.c_int
+    offset_compact_ledge: ctypes.c_int
+    center: vector3
+    radius: ctypes.c_float
+    box_size_x: ctypes.c_ubyte
+    box_size_y: ctypes.c_ubyte
+    box_size_z: ctypes.c_ubyte
+    free_0: ctypes.c_ubyte
+
+    @property
+    def is_terminal(self):
+        return self.offset_right_node == 0
+    
+@dataclass
+class compactledge_t(_common_struct):
+    c_point_offset: ctypes.c_int
+    ledgetree_node_offset: ctypes.c_int | ctypes.c_int
+    bitfield0: ctypes.c_int
+    n_triangles: ctypes.c_short
+    for_future_use: ctypes.c_short
+
+@dataclass
+class compacttriangle_t(_common_struct):
+    bitfield0: ctypes.c_int
+    compact_edge_0: ctypes.c_int
+    compact_edge_1: ctypes.c_int
+    compact_edge_2: ctypes.c_int
+
+    tri_index = property(lambda self: self.bitfield0 & 0xFFF)
+    pierce_index = property(lambda self: (self.bitfield0 >> 12) & 0xFFF)
+    material_index = property(lambda self: (self.bitfield0 >> 24) & 0x7F)
+    is_virtual = property(lambda self: (self.bitfield0 >> 31) & 0x1)
+
+    compact_edge_0_start_point_index = property(lambda self: self.compact_edge_0 & 0xFFFF)
+    compact_edge_0_opposite_index = property(lambda self: (self.compact_edge_0 >> 16) & 0x7FFF)
+    compact_edge_0_is_virtual = property(lambda self: (self.compact_edge_0 >> 31) & 0x1)
+    compact_edge_1_start_point_index = property(lambda self: self.compact_edge_1 & 0xFFFF)
+    compact_edge_1_opposite_index = property(lambda self: (self.compact_edge_1 >> 16) & 0x7FFF)
+    compact_edge_1_is_virtual = property(lambda self: (self.compact_edge_1 >> 31) & 0x1)
+    compact_edge_2_start_point_index = property(lambda self: self.compact_edge_2 & 0xFFFF)
+    compact_edge_2_opposite_index = property(lambda self: (self.compact_edge_2 >> 16) & 0x7FFF)
+    compact_edge_2_is_virtual = property(lambda self: (self.compact_edge_2 >> 31) & 0x1)
 
 def ImportVMFEntitiesToVMAP(vmf_path):
 
@@ -582,5 +650,5 @@ def main_to_root(vmap, main_key: str, sub):
             vmap[replacement] = _type(sub[t])
 
 if __name__ == '__main__':
-    sh.parse_argv()
+    sh.parse_argv(globals())
     main()
