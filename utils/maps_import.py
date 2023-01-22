@@ -104,6 +104,21 @@ def ImportBSPToVPK(bsp_path: Path):
     worldnode000 = wnod.WorldNode()
     worldnode000.m_boundsGroups.append(wnod.Bounds([-9999.0, -9999.0, -9999.0], [9999999.0, 9999999.0, 9999999.0]))
 
+    worldnode000.add_to_layer(wnod.SceneObject(
+            m_nObjectID = 0,
+            m_vTransform = transforms_to_3x4([0, 0, 0], [0, 0, 0]),
+            m_flFadeStartDistance=0,
+            m_flFadeEndDistance=0,
+            m_vTintColor=[1, 1, 1, 1],
+            m_skin="",
+            m_nObjectTypeFlags=0,
+            m_vLightingOrigin=[0, 0, 0],
+            m_nBoundsGroupIndex=0,
+            m_renderableModel = kv3.flagged_value("maps/ar_lunacy/worldnodes/bsp.vmdl", kv3.Flag.resource),
+        ),
+        "world_layer_base"
+    )
+
     for static_prop in sprp_lump.static_props:
         model_path = Path(sprp_lump.model_names[static_prop.PropType]).with_suffix(".vmdl")
         prop_sceneobject = wnod.SceneObject(
