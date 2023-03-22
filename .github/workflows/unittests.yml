@@ -23,10 +23,10 @@ jobs:
         with:
           submodules: true
 
-      - name: Setup Python 3.10
+      - name: Setup Python 3.101
         uses: actions/setup-python@v4.2.0
         with:
-          python-version: 3.10.6
+          python-version: 3.11
 
       # Runs a single command using the runners shell
       - name: Dependencies
@@ -39,7 +39,6 @@ jobs:
           python utils/shared/base_utils2.py -i "$PWD" -e "$PWD"
           python utils/shared/cstr.py
           python utils/shared/cppkeyvalues.py
-          python utils/shared/keyvalues3.py
           python utils/shared/material_proxies.py
           python utils/shared/qc.py
 
