@@ -1,0 +1,14 @@
+"Layer0"
+{
+	shader	"generic.vfx"
+	TextureColor	"materials/tools/toolsplayerclip.tga"
+	F_TRANSLUCENT	"1"
+	TextureTranslucency	"materials/tools/toolsplayerclip_a_trans.tga"
+	Attributes
+	{
+		tools.toolsmaterial	"1"
+		mapbuilder.nodraw	"1"
+		mapbuilder.passbullets	"1"
+		mapbuilder.playerclip	"1"
+	}
+}

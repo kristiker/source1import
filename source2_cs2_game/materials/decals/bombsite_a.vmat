@@ -1,0 +1,10 @@
+"Layer0"
+{
+	shader	"csgo_static_overlay.vfx"
+	F_LIT	"1"
+	TextureColor	"materials/decals/bombsite_a.tga"
+	F_BLEND_MODE	"1"
+	TextureTranslucency	"materials/decals/bombsite_a_a_trans.tga"
+	F_OVERLAY	"1"
+	TextureRoughness	"materials/default/default_rough_s1import.tga"
+}

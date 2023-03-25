@@ -1,0 +1,20 @@
+"Layer0"
+{
+	shader	"csgo_complex.vfx"
+	F_UNLIT	"1"
+	TextureColor	"materials/models/props_interiors/tvanimstatic.tga"
+	g_vColorTint	"[0.430000 0.430000 0.430000 1.000000]"
+	F_SPECULAR_CUBE_MAP	"1"
+	F_SPECULAR	"1"
+	TextureRoughness	"materials/models/props_interiors/tvstatic_ref_l-1_rough.tga"
+	SystemAttributes
+	{
+		PhysicsSurfaceProperties	"glass"
+	}
+	g_vSelfIllumTint	"[0.700000 0.700000 0.700000 1.000000]"
+	DynamicParams
+	{
+	}
+	F_TEXTURE_ANIMATION	"1"
+	g_flAnimationTimePerFrame	"0.06666666666666667"
+}

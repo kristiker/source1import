@@ -1,0 +1,5 @@
+"Layer0"
+{
+	shader	"csgo_complex.vfx"
+	TextureRoughness	"materials/default/default_rough_s1import.tga"
+}
