@@ -7,3 +7,9 @@ cd ..
 cd source2_sbox_game
 git checkout .
 cd ..
+cd source2_steamvr_game
+git checkout .
+cd ..
+cd source2_csgo_game
+git checkout .
+cd ..

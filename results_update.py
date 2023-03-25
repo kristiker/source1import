@@ -5,6 +5,10 @@ from pathlib import Path
 import itertools
 
 WINDOWS = os.name == "nt"
+VTF_PRESENT = Path("source_game/materials/ads/ad01.vtf").is_file()
+
+CAN_DECOMPILE_VTF = WINDOWS and VTF_PRESENT
+print("Can decompile VTF:", CAN_DECOMPILE_VTF)
 
 os.chdir(Path(__file__).parent)
 sys.path.append("../utils")
@@ -15,10 +19,10 @@ def workflow(*modules: tuple[ModuleType, dict[str, Any]]):
         out = Path(f"source2_{f.__name__}_game").resolve()
         for file in out.glob("**/*"):
             if file.is_file():
-                if file.suffix == ".tga" and not WINDOWS:
+                if file.suffix == ".tga" and not CAN_DECOMPILE_VTF:
                     continue
-                # delete the missed .tga (result of materials_import)
-                if file.name.endswith(".sheet.json") and not WINDOWS:
+                # delete the missed .tga (product of materials_import)
+                if file.name.endswith(".sheet.json") and not CAN_DECOMPILE_VTF:
                     atlas = Path(file.parent, file.name.removesuffix(".sheet.json") + ".tga")
                     if atlas.is_file():
                         atlas.unlink()
@@ -132,7 +136,15 @@ def adj(module: ModuleType):
 def steamvr(module: ModuleType):
     module.main()
 
+@workflow(
+    (vtf_to_tga, {}),
+    (materials_import, {})
+)
+def cs2(module: ModuleType):
+    module.main()
+
 hlvr()
 sbox()
 adj()
 steamvr()
+cs2()
