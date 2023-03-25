@@ -6,7 +6,7 @@ from typing import Any, Callable, Literal
 from PIL import Image, ImageOps
 
 import shared.base_utils2 as sh
-from shared.base_utils2 import IMPORT_MOD, DOTA2, STEAMVR, HLVR, SBOX, ADJ
+from shared.base_utils2 import IMPORT_MOD, DOTA2, STEAMVR, HLVR, SBOX, ADJ, CS2
 from shared.keyvalues1 import KV
 from shared.material_proxies import ProxiesToDynamicParams
 
@@ -67,7 +67,10 @@ def main():
     print('\nSource 2 Material Converter!')
 
     # update branch conditionals
-    globals().update((k,v) for (k, v) in sh.__dict__.items() if k in ("IMPORT_MOD", "DOTA2", "STEAMVR", "HLVR", "SBOX", "ADJ"))
+    globals().update(
+        (k,v) for (k, v) in sh.__dict__.items()
+            if k in ("IMPORT_MOD", "DOTA2", "STEAMVR", "HLVR", "SBOX", "ADJ", "CS2")
+    )
 
     # update translation table based on branch conditions
     global vmt_to_vmat
@@ -232,6 +235,8 @@ class core(str, Enum):
     def __call__(self):
         if HLVR or ADJ:
             return "vr_" + self.name
+        if CS2:
+            return "csgo_" + self.name
         return self.name
     complex = auto()
     simple = auto()
@@ -257,6 +262,22 @@ class adj(str, Enum):
     __call__ = lambda self: self.name
     steampal_2way_blend_mask = auto()
 
+class csgo(str, Enum):
+    __call__ = lambda self: "csgo_" + self.name
+
+    # s1 ported shaders
+    # probably want to use these for s1 materials
+    vertexlitgeneric = auto()
+    lightmappedgeneric = auto()
+    water = auto()
+    moondome = auto()
+    beachfoam = auto()
+
+    # s2 custom
+    environment = auto()
+    weapon = auto()
+    fancy_water = auto()
+
 BLENDABLES = (hlvr.vr_simple_2way_blend(), adj.steampal_2way_blend_mask(), sbox.blendable())
 """shaders that support 2-or-more-way blend"""
 
@@ -276,6 +297,7 @@ def main_blendable():
 def main_water():
     if SBOX: return "water"
     elif DOTA2: return "water_dota"
+    elif CS2: return csgo.fancy_water()
     else: return "simple_water"
 
 def static_decal_solution():
@@ -311,7 +333,7 @@ shaderDict = {
     #"weapondecal": weapon sticker
     "patch":                main_ubershader, # fallback if include doesn't have one
     #grass
-    #customweapon
+    "customweapon":         csgo.weapon,
     #decalbasetimeslightmapalphablendselfillum
     #screenspace_general
     #sprite
@@ -339,8 +361,11 @@ def chooseShader():
     if vmt.is_tool_material():
         return "generic"
 
-    if vmt.KeyValues['$beachfoam']:
-        return "csgo_beachfoam"
+    if CS2 and vmt.shader == "unlitgeneric":
+        if vmt.KeyValues["$moondome"] == 1:
+            return csgo.moondome()
+        elif vmt.KeyValues["$beachfoam"] == 1:
+            return csgo.beachfoam()
 
     if vmt.shader == "decalmodulate":
         if STEAMVR:

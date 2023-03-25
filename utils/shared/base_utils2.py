@@ -14,8 +14,8 @@ except ImportError:
 import argparse
 arg_parser = argparse.ArgumentParser(usage = "-i <s1gameinfodir> -e <s2 mod>")
 arg_parser.add_argument("-i", "--src1gameinfodir", "-src1gameinfodir", help="An absolute path to S1 mod gameinfo.txt.")
-arg_parser.add_argument("-e", "--game", "-game", help="Specify the S2 mod/addon to import into (ie. left4dead2_source2 or C:/../ep2).")
-arg_parser.add_argument("-b", "--branch", type=str, help="Specify the Source 2 Engine branch to import into (ie. hlvr or steamvr).")
+arg_parser.add_argument("-e", "-o", "--game", "-game", help="Name or full path to the S2 mod/addon to import into (ie. left4dead2_source2 or C:/../ep2).")
+arg_parser.add_argument("-b", "--branch", type=str, help="The engine branch belonging to this mod/addon (ie. hlvr or steamvr).")
 arg_parser.add_argument("--filter", help="Apply a substring filter to the import filelist")
 
 args_known, args_unknown = arg_parser.parse_known_args()
@@ -56,6 +56,7 @@ class eS2Game(Enum):
     sbox = "sbox"
     adj = "adj"
     dota2 = "dota2"
+    cs2 = "cs2"
 
 @unique
 class eEngineUtils(Enum):
@@ -115,6 +116,7 @@ ADJ: bool = False
 STEAMVR: bool = False
 HLVR: bool = False
 SBOX: bool = False
+CS2: bool = False
 
 destmod: eS2Game = None
 
@@ -227,6 +229,7 @@ def parse_out_path(source2_mod: Path):
             "s&box": eS2Game.sbox,
             "steampal": eS2Game.adj,
             "dota": eS2Game.dota2,
+            "csgo": eS2Game.cs2,
         }
         for p in EXPORT_GAME.parts:
             for k, v in pp.items():
