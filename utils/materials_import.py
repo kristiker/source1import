@@ -276,7 +276,7 @@ class csgo(str, Enum):
     # s2 custom
     environment = auto()
     weapon = auto()
-    fancy_water = auto()
+    water_fancy = auto()
 
 BLENDABLES = (hlvr.vr_simple_2way_blend(), adj.steampal_2way_blend_mask(), sbox.blendable())
 """shaders that support 2-or-more-way blend"""
@@ -297,7 +297,7 @@ def main_blendable():
 def main_water():
     if SBOX: return "water"
     elif DOTA2: return "water_dota"
-    elif CS2: return csgo.fancy_water()
+    elif CS2: return csgo.water_fancy()
     else: return "simple_water"
 
 def static_decal_solution():
