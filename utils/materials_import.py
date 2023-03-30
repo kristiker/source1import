@@ -578,9 +578,17 @@ def createSkyCubemap(json_collection: Path, maxFaceRes: int = 0):
             except Exception: continue
 
         pasteCoord, faceRotate = get_transform(face, int(faceParams[face].get('rotate') or 0))
+        faceScaleX = faceParams[face].get('scalex') or 1
+        faceScaleY = faceParams[face].get('scaley') or 1
         if hdrType != 'uncompressed':
-            if faceImage.width != maxFaceRes:  # scale to fit on the y axis
-                faceImage = faceImage.resize((maxFaceRes, round(faceImage.height * maxFaceRes/faceImage.width)), Image.BICUBIC)
+            if faceImage.width != maxFaceRes or (faceScaleX != 1 or faceScaleY != 1):
+                # scale to fit on the y axis
+                scaleFitY = faceImage.height * maxFaceRes / faceImage.width
+                # custom $basetexturetransform scaling
+                scaleCustom = (scaleFitY / faceScaleX) * faceScaleY
+                faceImage = faceImage.resize((maxFaceRes, round(scaleCustom)), Image.BICUBIC)
+                faceImage = faceImage.crop((0, 0, maxFaceRes, maxFaceRes))
+
             if faceRotate:
                 faceImage = faceImage.rotate(faceRotate)
 
@@ -1384,8 +1392,6 @@ def collectSkybox(name:str, face: str, vmt: VMT):
 
     if (texture:= hdr_tex or hdr_compressed_tex or ldr_tex) is not None:
         face_collect_path = sh.output(legacy_skyfaces/name).with_suffix(".json")
-        if face_collect_path.is_file() and not OVERWRITE_VMAT:
-            return sh.skip('already-collected', face_collect_path)
         Collect = sh.GetJson(face_collect_path, bCreate = True)
 
         # First vmt to have $hdr decides hdr-ness
@@ -1415,6 +1421,10 @@ def collectSkybox(name:str, face: str, vmt: VMT):
             if(faceTransform.rotate != 0):
                 Collect[face]['rotate'] = faceTransform.rotate
                 sh.msg("Collecting", face, "transformation: rotate", Collect[face]['rotate'], 'degrees')
+            if(faceTransform.scale != (1,1)):
+                Collect[face]['scalex'] = faceTransform.scale[0]
+                Collect[face]['scaley'] = faceTransform.scale[1]
+                sh.msg("Collecting", face, "transformation: scale", Collect[face]['scalex'], Collect[face]['scaley'])
 
             if Collect[face]:
                 Collect[face]['path'] = path
