@@ -1187,8 +1187,8 @@ def convertVmtToVmat():
                     outKey = vmat_layered_param(vmatTranslation.replacement)
 
                 if vmtKey.startswith('$basetexture'):
-                    if (sh.ADJ or sh.DOTA2) and outVal != default("_color"):
-                        set_texture_settings(outVal, mip_algorithm="Nice")
+                    if (sh.destmod >= sh.eS2Game.adj) and outVal != default("_color"):
+                        set_texture_settings(outVal, mip_algorithm="Nice", brightness=1.2)
 
                 if vmtKey in ('$normalmap', '$bumpmap2', '$normalmap2'):
                     if vmtVal == 'dev/flat_normal':

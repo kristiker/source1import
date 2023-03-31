@@ -48,7 +48,9 @@ class KVUtilFile(KV):
 
 
 from enum import Enum, unique, auto
+from functools import total_ordering
 
+@total_ordering
 class eS2Game(Enum):
     "known moddable source2 games"
     steamvr = "steamvr"
@@ -57,6 +59,11 @@ class eS2Game(Enum):
     adj = "adj"
     dota2 = "dota2"
     cs2 = "cs2"
+    def __lt__(self, other):
+        if self.__class__ is other.__class__:
+            return self._positions[self] < self._positions[other]
+        return NotImplemented
+eS2Game._positions = {x: i for i, x in enumerate(eS2Game)}
 
 @unique
 class eEngineUtils(Enum):
