@@ -4,6 +4,8 @@
     "$basetexture2" "lostcoast/nature/grassweeds001a"
     "$basetexturetransform" ""
     "$basetexturetransform2" "center .5 .5 scale 9 9 rotate 0 translate 2 2"
+    $surfaceprop "rock"
+    $surfaceprop2 "grass"
     "%tooltexture" "lostcoast/nature/blendrockweeds001a_tooltexture"
     "%keywords" "wasteland""
     "$bumpmap" "lostcoast/nature/rockwall021b_normal"

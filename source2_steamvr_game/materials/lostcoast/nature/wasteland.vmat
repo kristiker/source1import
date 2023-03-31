@@ -6,5 +6,10 @@
 	TextureLayer1Color	"materials/lostcoast/nature/grassweeds001a.tga"
 	g_vLayer2TexCoordScale	"[9.000000 9.000000]"
 	g_vLayer2TexCoordOffset	"[2.000000 2.000000]"
+	SystemAttributes
+	{
+		PhysicsSurfaceProperties	"rock"
+		PhysicsSurfaceProperties2	"grass"
+	}
 	TextureRoughness	"materials/default/default_rough_s1import.tga"
 }
