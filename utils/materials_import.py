@@ -273,13 +273,19 @@ class csgo(str, Enum):
     moondome = auto()
     beachfoam = auto()
 
+    # s2 aliases (not always core)
+    simple_2way_blend = auto()
+
     # s2 custom
     environment = auto()
     weapon = auto()
     water_fancy = auto()
 
-BLENDABLES = (hlvr.vr_simple_2way_blend(), adj.steampal_2way_blend_mask(), sbox.blendable())
-"""shaders that support 2-or-more-way blend"""
+BLENDABLES = (hlvr.vr_simple_2way_blend(),
+            adj.steampal_2way_blend_mask(),
+            csgo.simple_2way_blend(),
+            sbox.blendable())
+"""shaders that support 2-or-more-way blend. TextureA TextureB"""
 
 # keep everything lowercase !!!
 def main_ubershader():
@@ -290,6 +296,7 @@ def main_ubershader():
 def main_blendable():
     if HLVR: return hlvr.vr_simple_2way_blend()
     elif ADJ: return adj.steampal_2way_blend_mask()
+    elif CS2: return csgo.simple_2way_blend()
     elif SBOX: return sbox.blendable()
     elif DOTA2: return "multiblend"
     else: return main_ubershader()
