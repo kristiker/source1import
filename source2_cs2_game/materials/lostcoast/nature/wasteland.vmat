@@ -1,9 +1,10 @@
 "Layer0"
 {
-	shader	"csgo_complex.vfx"
-	TextureColor	"materials/lostcoast/nature/rockwall021b.tga"
+	shader	"csgo_simple_2way_blend.vfx"
+	TextureColorA	"materials/lostcoast/nature/rockwall021b.tga"
 	TextureColorB	"materials/lostcoast/nature/grassweeds001a.tga"
 	g_vLayer2TexCoordScale	"[9.000000 9.000000]"
 	g_vLayer2TexCoordOffset	"[2.000000 2.000000]"
-	TextureRoughness	"materials/default/default_rough_s1import.tga"
+	TextureRoughnessA	"materials/default/default_rough_s1import.tga"
+	TextureRoughnessB	"materials/default/default_rough_s1import.tga"
 }

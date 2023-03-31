@@ -2,6 +2,8 @@
 {
 	shader	"csgo_complex.vfx"
 	F_UNLIT	"1"
+	g_nNumAnimationCells	"4"
+	g_vAnimationGrid	"[2 2]"
 	TextureColor	"materials/models/props_interiors/tvanimstatic.tga"
 	g_vColorTint	"[0.430000 0.430000 0.430000 1.000000]"
 	F_SPECULAR_CUBE_MAP	"1"

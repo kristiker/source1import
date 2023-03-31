@@ -1,4 +1,5 @@
 "settings"
 {
 	mip_algorithm	"Nice"
+	brightness	"1.2"
 }
