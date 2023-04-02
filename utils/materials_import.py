@@ -885,8 +885,9 @@ vmt_to_vmat_pre: Callable[[], dict[ str, dict[str, tuple | None] ]] = lambda: {
 
     '$translucent':     ('F_TRANSLUCENT',           '1'),  # "F_BLEND_MODE 0" for projected_decals
     '$alphatest':       ('F_ALPHA_TEST',            '1'),
-    '$phong':           ('F_SPECULAR',              '1'),
-    '$envmap':          ('F_SPECULAR',              '1', [fix_envmap]),  # in "environment maps/metal" | "env_cubemap" F_SPECULAR_CUBE_MAP 1 // In-game Cube Map
+    '$notint':          ('F_NOTINT', '1') if CSGO_EXPORT_TOUCHSTONE else None,
+    '$phong':           ('F_SPECULAR_DIRECT' if CSGO_EXPORT_TOUCHSTONE else 'F_SPECULAR', '1'),
+    '$envmap':          ('F_SPECULAR_INDIRECT' if CSGO_EXPORT_TOUCHSTONE else 'F_SPECULAR', '1', [fix_envmap]),  # in "environment maps/metal" | "env_cubemap" F_SPECULAR_CUBE_MAP 1 // In-game Cube Map
     '$envmapanisotropy':('F_SPECULAR_CUBE_MAP_ANISOTROPIC_WARP', '1'), # requires F_ANISOTROPIC_GLOSS 1
     '$ssbump':          ('F_ENABLE_NORMAL_SELF_SHADOW', '1') if SBOX else None,
     '$selfillum':       ('F_SELF_ILLUM',            '1'),
@@ -905,11 +906,9 @@ vmt_to_vmat_pre: Callable[[], dict[ str, dict[str, tuple | None] ]] = lambda: {
     "$masks1":          ('F_MASKS_1',    '1') if DOTA2 else None,
     "$masks2":          ('F_MASKS_2',    '1') if DOTA2 else None,
     "$newlayerblending":('F_LAYER_BORDER_TINT', '2') if DOTA2 else \
-                        ('F_FANCY_BLENDING', '1') if STEAMVR else \
+                        ('F_FANCY_BLENDING', '1') if STEAMVR or CSGO_EXPORT_TOUCHSTONE else \
                         None,
-
-    #'$phong':           ('F_PHONG',                 '1'),
-    #'$vertexcolor:      ('F_VERTEX_COLOR',          '1'),
+    '$vertexcolor':      ('F_VERTEX_COLOR',          '1'),
 },
 
 'textures': {
@@ -1367,6 +1366,9 @@ def convertSpecials():
             vmat.KeyValues['F_MULTIBLEND'] = 1  # 2 layers
         if vmt.shader == 'lightmapped_4wayblend':
             vmat.KeyValues['F_MULTIBLEND'] = 3 # 4 layers
+    elif CSGO_EXPORT_TOUCHSTONE:
+        if vmt.shader == 'worldvertextransition':
+            vmat.KeyValues['F_LAYERS'] = 1  # 2 layers
 
     # fix mod2x logic for projected_decals
     if vmt.shader == 'decalmodulate':
