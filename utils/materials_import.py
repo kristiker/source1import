@@ -23,9 +23,10 @@ NORMALMAP_G_VTEX_INVERT = True
 
 REPLACE_MISSING_TEXTURES_WITH_DEFAULT = False # valve uses dev/white
 USE_SUGESTED_DEFAULT_ROUGHNESS = True
-SIMPLE_SHADER_WHERE_POSSIBLE = True
+SIMPLE_SHADER_WHERE_POSSIBLE = False
 PRINT_LEGACY_IMPORT = False  # Print vmt inside vmat as reference. Increases file size.
 IGNORE_PROXIES = False
+CSGO_EXPORT_TOUCHSTONE = False # Use *generic shaders when on CS2 Branch
 
 sh.DEBUG = False
 
@@ -269,6 +270,10 @@ class csgo(str, Enum):
     # probably want to use these for s1 materials
     vertexlitgeneric = auto()
     lightmappedgeneric = auto()
+    lightmapped_4wayblend = auto()
+    unlitgeneric = auto()
+    refract = auto()
+    decal_modulate = auto()
     water = auto()
     moondome = auto()
     beachfoam = auto()
@@ -276,9 +281,13 @@ class csgo(str, Enum):
     # s2 aliases (not always core)
     simple_2way_blend = auto()
 
+    # econ
+    character = auto()
+    weapon = auto()
+    weapon_sticker = auto()
+
     # s2 custom
     environment = auto()
-    weapon = auto()
     water_fancy = auto()
 
 BLENDABLES = (hlvr.vr_simple_2way_blend(),
@@ -296,7 +305,10 @@ def main_ubershader():
 def main_blendable():
     if HLVR: return hlvr.vr_simple_2way_blend()
     elif ADJ: return adj.steampal_2way_blend_mask()
-    elif CS2: return csgo.simple_2way_blend()
+    elif CS2:
+        if CSGO_EXPORT_TOUCHSTONE:
+            return csgo.lightmappedgeneric()
+        return csgo.simple_2way_blend()
     elif SBOX: return sbox.blendable()
     elif DOTA2: return "multiblend"
     else: return main_ubershader()
@@ -304,7 +316,10 @@ def main_blendable():
 def main_water():
     if SBOX: return "water"
     elif DOTA2: return "water_dota"
-    elif CS2: return csgo.water_fancy()
+    elif CS2:
+        if CSGO_EXPORT_TOUCHSTONE:
+            return csgo.water()
+        return csgo.water_fancy()
     else: return "simple_water"
 
 def static_decal_solution():
@@ -312,6 +327,7 @@ def static_decal_solution():
         return main_ubershader()
     return core.static_overlay()
 
+# not definitive, chooseShader() has the final say
 shaderDict = {
     "black":                "black",
     "sky":                  "sky",
@@ -324,7 +340,7 @@ shaderDict = {
     "customcharacter":      main_ubershader,
     "teeth":                main_ubershader,
     "water":                main_water,
-    #"refract":              "refract",
+    "refract":              csgo.refract,
     "worldvertextransition":main_blendable,
     "lightmapped_4wayblend":main_blendable,  # TODO: Form blendmap from luminance https://developer.valvesoftware.com/wiki/Lightmapped_4WayBlend#Controlling_Blendinghttps://developer.valvesoftware.com/wiki/Lightmapped_4WayBlend#Controlling_Blending
     "multiblend":           main_blendable,
@@ -337,7 +353,7 @@ shaderDict = {
     "wireframe_dx9":        "error",
     #"spritecard":           "spritecard",  these are just vtexes with params defined in vpcf renderer - skip
     #"subrect":              "spritecard",  # should we just cut? $Pos "256 0" $Size "256 256" $decalscale 0.25 decals\blood1_subrect.vmt
-    #"weapondecal": weapon sticker
+    "weapondecal":          csgo.weapon_sticker,
     "patch":                main_ubershader, # fallback if include doesn't have one
     #grass
     "customweapon":         csgo.weapon,
@@ -347,11 +363,9 @@ shaderDict = {
     #nodraw
     #particlesphere
     #shadow
-    #weapondecal
     #eyes
     #flashlight_shadow_decal
     #modulate
-    #weapondecal_dx9
 }
 
 def chooseShader():
@@ -367,12 +381,18 @@ def chooseShader():
 
     if vmt.is_tool_material():
         return "generic"
-
-    if CS2 and vmt.shader == "unlitgeneric":
-        if vmt.KeyValues["$moondome"] == 1:
-            return csgo.moondome()
-        elif vmt.KeyValues["$beachfoam"] == 1:
-            return csgo.beachfoam()
+    
+    if CSGO_EXPORT_TOUCHSTONE:
+        match vmt.shader:
+            case "lightmappedgeneric" | "worldvertextransition": return main_blendable()
+            case "lightmapped_4wayblend": return csgo.lightmapped_4wayblend()
+            case "vertexlitgeneric": return csgo.vertexlitgeneric()
+            case "unlitgeneric":
+                if vmt.KeyValues["$moondome"] == 1: return csgo.moondome()
+                elif vmt.KeyValues["$beachfoam"] == 1: return csgo.beachfoam()
+                else: return csgo.unlitgeneric()
+            case "character" | "customcharacter": return csgo.character()
+            case "decal_modulate": return csgo.decal_modulate()
 
     if vmt.shader == "decalmodulate":
         if STEAMVR:

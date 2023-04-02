@@ -29,7 +29,7 @@ bg1 = "#363636"
 bg2 = "#262627"
 fg1 = "#b6b6b7"
 
-APP_VER = "0.3.9"
+APP_VER = "0.3.10"
 
 class ScriptError(Exception):...
 
@@ -198,7 +198,7 @@ class SampleApp(Tk):
         self.widgets[99].grid(pady= 2, row = 0, column = 0, columnspan=2, in_=self.sett_grid, sticky="w")
         self.widgets[53] = Checkbutton(self, text="Overwrite All", variable=self.allOverwrite, command=self.overwrite_toggle_all, selectcolor=bg1, width=10, bd=0, padx=4)
         self.widgets[53].grid(pady= 2, padx=4, row = 0, column = 2, in_=self.sett_grid, sticky="w")
-        self.widgets[50] = OptionMenu(self, self.destmod, *(name.value for name in sh.eS2Game), command=lambda v: sh.update_destmod(sh.eS2Game(v)))
+        self.widgets[50] = OptionMenu(self, self.destmod, *(name.value for name in sh.eS2Game), command=self.change_branch)
         self.widgets[50].grid(pady= 2, padx=0, row = 0, column = 4, in_=self.sett_grid, sticky="e")
         self.sett_grid.grid_columnconfigure(4, weight=2)
         self.widgets[50]["menu"].configure(bg=bg1,fg=fg1,activebackground=bghighlight,activeforeground="white",font='Arial 10 bold', takefocus=0)
@@ -244,6 +244,7 @@ class SampleApp(Tk):
             ("OVERWRITE_SKYCUBES", "Overwrite Sky Images"),
         ).add_toggles(
             ("SIMPLE_SHADER_WHERE_POSSIBLE", "Use Simple Shader if possible"),
+            #("CSGO_EXPORT_TOUCHSTONE", "CSGO Use Touchstone Shaders"),
             #("USE_SUGESTED_DEFAULT_ROUGHNESS", "Default Roughness 210 instead of 128"),
             ("NORMALMAP_G_VTEX_INVERT", "Invert Normal Via Settings File"),
             ("PRINT_LEGACY_IMPORT", "Print old material inside new"),
@@ -385,6 +386,10 @@ class SampleApp(Tk):
             if "*" not in filter:
                 filter = "*" + filter  + "*"
             return filter
+    
+    @staticmethod
+    def change_branch(new_branch: str):
+        sh.update_destmod(sh.eS2Game(new_branch))
 
     def launch_importer_thread(self):
         if self.is_running:
