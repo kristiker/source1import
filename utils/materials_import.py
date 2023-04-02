@@ -391,7 +391,6 @@ def chooseShader():
 
     return get_shader(max(d, key = d.get))
 
-ignoreList = [ "dx9", "dx8", "dx7", "dx6", "proxies"]
 
 def default(texture_type:str, extension:str = ".tga") -> str:
     return VMAT_DEFAULT_PATH.as_posix() + "/default" + texture_type + extension
@@ -1098,10 +1097,10 @@ vmt_to_vmat_pre: Callable[[], dict[ str, dict[str, tuple | None] ]] = lambda: {
 },
 
 'SystemAttributes': {
-    '$surfaceprop':     ('PhysicsSurfaceProperties', 'default', [str])
-    #'$surfaceprop2'
-    #'$surfaceprop3'
-    #'$surfaceprop4'
+    '$surfaceprop':     ('PhysicsSurfaceProperties', 'default', [str]),
+    '$surfaceprop2':    ('PhysicsSurfaceProperties2', 'default', [str]),
+    '$surfaceprop3':    ('PhysicsSurfaceProperties3', 'default', [str]),
+    '$surfaceprop4':    ('PhysicsSurfaceProperties4', 'default', [str]),
 },
 
 'texture_settings': {
