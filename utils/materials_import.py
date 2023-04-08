@@ -323,7 +323,7 @@ def main_water():
     else: return "simple_water"
 
 def static_decal_solution():
-    if STEAMVR:
+    if STEAMVR or CS2:
         return main_ubershader()
     return core.static_overlay()
 
