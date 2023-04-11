@@ -29,7 +29,7 @@ bg1 = "#363636"
 bg2 = "#262627"
 fg1 = "#b6b6b7"
 
-APP_VER = "0.3.10"
+APP_VER = "0.3.11"
 
 class ScriptError(Exception):...
 
@@ -112,7 +112,7 @@ class SampleApp(Tk):
 
         global bg1, bg2, fg1
 
-        self.APP_TITLE = f"Source 1 Asset Importer (v{APP_VER})"
+        self.APP_TITLE = f"Source 1 Asset Importer v{APP_VER}"
 
         self.is_running = False
         self.allChecked = IntVar()
