@@ -1300,7 +1300,7 @@ def convertVmtToVmat():
         if vmt.path.stem != "toolsblack":
             toolattributes["mapbuilder.nodraw"] = 1
 
-        if not vmt.path.stem.endswith("clip"):
+        if not vmt.path.stem.endswith("clip") or not vmt.path.stem.endswith("ladder"):
             toolattributes["mapbuilder.nonsolid"] = 1
 
         tags = list()
