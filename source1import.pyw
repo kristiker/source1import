@@ -29,7 +29,7 @@ bg1 = "#363636"
 bg2 = "#262627"
 fg1 = "#b6b6b7"
 
-APP_VER = "0.3.11"
+APP_VER = "0.3.12"
 
 class ScriptError(Exception):...
 
