@@ -58,8 +58,9 @@ def containerof(*node_types):
         return cls
     return inner
 
+@dataclass
 class ModelDoc:
-    
+
     @dataclass
     class RootNode(_BaseNode):
         model_archetype: str = ""
@@ -205,12 +206,6 @@ class ModelDoc:
     class Prefab(_Node):
         target_file: resourcepath = ""
 
-    @staticmethod
-    def get_container(node_type: Type[_Node]):
-        for basecontainer in mdBaseLists:
-            if node_type in basecontainer._childtypes:
-                return basecontainer
-
     #@containerof(BodyGroupChoice)
     @dataclass
     class BodyGroup(_Node):
@@ -254,3 +249,29 @@ class ModelDoc:
 
     @containerof(Prefab)
     class PrefabList(_BaseNode): pass
+
+    rootNode: RootNode = field(default_factory=RootNode)
+
+    @staticmethod
+    def get_container(node_type: Type[_Node]):
+        for basecontainer in mdBaseLists:
+            if node_type in basecontainer._childtypes:
+                return basecontainer
+
+    def __post_init__(self):
+        self.base_lists: dict[Type[_BaseNode], _BaseNode] = field(default_factory=dict, init=False)
+
+    def add_to_appropriate_list(self, node: _Node):
+        """
+        Adds bodygroup to bodygrouplist, animfile to animationlist, etc. Only makes one list.
+        """
+        container_type = ModelDoc.get_container(type(node))
+        container = self.base_lists.get(container_type)
+        if container is None:
+            if container_type is None:
+                raise RuntimeError(f"Don't know where {type(node)} belongs.")
+            container = container_type()
+            self.base_lists[container_type] = container
+            self.root.add_nodes(container)
+        
+        container.add_nodes(node)

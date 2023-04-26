@@ -2,10 +2,10 @@ import itertools
 import shutil
 from typing import Literal, Type, Union
 import shared.base_utils2 as sh
+import kv3
 from pathlib import Path
 from itertools import tee
 from srctools import smd
-from shared.keyvalues3 import KV3File, KV3Header
 
 """
 Import Source Engine models to Source 2
@@ -93,11 +93,10 @@ def main():
 
 
 def ImportMDLtoVMDL(mdl_path: Path):
-    vmdl_path = mdl_path.with_suffix('.vmdl')
-    vmdl = KV3File(
+    vmdl = dict(
         m_sMDLFilename = ("../"*SAMPBOX) + mdl_path.local.as_posix()
     )
-    vmdl_path.write_text(vmdl.ToString())
+    kv3.write(vmdl, mdl_path.with_suffix('.vmdl'))
     print('+ Generated', vmdl_path.local)
     return vmdl_path
 
@@ -117,7 +116,7 @@ AE_IDS = {
 
 
 def ImportQCtoVMDL(qc_path: Path):
-    vmdl = ModelDocVMDL()
+    vmdl = ModelDoc()
     
     # local paths
     active_folder: Path = qc_path.local.parent
@@ -192,8 +191,8 @@ def ImportQCtoVMDL(qc_path: Path):
     for command in qc_commands:
         match command:
             case QC.staticprop():
-                vmdl.root.model_archetype = "static_prop_model"
-                vmdl.root.primary_associated_entity = "prop_static"
+                vmdl.rootNode.model_archetype = "static_prop_model"
+                vmdl.rootNode.primary_associated_entity = "prop_static"
             case QC.popd():
                 try:
                     active_folder = dir_stack.pop()
@@ -526,7 +525,7 @@ def ImportQCtoVMDL(qc_path: Path):
         # grab $animation, $sequence, $attachment and $collisiontext from this model
         elif isinstance(command, QC.includemodel):
             command: QC.includemodel
-            vmdl.root.base_model_name = (models / command.filename).with_suffix('.vmdl').as_posix()
+            vmdl.rootNode.base_model_name = (models / command.filename).with_suffix('.vmdl').as_posix()
         
         elif isinstance(command, QC.declaresequence):
             sequences_declared.append(command.name)
@@ -606,7 +605,7 @@ def ImportQCtoVMDL(qc_path: Path):
     out_vmdl_path.parent.MakeDir()
 
     if len(sequences_declared):
-        vmdl_prefab = ModelDocVMDL()
+        vmdl_prefab = ModelDoc()
         out_vmdl_prefab_path = out_vmdl_path.with_name("declared_sequences.vmdl_prefab")
 
         for sequence in sequences_declared:
@@ -615,45 +614,19 @@ def ImportQCtoVMDL(qc_path: Path):
             )
             vmdl_prefab.add_to_appropriate_list(animfile)
 
-        out_vmdl_prefab_path.write_text(vmdl_prefab.ToString())
+        kv3.write(vmdl_prefab, out_vmdl_prefab_path)
         print('+ Saved prefab', out_vmdl_prefab_path.local)
 
     if len(skeleton.children):
-        vmdl.root.add_nodes(skeleton)
+        vmdl.rootNode.add_nodes(skeleton)
         
-    out_vmdl_path.write_text(vmdl.ToString())
+    kv3.write(vmdl, out_vmdl_path)
     print('+ Saved', out_vmdl_path.local)
 
 
-from dataclasses import asdict
-class ModelDocVMDL(KV3File):
-    def __init__(self):
-        self.header = KV3Header(
-            format='source1imported',
-            format_ver='3cec427c-1b0e-4d48-a90a-0436f33a6041' if sh.SBOX else 'fb63b6ca-f435-4aa0-a2c7-c66ddc651dca'
-        )
-        self.root = ModelDoc.RootNode()
+from dataclasses import dataclass, asdict
 
-        self.base_lists: dict[Type[_BaseNode], _BaseNode] = {}
 
-    def __str__(self):
-        self["rootNode"] = asdict(self.root)
-        return super().__str__()
-
-    def add_to_appropriate_list(self, node: _Node):
-        """
-        Adds bodygroup to bodygrouplist, animfile to animationlist, etc. Only makes one list.
-        """
-        container_type = ModelDoc.get_container(type(node))
-        container = self.base_lists.get(container_type)
-        if container is None:
-            if container_type is None:
-                raise RuntimeError(f"Don't know where {type(node)} belongs.")
-            container = container_type()
-            self.base_lists[container_type] = container
-            self.root.add_nodes(container)
-        
-        container.add_nodes(node)
 
 if __name__ == "__main__":
     # TODO: Don't ask for src1?
