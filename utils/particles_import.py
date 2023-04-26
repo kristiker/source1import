@@ -1,5 +1,6 @@
 import shared.base_utils2 as sh
 import shared.datamodel as dmx
+from uuid import UUID
 import keyvalues3 as kv3
 from dataclasses import dataclass
 from pathlib import Path
