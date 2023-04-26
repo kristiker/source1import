@@ -185,7 +185,7 @@ class SoundscapeImporter:
                 }
             }
             """
-            keyvalues3.write(dict(data=(data=sndscape_data)), sndscape_file)
+            keyvalues3.write(dict(data=sndscape_data)), sndscape_file)
             print("+ Saved", sndscape_file.local)
         return sndscape_folder
 
