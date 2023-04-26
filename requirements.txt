@@ -3,7 +3,7 @@ Pillow
 numpy
 
 # Particles, prop_data
-keyvalues3==0.1a1
+keyvalues3==0.1a2
 
 # Maps
 vdf
