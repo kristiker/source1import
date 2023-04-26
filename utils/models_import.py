@@ -2,7 +2,7 @@ import itertools
 import shutil
 from typing import Literal, Type, Union
 import shared.base_utils2 as sh
-import kv3
+import keyvalues3 as kv3
 from pathlib import Path
 from itertools import tee
 from srctools import smd
