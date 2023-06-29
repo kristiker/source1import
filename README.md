@@ -3,7 +3,7 @@ Set of scripts for importing Source 1 assets such as materials, models, and part
 
 Based off of [source2utils](https://github.com/AlpyneDreams/source2utils).
 
-CS2 Alert: This tool doesn't support touchstone shaders in Counter-Strike 2, so you should most likely use the Valve provided import scripts instead.
+CS2 Alert: This tool doesn't support touchstone shaders in Counter-Strike 2, so you should most likely use the Valve provided [import scripts](https://github.com/andreaskeller96/cs2-import-scripts) instead.
 
 ## Usage
 #### Download from here: [Releases](https://github.com/kristiker/source1import/releases)
