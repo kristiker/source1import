@@ -23,8 +23,7 @@ Based off of [source2utils](https://github.com/AlpyneDreams/source2utils).
 * Make sure to move the entire s1 `sound` folder to `content/` and rename it to `sounds`. No import necessary.
 * Make sure to have `gameinfo.txt` present in Import Game.
 * Make sure to read [this guide](https://developer.valvesoftware.com/wiki/Half-Life:_Alyx_Workshop_Tools/Importing_Source_1_Maps) for importing map files.
-* Materials won't make use of the PBR renderer. Make sure to tweak them like [here](https://github.com/kristiker/css2-inf-materials#readme), or even better; remake them.
-* Materials are mainly converted to Complex and Simple.
+* Materials won't be PBR ready. so you need to use some other post-conversion tool.
 
 ## Advanced Usage:
 ### CLI:
