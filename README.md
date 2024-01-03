@@ -1,7 +1,7 @@
 # source1import
 Set of scripts for importing Source 1 assets such as materials, models, and particle effects into Source 2. Inspired by Valve's own import utility also named source1import.
 
-The main difference is this one is open source so you can customize it (e.g. use different shader sets). 
+The main difference is this one is open source so you can customize it (i.e. use different shader sets). 
 
 Based off of [source2utils](https://github.com/AlpyneDreams/source2utils).
 
@@ -9,6 +9,7 @@ Based off of [source2utils](https://github.com/AlpyneDreams/source2utils).
 > This tool has a number of disadvantages over the built-in [CS2 Import Scripts](https://github.com/andreaskeller96/cs2-import-scripts). Including:
 > * No PBR material conversion. So your textures will look dark and flat.
 > * No map converter.
+> * Cannot filter assets by map.
 
 > [!Note]
 > However there may be some features you might find useful such as:
