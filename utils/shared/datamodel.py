@@ -161,10 +161,13 @@ class _FloatArray(_Array):
 class _StrArray(_Array):
 	type = str
 
+import types
 class _Vector(list):
 	type = None
 	type_str = ""
 	def __init__(self,l):
+		if isinstance(l, types.GeneratorType):
+			l = list(l)
 		if len(l) != len(self.type_str):
 			raise TypeError("Expected {} values, got {}".format(len(self.type_str), len(l)))
 		l = _validate_array_list(l,float if self.type is None else self.type)

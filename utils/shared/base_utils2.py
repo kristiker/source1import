@@ -90,6 +90,7 @@ class eEngineUtils(Enum):
     dmxconvert = auto()
     resourcecompiler = auto()
     resourcecopy = auto()
+    vpk = auto()
 
 class eEngineFolder(Enum):
     "Source 2 main folders relative to root"
