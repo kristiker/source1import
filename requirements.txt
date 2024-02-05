@@ -2,6 +2,9 @@
 Pillow
 numpy
 
+# Particles, prop_data
+keyvalues3==0.1a2
+
 # Maps
 vdf
 dataclassy==0.10.4

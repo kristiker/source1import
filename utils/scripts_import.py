@@ -2,7 +2,7 @@ import shared.base_utils2 as sh
 from shutil import copyfile
 from pathlib import Path
 from shared.keyvalues1 import KV, VDFDict
-from shared.keyvalues3 import KV3File
+import keyvalues3
 import itertools
 
 OVERWRITE_ASSETS = False
@@ -84,7 +84,7 @@ def main():
                 sh.MakeDir(sh.output(scripts))
                 if not (sh.output(propdata, ".vdata").is_file() and not OVERWRITE_ASSETS):
                     kv = KV.FromFile(propdata, case_sensitive=True)
-                    kv3 = KV3File(generic_data_type = "prop_data")
+                    kv3 = dict(generic_data_type = "prop_data")
                     for name, data in kv.items():
                         if name.lower() == "breakablemodels":
                             continue
@@ -93,7 +93,7 @@ def main():
                             if key.lower() == "base":
                                 key = "_base"
                             kv3[name][key] = value
-                    sh.output(propdata, ".vdata").write_text(kv3.ToString())
+                    keyvalues3.write(kv3, sh.output(propdata, ".vdata"))
                     print("+ Saved scripts/propdata.vdata")
             else:
                 sh.import_context['dest'] = sh.EXPORT_GAME
@@ -185,7 +185,7 @@ class SoundscapeImporter:
                 }
             }
             """
-            sndscape_file.write_text(KV3File(data=sndscape_data).ToString())
+            keyvalues3.write(dict(data=sndscape_data), sndscape_file)
             print("+ Saved", sndscape_file.local)
         return sndscape_folder
 
@@ -277,7 +277,7 @@ def ImportGameSounds(asset_path: Path):
             return out_v, range
 
     kv = KV.CollectionFromFile(asset_path)
-    kv3 = KV3File()
+    kv3 = dict()
 
     for gamesound, gs_data in kv.items(): # "weapon.fire", {}
 
@@ -379,7 +379,7 @@ def ImportGameSounds(asset_path: Path):
             out_kv[out_k] = out_v
 
         if sh.SBOX:
-            sound_file.write_text(KV3File(data=sound_data).ToString())
+            keyvalues3.write(dict(data=sound_data), sound_file)
             print("+ Saved", sound_file.local)
         else:
             if out_kv == dict(type='src1_3d'):  # empty
@@ -396,7 +396,7 @@ def ImportGameSounds(asset_path: Path):
     if sh.SBOX:
         return out_sound_folder
     else:
-        vsndevts_file.write_text(kv3.ToString())
+        keyvalues3.write(kv3, vsndevts_file)
 
         print("+ Saved", vsndevts_file.local)
         return vsndevts_file
@@ -432,7 +432,7 @@ def ImportSurfaceProperties(asset_path: Path):
         surface_folder.MakeDir()
 
     surface_collection = KV.CollectionFromFile(asset_path)
-    vsurf = KV3File(SurfacePropertiesList = [])
+    vsurf = dict(SurfacePropertiesList = [])
 
     for surface, properties in {**surface_collection}.items():
         new_surface = dict(surfacePropertyName = surface)
@@ -486,7 +486,7 @@ def ImportSurfaceProperties(asset_path: Path):
                 surface_data["Sounds"][key] = value
 
         if sh.SBOX:
-            surface_file.write_text(KV3File(data=surface_data).ToString())
+            keyvalues3.write(dict(data=surface_data), surface_file)
             print("+ Saved", surface_file.local)
         else:
             # Add default base
@@ -503,7 +503,7 @@ def ImportSurfaceProperties(asset_path: Path):
     if sh.SBOX:
         return surface_folder
     else:
-        vsurf_file.write_text(vsurf.ToString())
+        keyvalues3.write(vsurf, vsurf_file)
         print("+ Saved", vsurf_file.local)
 
         return vsurf_file, vsurf['SurfacePropertiesList']
@@ -532,7 +532,7 @@ class VsurfManifestHandler:
         if not (self.manifest_files and self.all_surfaces):
             return
         vsurf_path = next(iter(self.all_surfaces)).with_stem('surfaceproperties')
-        vsurf = KV3File(SurfacePropertiesList = [])
+        vsurf = dict(SurfacePropertiesList = [])
         for file in self.manifest_files[::-1]:
             file = vsurf_path.parents[1] / 'surfaceproperties' / Path(file).with_suffix('.vsurf').name
             for surfaceproperty in self.all_surfaces.get(file, ()):
@@ -545,7 +545,7 @@ class VsurfManifestHandler:
                     continue
                 vsurf['SurfacePropertiesList'].append(surfaceproperty)
 
-        vsurf_path.write_text(vsurf.ToString())
+        keyvalues3.write(vsurf, vsurf_path)
         print("+ Saved", vsurf_path.local)
 
 if __name__ == '__main__':
