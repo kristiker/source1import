@@ -10,3 +10,7 @@ bsp_tool==0.3.1
 # Models/qc-import
 parsimonious==0.10.0
 srctools==2.3.4
+
+# Needed for installer(s)
+Nuitka==2.6.7
+pyinstaller==6.12.0
